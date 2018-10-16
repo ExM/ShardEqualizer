@@ -1,0 +1,8 @@
+*.suo
+*~
+*/bin/
+*/obj/
+*.userprefs
+*.user
+packages/*
+/.vs
