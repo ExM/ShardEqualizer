@@ -71,33 +71,14 @@ namespace MongoDB.ClusterMaintenance
 			if (collInfo == null)
 				throw new InvalidOperationException($"collection {opts.Database}.{opts.Collection} not sharded");
 
-			var total = await chunkRepo.Count(opts.Database, opts.Collection);
+			var scanner = new EmptyChunkScanner(db, collInfo, chunkRepo, token);
 
-			_log.Info("Total shards: {0}", total);
+			await scanner.Run();
 			
-			var cursor = await chunkRepo.Find(opts.Database, opts.Collection);
-			await cursor.ForEachAsync(chunk => processChunk(db, collInfo, chunk, token), token);
+			
 		}
 
-		private static async Task processChunk(IMongoDatabase db, ShardedCollectionInfo collInfo, ChunkInfo chunk, CancellationToken token)
-		{
-			_log.Debug("Process chunk: {0}/{1}", chunk.Id, chunk.Shard);
-			
-			var cmd = new BsonDocument
-			{
-				{ "datasize", collInfo.Id },
-				{ "keyPattern", collInfo.Key },
-				{ "min", chunk.Min },
-				{ "max", chunk.Max }
-			};
-
-			var result = await db.RunCommandAsync<DatasizeResult>(cmd, null, token).ConfigureAwait(false);
-			
-			if(result.IsSuccess)
-				_log.Info("chunk: {0}/{1} size: {2}", chunk.Id, chunk.Shard, result.Size);
-			else
-				_log.Warn("datasize command fail");
-		}
+		
 	}
 	
 	public class DatasizeResult : CommandResult

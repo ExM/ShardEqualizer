@@ -14,15 +14,13 @@ namespace MongoDB.ClusterMaintenance
 				.GetCollection<ChunkInfo>("chunks");
 		}
 
-		public Task<IAsyncCursor<ChunkInfo>> Find(string database, string collection)
+		public Task<IAsyncCursor<ChunkInfo>> Find(string ns)
 		{
-			var ns = $"{database}.{collection}";
 			return _coll.FindAsync(_ => _.Namespace == ns);
 		}
 
-		public Task<long> Count(string database, string collection)
+		public Task<long> Count(string ns)
 		{
-			var ns = $"{database}.{collection}";
 			return _coll.CountDocumentsAsync(_ => _.Namespace == ns);
 		}
 	}
