@@ -23,5 +23,8 @@ namespace MongoDB.ClusterMaintenance
 		
 		[BsonElement("unique"), BsonIgnoreIfNull]
 		public bool? Unique { get; private set; }
+		
+		[BsonElement("noBalance"), BsonIgnoreIfNull]
+		public bool? NoBalance { get; private set; }
 	}
 }
