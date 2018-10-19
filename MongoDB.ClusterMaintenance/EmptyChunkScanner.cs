@@ -17,6 +17,7 @@ namespace MongoDB.ClusterMaintenance
 		private readonly IMongoDatabase _db;
 		private readonly ShardedCollectionInfo _collInfo;
 		private readonly ChunkRepository _chunkRepo;
+		private readonly IList<string> _shardNames;
 		private readonly CancellationToken _token;
 
 		private Stopwatch _sw = null;
@@ -26,24 +27,29 @@ namespace MongoDB.ClusterMaintenance
 		private long _processedChunks = 0;
 		private readonly Dictionary<string, long> _zeroChunkCountByShards = new Dictionary<string, long>();
 
-		public EmptyChunkScanner(IMongoDatabase db, ShardedCollectionInfo collInfo, ChunkRepository chunkRepo, CancellationToken token)
+		public EmptyChunkScanner(IMongoDatabase db, ShardedCollectionInfo collInfo, ChunkRepository chunkRepo,
+			IList<string> shardNames, CancellationToken token)
 		{
 			_db = db;
 			_collInfo = collInfo;
 			_chunkRepo = chunkRepo;
+			_shardNames = shardNames;
 			_token = token;
 		}
 
 		public async Task Run()
 		{
-			_totalChunks = await _chunkRepo.Count(_collInfo.Id);
+			_totalChunks = await _chunkRepo.Count(_collInfo.Id, _shardNames);
 			_log.Info("Total chunks: {0}", _totalChunks);
 			_sw = Stopwatch.StartNew();
 
 			var task = showProgressLoop();
-			var cursor = await _chunkRepo.Find(_collInfo.Id);
+			var cursor = await _chunkRepo.Find(_collInfo.Id, _shardNames);
 			await cursor.ForEachAsync(chunk => processChunk(chunk), _token);
 
+			lock (_sync)
+				_processedChunks = _totalChunks;
+			
 			await task;
 		}
 
@@ -55,12 +61,12 @@ namespace MongoDB.ClusterMaintenance
 
 		private bool showProgress()
 		{
-			Dictionary<string, long> copyZeroChunkCountByShards;
+			KeyValuePair<string, long>[] copyZeroChunkCountByShards;
 			long copyProcessedChunks;
 			
 			lock (_sync)
 			{
-				copyZeroChunkCountByShards = new Dictionary<string, long>(_zeroChunkCountByShards);
+				copyZeroChunkCountByShards = _zeroChunkCountByShards.ToArray();
 				copyProcessedChunks = _processedChunks;
 			}
 

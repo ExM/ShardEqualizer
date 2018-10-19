@@ -5,7 +5,7 @@ using NLog;
 
 namespace MongoDB.ClusterMaintenance
 {
-	internal sealed class CommandLogger
+	public sealed class CommandLogger
 	{
 		private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 
