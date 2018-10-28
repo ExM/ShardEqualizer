@@ -65,5 +65,7 @@ namespace MongoDB.ClusterMaintenance
 		protected bool IsRequireAuth => User != null || Password != null;
 
 		protected MongoClient MongoClient => _lazyMongoClient.Value;
+
+		protected CollectionNamespace CollectionNamespace => new CollectionNamespace(Database, Collection);
 	}
 }

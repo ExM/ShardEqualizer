@@ -1,4 +1,5 @@
 ﻿using CommandLine;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,6 +11,7 @@ namespace MongoDB.ClusterMaintenance
 		public override async Task Run(CancellationToken token)
 		{
 			//TODO
+			throw new NotImplementedException();
 		}
 	}
 }

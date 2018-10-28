@@ -1,0 +1,104 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using MongoDB.Bson;
+using MongoDB.Driver;
+using NLog;
+
+namespace MongoDB.ClusterMaintenance
+{
+	public abstract class ChunkScanner
+	{
+		private static readonly Logger _log = LogManager.GetCurrentClassLogger();
+		
+		private readonly IMongoDatabase _db;
+		private readonly ChunkRepository _chunkRepo;
+		private readonly CollectionNamespace _ns;
+		private readonly BsonDocument _key;
+		private readonly CancellationToken _token;
+
+		private Stopwatch _sw = null;
+		private long _totalChunks = 0;
+
+		private long _processedChunks = 0;
+
+		public ChunkScanner(IMongoDatabase db, ChunkRepository chunkRepo,
+			CollectionNamespace ns, BsonDocument key, CancellationToken token)
+		{
+			_db = db;
+			_chunkRepo = chunkRepo;
+			_ns = ns;
+			_key = key;
+			_token = token;
+		}
+
+		public async Task Run()
+		{
+			_totalChunks = await _chunkRepo.Count(_ns);
+
+			_log.Info("Total chunks: {0}", _totalChunks);
+			_sw = Stopwatch.StartNew();
+
+			var task = showProgressLoop();
+			var cursor = await _chunkRepo.Find(_ns);
+			await cursor.ForEachAsync(chunk => processChunk(chunk), _token);
+
+			Thread.VolatileWrite(ref _processedChunks, _totalChunks);
+			await task;
+		}
+
+		private async Task showProgressLoop()
+		{
+			while (showProgress())
+				await Task.Delay(TimeSpan.FromSeconds(1), _token);
+		}
+
+		protected abstract void ShowProgress();
+
+		private bool showProgress()
+		{
+			var copyProcessedChunks = Thread.VolatileRead(ref _processedChunks);
+
+			var elapsed = _sw.Elapsed;
+			var percent = (double)copyProcessedChunks / _totalChunks;
+			var s = percent <= 0 ? 0 : (1 - percent) / percent;
+
+			var eta = TimeSpan.FromSeconds(elapsed.TotalSeconds * s);
+
+			_log.Info("Progress {0}/{1} Elapsed: {2} ETA: {3}", copyProcessedChunks, _totalChunks, elapsed, eta);
+
+			ShowProgress();
+
+			return copyProcessedChunks < _totalChunks;
+		}
+
+		protected abstract void ProcessChunk(ChunkInfo chunk, DatasizeResult datasize);
+
+		private async Task processChunk(ChunkInfo chunk)
+		{
+			_log.Debug("Process chunk: {0}/{1}", chunk.Id, chunk.Shard);
+
+			ProcessChunk(chunk, await runDatasizeCommand(chunk));
+
+			Interlocked.Increment(ref _processedChunks);
+		}
+		
+		private async Task<DatasizeResult> runDatasizeCommand(ChunkInfo chunk)
+		{
+			var cmd = new BsonDocument
+			{
+				{ "datasize", _ns.FullName },
+				{ "keyPattern", _key },
+				{ "min", chunk.Min },
+				{ "max", chunk.Max }
+			};
+
+			return await _db.RunCommandAsync<DatasizeResult>(cmd, null, _token);
+		}
+	}
+}

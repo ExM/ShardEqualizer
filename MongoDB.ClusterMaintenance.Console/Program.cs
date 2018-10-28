@@ -23,7 +23,7 @@ namespace MongoDB.ClusterMaintenance
 				_log.Warn("cancel operation requested...");
 			};
 			
-			var parsed = Parser.Default.ParseArguments<ScanChunks, MergeChunks>(args) as Parsed<object>;
+			var parsed = Parser.Default.ParseArguments<ScanChunks, MergeChunks, DistributeData>(args) as Parsed<object>;
 			
 			return parsed == null 
 				? 1
@@ -35,7 +35,6 @@ namespace MongoDB.ClusterMaintenance
 			try
 			{
 				await action(token);
-				LogManager.Flush();
 				return 0;
 			}
 			catch (Exception e)
@@ -45,8 +44,12 @@ namespace MongoDB.ClusterMaintenance
 					_log.Fatal(e, "unexpected exception");
 					Console.Error.WriteLine(e.Message);
 				}
-				LogManager.Flush();
+				
 				return 1;
+			}
+			finally
+			{
+				LogManager.Flush();
 			}
 		}
 	}

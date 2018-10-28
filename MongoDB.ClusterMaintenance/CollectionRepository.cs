@@ -14,11 +14,9 @@ namespace MongoDB.ClusterMaintenance
 				.GetCollection<ShardedCollectionInfo>("collections");
 		}
 
-		public Task<ShardedCollectionInfo> Find(string database, string collection)
+		public Task<ShardedCollectionInfo> Find(CollectionNamespace ns)
 		{
-			var collId = $"{database}.{collection}";
-
-			return _coll.Find(_ => _.Id == collId).FirstOrDefaultAsync();
+			return _coll.Find(_ => _.Id == ns.FullName).FirstOrDefaultAsync();
 		}
 	}
 }
