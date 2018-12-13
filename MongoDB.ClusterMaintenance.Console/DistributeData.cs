@@ -28,13 +28,12 @@ namespace MongoDB.ClusterMaintenance
 
 		public override async Task Run(CancellationToken token)
 		{
-			var collRepo = new CollectionRepository(MongoClient);
-			var collInfo = await collRepo.Find(CollectionNamespace);
+			var collInfo = await ConfigDb.Collections.Find(CollectionNamespace);
 
 			if (collInfo == null)
 				throw new InvalidOperationException($"collection {Database}.{Collection} not sharded");
 
-			var filtered = new ChunkRepository(MongoClient)
+			var filtered = ConfigDb.Chunks
 				.ByNamespace(CollectionNamespace)
 				.ChunkFrom(ChunkFrom)
 				.ChunkTo(ChunkTo);
@@ -56,20 +55,6 @@ namespace MongoDB.ClusterMaintenance
 			
 			Console.WriteLine("//Tag Range Commands:");
 			Console.WriteLine(allCommands);
-			/*
-			var progress = new ProgressReporter(await filtered.Count());
-
-			await (await filtered.Find()).ForEachAsync(async chunk =>
-			{
-				_log.Info("Total chunks: {0}", chunk.Min.ToJson(new JsonWriterSettings() { Indent = false}));
-				progress.Increment();
-				
-				
-				
-			}, token);
-
-			await progress.Finalize();
-			*/
 		}
 	}
 }

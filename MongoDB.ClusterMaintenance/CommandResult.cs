@@ -8,6 +8,12 @@ namespace MongoDB.ClusterMaintenance
 	{
 		[BsonElement("ok")]
 		public int Ok { get; private set; }
+		
+		[BsonElement("errmsg"), BsonIgnoreIfNull]
+		public string ErrorMessage { get; private set; }
+		
+		[BsonElement("millis"), BsonIgnoreIfDefault]
+		public long Millis { get; private set; }
 
 		public bool IsSuccess => Ok == 1;
 
@@ -15,7 +21,7 @@ namespace MongoDB.ClusterMaintenance
 		{
 			if (!IsSuccess)
 			{
-				throw new InvalidOperationException("no success result");
+				throw new InvalidOperationException(ErrorMessage);
 			}
 		}
 	}

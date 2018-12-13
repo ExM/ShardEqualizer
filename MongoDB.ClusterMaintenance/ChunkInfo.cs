@@ -1,6 +1,7 @@
 using System;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Driver;
 
 namespace MongoDB.ClusterMaintenance
 {
@@ -16,7 +17,7 @@ namespace MongoDB.ClusterMaintenance
 		public BsonTimestamp Lastmod { get; private set; }
 		
 		[BsonElement("ns"), BsonRequired]
-		public string Namespace { get; private set; }
+		public CollectionNamespace Namespace { get; private set; }
 		
 		[BsonElement("min"), BsonRequired]
 		public BsonDocument Min { get; private set; }

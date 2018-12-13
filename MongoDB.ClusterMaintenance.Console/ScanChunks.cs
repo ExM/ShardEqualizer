@@ -22,17 +22,14 @@ namespace MongoDB.ClusterMaintenance
 
 		public override async Task Run(CancellationToken token)
 		{
-			var collRepo = new CollectionRepository(MongoClient);
-			var chunkRepo = new ChunkRepository(MongoClient);
-
 			var db = MongoClient.GetDatabase(Database);
 			
-			var collInfo = await collRepo.Find(CollectionNamespace);
+			var collInfo = await ConfigDb.Collections.Find(CollectionNamespace);
 
 			if (collInfo == null)
 				throw new InvalidOperationException($"collection {Database}.{Collection} not sharded");
 
-			var filtered = new ChunkRepository(MongoClient)
+			var filtered = ConfigDb.Chunks
 				.ByNamespace(CollectionNamespace)
 				.ByShards(ShardNames);
 			
@@ -59,7 +56,7 @@ namespace MongoDB.ClusterMaintenance
 			{
 				_log.Debug("Process chunk: {0}/{1}", chunk.Id, chunk.Shard);
 
-				var result = await runDatasizeCommand(db, collInfo, chunk, token);
+				var result = await db.Datasize(collInfo, chunk, token);
 
 				if (result.IsSuccess)
 				{
@@ -76,24 +73,8 @@ namespace MongoDB.ClusterMaintenance
 			}, token);
 
 			await progress.Finalize();
-			
-			//var scanner = new EmptyChunkScanner(db, collInfo, chunkRepo, ShardNames, Sizes, token);
-			//await scanner.Run();
 		}
 		
-		private async Task<DatasizeResult> runDatasizeCommand(IMongoDatabase db, ShardedCollectionInfo collInfo, ChunkInfo chunk, CancellationToken token)
-		{
-			var cmd = new BsonDocument
-			{
-				{ "datasize", collInfo.Id },
-				{ "keyPattern", collInfo.Key },
-				{ "min", chunk.Min },
-				{ "max", chunk.Max }
-			};
-
-			return await db.RunCommandAsync<DatasizeResult>(cmd, null, token);
-		}
-
 		private class ChunkCounts
 		{
 			private long _jumbo;

@@ -7,16 +7,14 @@ namespace MongoDB.ClusterMaintenance
 	{
 		private IMongoCollection<ShardedCollectionInfo> _coll;
 
-		public CollectionRepository(IMongoClient client)
+		internal CollectionRepository(IMongoDatabase db)
 		{
-			_coll = client
-				.GetDatabase("config")
-				.GetCollection<ShardedCollectionInfo>("collections");
+			_coll = db.GetCollection<ShardedCollectionInfo>("collections");
 		}
 
 		public Task<ShardedCollectionInfo> Find(CollectionNamespace ns)
 		{
-			return _coll.Find(_ => _.Id == ns.FullName).FirstOrDefaultAsync();
+			return _coll.Find(_ => _.Id == ns).FirstOrDefaultAsync();
 		}
 	}
 }

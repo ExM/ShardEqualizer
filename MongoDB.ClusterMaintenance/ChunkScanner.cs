@@ -17,7 +17,7 @@ namespace MongoDB.ClusterMaintenance
 		private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 		
 		private readonly IMongoDatabase _db;
-		private readonly ChunkRepository _chunkRepo;
+		private readonly ChunkRepository.Filtered _chunkRepo;
 		private readonly CollectionNamespace _ns;
 		private readonly BsonDocument _key;
 		private readonly CancellationToken _token;
@@ -31,7 +31,7 @@ namespace MongoDB.ClusterMaintenance
 			CollectionNamespace ns, BsonDocument key, CancellationToken token)
 		{
 			_db = db;
-			_chunkRepo = chunkRepo;
+			_chunkRepo = chunkRepo.ByNamespace(ns);
 			_ns = ns;
 			_key = key;
 			_token = token;
@@ -39,13 +39,13 @@ namespace MongoDB.ClusterMaintenance
 
 		public async Task Run()
 		{
-			_totalChunks = await _chunkRepo.Count(_ns);
+			_totalChunks = await _chunkRepo.Count();
 
 			_log.Info("Total chunks: {0}", _totalChunks);
 			_sw = Stopwatch.StartNew();
 
 			var task = showProgressLoop();
-			var cursor = await _chunkRepo.Find(_ns);
+			var cursor = await _chunkRepo.Find();
 			await cursor.ForEachAsync(chunk => processChunk(chunk), _token);
 
 			Thread.VolatileWrite(ref _processedChunks, _totalChunks);
@@ -83,22 +83,10 @@ namespace MongoDB.ClusterMaintenance
 		{
 			_log.Debug("Process chunk: {0}/{1}", chunk.Id, chunk.Shard);
 
-			ProcessChunk(chunk, await runDatasizeCommand(chunk));
+			ProcessChunk(chunk,
+				await _db.Datasize(_ns, _key, chunk.Min, chunk.Max, _token));
 
 			Interlocked.Increment(ref _processedChunks);
-		}
-		
-		private async Task<DatasizeResult> runDatasizeCommand(ChunkInfo chunk)
-		{
-			var cmd = new BsonDocument
-			{
-				{ "datasize", _ns.FullName },
-				{ "keyPattern", _key },
-				{ "min", chunk.Min },
-				{ "max", chunk.Max }
-			};
-
-			return await _db.RunCommandAsync<DatasizeResult>(cmd, null, _token);
 		}
 	}
 }

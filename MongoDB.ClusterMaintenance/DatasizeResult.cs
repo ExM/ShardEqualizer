@@ -10,8 +10,5 @@ namespace MongoDB.ClusterMaintenance
 		
 		[BsonElement("numObjects"), BsonIgnoreIfNull]
 		public long NumObjects { get; private set; }
-		
-		[BsonElement("millis"), BsonIgnoreIfNull]
-		public long Millis { get; private set; }
 	}
 }

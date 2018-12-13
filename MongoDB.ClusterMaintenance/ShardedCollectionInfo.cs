@@ -1,13 +1,14 @@
 using System;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Driver;
 
 namespace MongoDB.ClusterMaintenance
 {
 	public class ShardedCollectionInfo
 	{
 		[BsonId]
-		public string Id { get; private set; }
+		public CollectionNamespace Id { get; private set; }
 
 		[BsonElement("lastmodEpoch"), BsonRequired]
 		public ObjectId LastmodEpoch { get; private set; }

@@ -32,11 +32,16 @@ namespace MongoDB.ClusterMaintenance
 		public abstract Task Run(CancellationToken token);
 		
 		private static readonly Logger _log = LogManager.GetCurrentClassLogger();
+		
 		private readonly Lazy<MongoClient> _lazyMongoClient;
+		private readonly Lazy<ConfigDbRepositoryProvider> _configDb;
+		private readonly Lazy<AdminDB> _adminDB;
 
 		protected BaseOptions()
 		{
 			_lazyMongoClient = new Lazy<MongoClient>(createClient);
+			_configDb = new Lazy<ConfigDbRepositoryProvider>(createConfigDb);
+			_adminDB = new Lazy<AdminDB>(createAdminDB);
 		}
 
 		private MongoClient createClient()
@@ -57,14 +62,28 @@ namespace MongoDB.ClusterMaintenance
 			
 			var settings = MongoClientSettings.FromUrl(urlBuilder.ToMongoUrl());
 			settings.ClusterConfigurator += CommandLogger.Subscriber;
-			settings.ReadPreference = ReadPreference.SecondaryPreferred;
+			settings.ReadPreference = ReadPreference.Primary;
 
 			return new MongoClient(settings);
+		}
+		
+		private ConfigDbRepositoryProvider createConfigDb()
+		{
+			return new ConfigDbRepositoryProvider(MongoClient);
+		}
+		
+		private AdminDB createAdminDB()
+		{
+			return new AdminDB(MongoClient);
 		}
 
 		protected bool IsRequireAuth => User != null || Password != null;
 
 		protected MongoClient MongoClient => _lazyMongoClient.Value;
+		
+		protected AdminDB AdminDB => _adminDB.Value;
+
+		protected ConfigDbRepositoryProvider ConfigDb => _configDb.Value;
 
 		protected CollectionNamespace CollectionNamespace => new CollectionNamespace(Database, Collection);
 	}

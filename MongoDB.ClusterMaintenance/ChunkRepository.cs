@@ -9,44 +9,14 @@ namespace MongoDB.ClusterMaintenance
 	{
 		private readonly IMongoCollection<ChunkInfo> _coll;
 
-		public ChunkRepository(IMongoClient client)
+		internal ChunkRepository(IMongoDatabase db)
 		{
-			_coll = client
-				.GetDatabase("config")
-				.GetCollection<ChunkInfo>("chunks");
-		}
-
-		public Task<IAsyncCursor<ChunkInfo>> Find(CollectionNamespace ns)
-		{
-			return _coll.FindAsync(_ => _.Namespace == ns.FullName);
-		}
-
-		public Task<long> Count(CollectionNamespace ns)
-		{
-			return _coll.CountDocumentsAsync(_ => _.Namespace == ns.FullName);
-		}
-
-		public Task<IAsyncCursor<ChunkInfo>> Find(string ns, IList<string> shardNames)
-		{
-			var filter = Builders<ChunkInfo>.Filter.Eq(_ => _.Namespace, ns);
-			if(shardNames.Any())
-				filter &= Builders<ChunkInfo>.Filter.In(_ => _.Shard, shardNames);
-			
-			return _coll.FindAsync(filter);
-		}
-
-		public Task<long> Count(string ns, IList<string> shardNames)
-		{
-			var filter = Builders<ChunkInfo>.Filter.Eq(_ => _.Namespace, ns);
-			if(shardNames.Any())
-				filter &= Builders<ChunkInfo>.Filter.In(_ => _.Shard, shardNames);
-			
-			return _coll.CountDocumentsAsync(filter);
+			_coll = db.GetCollection<ChunkInfo>("chunks");
 		}
 
 		public Filtered ByNamespace(CollectionNamespace ns)
 		{
-			return new Filtered(_coll, Builders<ChunkInfo>.Filter.Eq(_ => _.Namespace, ns.FullName));
+			return new Filtered(_coll, Builders<ChunkInfo>.Filter.Eq(_ => _.Namespace, ns));
 		}
 		
 		public class Filtered
@@ -64,7 +34,9 @@ namespace MongoDB.ClusterMaintenance
 			{
 				return _coll.FindAsync(_filter, new FindOptions<ChunkInfo>()
 				{
-					Sort = Builders<ChunkInfo>.Sort.Ascending(_ => _.Id)
+					Sort = Builders<ChunkInfo>.Sort
+						.Ascending(_ => _.Namespace)
+						.Ascending(_ => _.Min)
 				});
 			}
 

@@ -18,7 +18,7 @@ namespace MongoDB.ClusterMaintenance
 		private readonly Task _loop;
 		private readonly Stopwatch _sw;
 
-		public ProgressReporter(long total, Action onShowProgress)
+		public ProgressReporter(long total, Action onShowProgress = null)
 		{
 			_total = total;
 			_onShowProgress = onShowProgress;
