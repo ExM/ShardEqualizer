@@ -13,6 +13,11 @@ namespace MongoDB.ClusterMaintenance
 		{
 			_coll = db.GetCollection<ChunkInfo>("chunks");
 		}
+		
+		public Task<ChunkInfo> Find(string id)
+		{
+			return _coll.Find(_ => _.Id == id).SingleOrDefaultAsync();
+		}
 
 		public Filtered ByNamespace(CollectionNamespace ns)
 		{
@@ -60,7 +65,7 @@ namespace MongoDB.ClusterMaintenance
 					return this;
 				
 				return new Filtered(_coll,
-					_filter & Builders<ChunkInfo>.Filter.Gte(_ => _.Id, id));
+					_filter & Builders<ChunkInfo>.Filter.Gt(_ => _.Id, id));
 			}
 			
 			public Filtered ChunkTo(string id)
@@ -69,7 +74,7 @@ namespace MongoDB.ClusterMaintenance
 					return this;
 				
 				return new Filtered(_coll,
-					_filter & Builders<ChunkInfo>.Filter.Lte(_ => _.Id, id));
+					_filter & Builders<ChunkInfo>.Filter.Lt(_ => _.Id, id));
 			}
 		}
 	}

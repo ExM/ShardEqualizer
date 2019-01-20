@@ -23,7 +23,7 @@ namespace MongoDB.ClusterMaintenance
 				_log.Warn("cancel operation requested...");
 			};
 			
-			var parsed = Parser.Default.ParseArguments<ScanChunks, MergeChunks, DistributeData>(args) as Parsed<object>;
+			var parsed = Parser.Default.ParseArguments<ScanChunks, MergeChunks, DistributeData, PresplitData>(args) as Parsed<object>;
 			
 			return parsed == null 
 				? 1
