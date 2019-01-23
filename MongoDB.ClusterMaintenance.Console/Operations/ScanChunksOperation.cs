@@ -1,5 +1,3 @@
-﻿using CommandLine;
-using MongoDB.Driver;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -7,36 +5,57 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using MongoDB.Bson;
+using MongoDB.ClusterMaintenance.Config;
+using MongoDB.Driver;
 using NLog;
 
-namespace MongoDB.ClusterMaintenance
+namespace MongoDB.ClusterMaintenance.Operations
 {
-	[Verb("scan", HelpText = "Scan chunks")]
-	public class ScanChunks: BaseOptions
+	public class ScanChunksOperation : IOperation
 	{
 		private static readonly Logger _log = LogManager.GetCurrentClassLogger();
-		
-		[Option("sizes", Separator = ',', Required = false, HelpText = "additional sizes of chunks")]
-		public IList<string> Sizes { get; set; }
 
-		public override async Task Run(CancellationToken token)
+		private readonly IReadOnlyList<Interval> _intervals;
+		private readonly IConfigDbRepositoryProvider _configDb;
+		private readonly IMongoClient _mongoClient;
+		private readonly IList<string> _sizes;
+
+		public ScanChunksOperation(IReadOnlyList<Interval> intervals, IConfigDbRepositoryProvider configDb, IMongoClient mongoClient, IList<string> sizes)
 		{
-			var db = MongoClient.GetDatabase(Database);
-			
-			var collInfo = await ConfigDb.Collections.Find(CollectionNamespace);
+			_intervals = intervals;
+			_configDb = configDb;
+			_mongoClient = mongoClient;
+			_sizes = sizes;
+		}
+
+		public async Task Run(CancellationToken token)
+		{
+			foreach (var interval in _intervals)
+			{
+				_log.Info("Scan interval {0} {1}", interval.ChunkFrom, interval.ChunkTo);
+				await scanInterval(interval, token);
+			}
+		}
+
+		private async Task scanInterval(Interval interval, CancellationToken token)
+		{
+			var db = _mongoClient.GetDatabase(interval.Namespace.DatabaseNamespace.DatabaseName);
+
+			var collInfo = await _configDb.Collections.Find(interval.Namespace);
 
 			if (collInfo == null)
-				throw new InvalidOperationException($"collection {Database}.{Collection} not sharded");
+				throw new InvalidOperationException($"collection {interval.Namespace.FullName} not sharded");
 
-			var filtered = ConfigDb.Chunks
-				.ByNamespace(CollectionNamespace)
-				.ByShards(ShardNames);
-			
-			var sizesBounds = Sizes.Select(BinaryPrefix.Parse).ToList();
-			var header = string.Join("; ", new string[] { "shard", "jumbo", "empty" }.Concat(Sizes).Concat(new string[] { "Max" }));
+			var filtered = _configDb.Chunks
+				.ByNamespace(interval.Namespace)
+				.ChunkFrom(interval.ChunkFrom)
+				.ChunkTo(interval.ChunkTo);
+
+			var sizesBounds = _sizes.Select(BinaryPrefix.Parse).ToList();
+			var header = string.Join("; ",
+				new string[] {"shard", "jumbo", "empty"}.Concat(_sizes).Concat(new string[] {"Max"}));
 			var chunkCountByShards = new ConcurrentDictionary<string, ChunkCounts>();
-			
+
 			var progress = new ProgressReporter(await filtered.Count(), () =>
 			{
 				var report = new StringBuilder();
@@ -68,13 +87,13 @@ namespace MongoDB.ClusterMaintenance
 				}
 				else
 					_log.Warn("datasize command fail");
-				
+
 				progress.Increment();
 			}, token);
 
 			await progress.Finalize();
 		}
-		
+
 		private class ChunkCounts
 		{
 			private long _jumbo;
@@ -93,7 +112,7 @@ namespace MongoDB.ClusterMaintenance
 			{
 				lock (this)
 				{
-					var cells = new long[] { _jumbo, _empty }.Concat(_byBounds).Concat(new long[] { _max });
+					var cells = new long[] {_jumbo, _empty}.Concat(_byBounds).Concat(new long[] {_max});
 					return string.Join("; ", cells.Select(_ => _.ToString()));
 				}
 			}
@@ -111,11 +130,12 @@ namespace MongoDB.ClusterMaintenance
 							index = pos;
 							break;
 						}
+
 						pos++;
 					}
 				}
 
-				lock(this)
+				lock (this)
 				{
 					if (jumbo)
 						_jumbo++;

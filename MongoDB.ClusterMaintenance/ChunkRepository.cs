@@ -1,5 +1,4 @@
-using System.Collections.Generic;
-using System.Linq;
+using System;
 using System.Threading.Tasks;
 using MongoDB.Driver;
 
@@ -21,23 +20,23 @@ namespace MongoDB.ClusterMaintenance
 
 		public Filtered ByNamespace(CollectionNamespace ns)
 		{
-			return new Filtered(_coll, Builders<ChunkInfo>.Filter.Eq(_ => _.Namespace, ns));
+			return new Filtered(_coll, Task.FromResult(Builders<ChunkInfo>.Filter.Eq(_ => _.Namespace, ns)));
 		}
 		
 		public class Filtered
 		{
 			private readonly IMongoCollection<ChunkInfo> _coll;
-			private readonly FilterDefinition<ChunkInfo> _filter;
+			private readonly Task<FilterDefinition<ChunkInfo>> _filterResolver;
 
-			internal Filtered(IMongoCollection<ChunkInfo> coll, FilterDefinition<ChunkInfo> filter)
+			internal Filtered(IMongoCollection<ChunkInfo> coll, Task<FilterDefinition<ChunkInfo>> filterResolver)
 			{
 				_coll = coll;
-				_filter = filter;
+				_filterResolver = filterResolver;
 			}
 
-			public Task<IAsyncCursor<ChunkInfo>> Find()
+			public async Task<IAsyncCursor<ChunkInfo>> Find()
 			{
-				return _coll.FindAsync(_filter, new FindOptions<ChunkInfo>()
+				return await _coll.FindAsync(await _filterResolver, new FindOptions<ChunkInfo>()
 				{
 					Sort = Builders<ChunkInfo>.Sort
 						.Ascending(_ => _.Namespace)
@@ -45,27 +44,26 @@ namespace MongoDB.ClusterMaintenance
 				});
 			}
 
-			public Task<long> Count()
+			public async Task<long> Count()
 			{
-				return _coll.CountDocumentsAsync(_filter);
-			}
-			
-			public Filtered ByShards(IList<string> shardNames)
-			{
-				if (!shardNames.Any())
-					return this;
-				
-				return new Filtered(_coll,
-					_filter & Builders<ChunkInfo>.Filter.In(_ => _.Shard, shardNames));
+				return await _coll.CountDocumentsAsync(await _filterResolver);
 			}
 			
 			public Filtered ChunkFrom(string id)
 			{
 				if (string.IsNullOrWhiteSpace(id))
 					return this;
-				
-				return new Filtered(_coll,
-					_filter & Builders<ChunkInfo>.Filter.Gt(_ => _.Id, id));
+
+				return new Filtered(_coll, resolveChunkFromFilter(id));
+			}
+
+			private async Task<FilterDefinition<ChunkInfo>> resolveChunkFromFilter(string chunkId)
+			{
+				var chunkInfo = await _coll.Find(_ => _.Id == chunkId).SingleOrDefaultAsync();
+				if(chunkInfo == null)
+					throw new ArgumentException($"chunk {chunkId} not found");
+
+				return await _filterResolver & Builders<ChunkInfo>.Filter.Gte(_ => _.Min, chunkInfo.Max);
 			}
 			
 			public Filtered ChunkTo(string id)
@@ -73,8 +71,16 @@ namespace MongoDB.ClusterMaintenance
 				if (string.IsNullOrWhiteSpace(id))
 					return this;
 				
-				return new Filtered(_coll,
-					_filter & Builders<ChunkInfo>.Filter.Lt(_ => _.Id, id));
+				return new Filtered(_coll, resolveChunkToFilter(id));
+			}
+			
+			private async Task<FilterDefinition<ChunkInfo>> resolveChunkToFilter(string chunkId)
+			{
+				var chunkInfo = await _coll.Find(_ => _.Id == chunkId).SingleOrDefaultAsync();
+				if(chunkInfo == null)
+					throw new ArgumentException($"chunk {chunkId} not found");
+
+				return await _filterResolver & Builders<ChunkInfo>.Filter.Lt(_ => _.Min, chunkInfo.Min);
 			}
 		}
 	}

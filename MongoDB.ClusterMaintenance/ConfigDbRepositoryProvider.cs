@@ -4,11 +4,8 @@ using MongoDB.Driver;
 
 namespace MongoDB.ClusterMaintenance
 {
-	public class ConfigDbRepositoryProvider
+	public class ConfigDbRepositoryProvider : IConfigDbRepositoryProvider
 	{
-		private readonly IMongoClient _client;
-		private IMongoDatabase _db;
-
 		static ConfigDbRepositoryProvider()
 		{
 			BsonSerializer.RegisterSerializer(typeof(CollectionNamespace), new CollectionNamespaceSerializer());
@@ -16,11 +13,10 @@ namespace MongoDB.ClusterMaintenance
 
 		public ConfigDbRepositoryProvider(IMongoClient client)
 		{
-			_client = client;
-			_db = _client.GetDatabase("config");
+			var db = client.GetDatabase("config");
 			
-			Chunks = new ChunkRepository(_db);
-			Collections = new CollectionRepository(_db);
+			Chunks = new ChunkRepository(db);
+			Collections = new CollectionRepository(db);
 		}
 
 		public ChunkRepository Chunks { get; }

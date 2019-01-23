@@ -1,21 +1,17 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
-using MongoDB.ClusterMaintenance.Serialization;
 using MongoDB.Driver;
 
 namespace MongoDB.ClusterMaintenance
 {
-	public class AdminDB
+	public class AdminDB : IAdminDB
 	{
-		private readonly IMongoClient _client;
 		private readonly IMongoDatabase _db;
 
 		public AdminDB(IMongoClient client)
 		{
-			_client = client;
-			_db = _client.GetDatabase(DatabaseNamespace.Admin.DatabaseName);
+			_db = client.GetDatabase(DatabaseNamespace.Admin.DatabaseName);
 		}
 
 		public async Task MoveChunk(CollectionNamespace ns, BsonDocument point, string targetShard, CancellationToken token)
