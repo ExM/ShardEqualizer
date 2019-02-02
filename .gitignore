@@ -7,3 +7,5 @@
 packages/*
 /.vs
 /.idea
+/MongoDB.ClusterMaintenance.Console/DatasizeCaches
+/MongoDB.ClusterMaintenance.Console/*.csv

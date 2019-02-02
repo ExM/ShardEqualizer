@@ -16,14 +16,25 @@ namespace MongoDB.ClusterMaintenance
 
 		public async Task MoveChunk(CollectionNamespace ns, BsonDocument point, string targetShard, CancellationToken token)
 		{
-			var cmd = AdminCommand.MoveChunk(ns, point, targetShard);
+			var cmd =  new BsonDocument
+			{
+				{ "moveChunk", ns.FullName },
+				{ "find", point },
+				{ "to", targetShard }
+			};
+
 			var result = await _db.RunCommandAsync<CommandResult>(cmd, null, token);
 			result.EnsureSuccess();
 		}
 		
 		public async Task MergeChunks(CollectionNamespace ns, BsonDocument leftBound, BsonDocument rightBound, CancellationToken token)
 		{
-			var cmd = AdminCommand.MergeChunks(ns, leftBound, rightBound);
+			var cmd = new BsonDocument
+			{
+				{ "mergeChunks", ns.FullName },
+				{ "bounds", new BsonArray() { leftBound, rightBound }},
+			};
+			
 			var result = await _db.RunCommandAsync<CommandResult>(cmd, null, token);
 			result.EnsureSuccess();
 		}

@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Bson;
+using MongoDB.ClusterMaintenance.Models;
+using MongoDB.ClusterMaintenance.MongoCommands;
 using MongoDB.Driver;
 using NLog;
 
@@ -73,9 +75,9 @@ namespace MongoDB.ClusterMaintenance
 			return copyProcessedChunks < _totalChunks;
 		}
 
-		protected abstract void ProcessChunk(ChunkInfo chunk, DatasizeResult datasize);
+		protected abstract void ProcessChunk(Chunk chunk, DatasizeResult datasize);
 
-		private async Task processChunk(ChunkInfo chunk)
+		private async Task processChunk(Chunk chunk)
 		{
 			_log.Debug("Process chunk: {0}/{1}", chunk.Id, chunk.Shard);
 

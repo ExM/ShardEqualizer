@@ -8,7 +8,7 @@ using MongoDB.Bson;
 
 namespace MongoDB.ClusterMaintenance
 {
-	public class BsonSplitter
+	public static class BsonSplitter
 	{
 		public static IList<BsonDocument> SplitFirstValue(BsonDocument min, BsonDocument max, int zonesCount)
 		{
@@ -74,7 +74,7 @@ namespace MongoDB.ClusterMaintenance
 
 			for (int i = 0; i < zonesCount - 1; i++)
 			{
-				var bound = delta * (i + 1) / zonesCount;
+				var bound = min + delta * (i + 1) / zonesCount;
 				var boundHex = bound.ToString("X").PadLeft(length * 2, '0');
 				if (boundHex.Length > length * 2)
 					boundHex = boundHex.Substring(boundHex.Length - length * 2, length * 2);

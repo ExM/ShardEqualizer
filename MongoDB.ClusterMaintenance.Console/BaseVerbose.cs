@@ -3,6 +3,8 @@ using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using MongoDB.ClusterMaintenance.Config;
 using NConfiguration;
 using NConfiguration.Joining;
@@ -12,7 +14,7 @@ using NLog;
 
 namespace MongoDB.ClusterMaintenance
 {
-	public abstract class BaseOptions
+	public abstract class BaseVerbose
 	{
 		[Option('f', "config", Required = false, HelpText = "configuration file", Default = "configuration.xml")]
 		public string ConfigFile { get; set; }
@@ -23,6 +25,6 @@ namespace MongoDB.ClusterMaintenance
 		[Option('c', "collection", Required = false,  HelpText = "collection")]
 		public string Collection { get; set; }
 
-		public abstract void BindOperation(IKernel kernel);
+		public abstract Task RunOperation(IKernel kernel, CancellationToken token);
 	}
 }

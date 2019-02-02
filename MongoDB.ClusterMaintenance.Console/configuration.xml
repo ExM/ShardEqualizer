@@ -2,6 +2,7 @@
 	<IncludeXmlFile path='etc/MongoDB.ClusterMaintenance/intervals.config' search='all' include='all' required='true'/>
 	<IncludeXmlFile path='etc/MongoDB.ClusterMaintenance/connection.config' search='all' include='all' required='true'/>
 	
+	<BoundsFile path='bounds.json'/>
 	<!-- sample of interval configuration
 	<Interval nameSpace="database1.collection1" chunkFrom="key_100" chunkTo="key_300" preSplit="auto" correction="false" unShardedOffset="0" zones="A,B,C,D" />
 	<Interval nameSpace="database1.collection2" chunkFrom="key_100" chunkTo="key_300" preSplit="chunk" correction="true" unShardedOffset="0" zones="A,B,C" />

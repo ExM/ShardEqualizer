@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using MongoDB.Bson;
 using MongoDB.ClusterMaintenance.Config;
+using MongoDB.ClusterMaintenance.MongoCommands;
 using MongoDB.Driver;
 using NLog;
 
@@ -14,15 +18,15 @@ namespace MongoDB.ClusterMaintenance.Operations
 			
 		private readonly IReadOnlyList<Interval> _intervals;
 		private readonly IConfigDbRepositoryProvider _configDb;
-		private readonly IAdminDB _adminDb;
 		private readonly IMongoClient _mongoClient;
+		private readonly CommandPlanWriter _commandPlanWriter;
 
-		public MergeChunksOperation(IAdminDB adminDb, IConfigDbRepositoryProvider configDb, IReadOnlyList<Interval> intervals, IMongoClient mongoClient)
+		public MergeChunksOperation(IConfigDbRepositoryProvider configDb, IReadOnlyList<Interval> intervals, IMongoClient mongoClient, CommandPlanWriter commandPlanWriter)
 		{
-			_adminDb = adminDb;
 			_configDb = configDb;
 			_intervals = intervals;
 			_mongoClient = mongoClient;
+			_commandPlanWriter = commandPlanWriter;
 		}
 
 		public async Task Run(CancellationToken token)
@@ -30,21 +34,29 @@ namespace MongoDB.ClusterMaintenance.Operations
 			foreach (var interval in _intervals)
 			{
 				_log.Info("Merge chunks from {0}", interval.Namespace.FullName);
-				await mergeChunks(interval, token);
+				//UNDONE
+				//_commandPlanWriter.DescriptionOnly($"Merge chunks from {interval.Namespace.FullName}");
+				//await mergeChunks(interval, token);
 			}
 		}
-
+		
+		/*
 		private async Task mergeChunks(Interval interval, CancellationToken token)
 		{
-			//UNDONE use chunk bounds and current zones
 			var collInfo = await _configDb.Collections.Find(interval.Namespace);
 			var db = _mongoClient.GetDatabase(interval.Namespace.DatabaseNamespace.DatabaseName);
 
+			var tags = await _configDb.Tags.Get(interval.Namespace);
+			var zoneBounds = new HashSet<BsonDocument>(
+				tags.SelectMany(_ => new[] {_.Min, _.Max}).Distinct());
+			
 			if (collInfo == null)
 				throw new InvalidOperationException($"collection {interval.Namespace.FullName} not sharded");
 
 			var filtered = _configDb.Chunks
-				.ByNamespace(interval.Namespace);
+				.ByNamespace(interval.Namespace)
+				.From(interval.Min)
+				.To(interval.Max);
 
 			var chunks = await (await filtered.Find()).ToListAsync(token);
 			var total = chunks.Count;
@@ -64,6 +76,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 			var firstChunk = chunks[0];
 			var leftShard = firstChunk.Shard;
+			var leftId = firstChunk.Id;
 			var leftMin = firstChunk.Min;
 
 			//backward merge
@@ -71,25 +84,42 @@ namespace MongoDB.ClusterMaintenance.Operations
 			{
 				var candidate = chunks[i];
 
-				var datasize = await db.Datasize(collInfo, candidate, token);
-				if (datasize.Size == 0)
+				if (zoneBounds.Contains(candidate.Min))
 				{
-					_log.Info("Found empty chunk {0} on {1}", candidate.Id, candidate.Shard);
+					_log.Info("Skip chunk {0} - contains zone bound", candidate.Id, candidate.Shard);
 
-					if (leftShard != candidate.Shard)
-					{
-						_log.Info("Move to {0}", leftShard);
-						await _adminDb.MoveChunk(collInfo.Id, candidate.Min, leftShard, token);
-					}
-
-					await _adminDb.MergeChunks(collInfo.Id, leftMin, candidate.Max, token);
-
-					merged++;
+					leftShard = candidate.Shard;
+					leftId = candidate.Id;
+					leftMin = candidate.Min;
 				}
 				else
 				{
-					leftShard = candidate.Shard;
-					leftMin = candidate.Min;
+					var datasize = await db.Datasize(collInfo, candidate, token);
+					if (datasize.Size == 0)
+					{
+						_log.Info("Found empty chunk {0} on {1}", candidate.Id, candidate.Shard);
+
+						if (leftShard != candidate.Shard)
+						{
+							_log.Info("Move to {0}", leftShard);
+							
+							_commandPlanWriter
+								.Description($"Move {candidate.Id} chunk to {leftShard} shard")
+								.MoveChunk(collInfo.Id, candidate.Min, leftShard);
+						}
+						
+						_commandPlanWriter
+							.Description($"Merge {candidate.Id} chunk to {leftId} on {leftShard} shard ")
+							.MergeChunks(collInfo.Id, leftMin, candidate.Max);
+
+						merged++;
+					}
+					else
+					{
+						leftShard = candidate.Shard;
+						leftId = candidate.Id;
+						leftMin = candidate.Min;
+					}
 				}
 
 				progress.Increment();
@@ -114,11 +144,17 @@ namespace MongoDB.ClusterMaintenance.Operations
 				if (firstChunk.Shard != secondChunk.Shard)
 				{
 					_log.Info("Move to {0}", secondChunk.Shard);
-					await _adminDb.MoveChunk(collInfo.Id, firstChunk.Min, secondChunk.Shard, token);
+					
+					_commandPlanWriter
+						.Description($"Move {firstChunk.Id} chunk to {secondChunk.Shard} shard")
+						.MoveChunk(collInfo.Id, firstChunk.Min, secondChunk.Shard);
 				}
 
-				await _adminDb.MergeChunks(collInfo.Id, firstChunk.Min, secondChunk.Max, token);
+				_commandPlanWriter
+					.Description($"Merge {firstChunk.Id} chunk to {secondChunk.Id} on {secondChunk.Shard} shard ")
+					.MergeChunks(collInfo.Id, firstChunk.Min, secondChunk.Max);
 			}
 		}
+		*/
 	}
 }

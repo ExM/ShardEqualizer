@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using MongoDB.ClusterMaintenance.Models;
 using MongoDB.Driver;
 
 namespace MongoDB.ClusterMaintenance

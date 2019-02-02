@@ -37,8 +37,8 @@ namespace MongoDB.ClusterMaintenance.Operations
 				{
 					var totalChunks = await _configDb.Chunks
 						.ByNamespace(interval.Namespace)
-						.ChunkFrom(interval.ChunkFrom)
-						.ChunkTo(interval.ChunkTo).Count();
+						.From(interval.Min)
+						.To(interval.Max).Count();
 
 					preSplit = totalChunks / interval.Zones.Count < 100 ? PreSplitType.Interval : PreSplitType.Chunks;
 				}
@@ -67,44 +67,23 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 			if (collInfo == null)
 				throw new InvalidOperationException($"collection {interval.Namespace.FullName} not sharded");
-
-			var chunkFrom = await _configDb.Chunks.Find(interval.ChunkFrom);
-			if (chunkFrom == null)
-				throw new InvalidOperationException($"start chunk {interval.ChunkFrom} not found");
-			if (!chunkFrom.Namespace.Equals(interval.Namespace))
-				throw new InvalidOperationException(
-					$"start chunk {interval.ChunkFrom} in other collection {chunkFrom.Namespace}");
-
-			var chunkTo = await _configDb.Chunks.Find(interval.ChunkTo);
-			if (chunkTo == null)
-				throw new InvalidOperationException($"end chunk {interval.ChunkTo} not found");
-			if (!chunkTo.Namespace.Equals(interval.Namespace))
-				throw new InvalidOperationException(
-					$"end chunk {interval.ChunkTo} in other collection {chunkTo.Namespace}");
-
-			var internalBounds = BsonSplitter.SplitFirstValue(chunkFrom.Max, chunkTo.Min, interval.Zones.Count)
+			
+			if(interval.Min == null || interval.Max == null)
+				throw new InvalidOperationException($"collection {interval.Namespace.FullName} - bounds not found in configuration");
+			
+			var internalBounds = BsonSplitter.SplitFirstValue(interval.Min, interval.Max, interval.Zones.Count)
 				.ToList();
 
 			var allBounds = new List<BsonDocument>(internalBounds.Count + 2);
 
-			allBounds.Add(chunkFrom.Max);
+			allBounds.Add(interval.Min);
 			allBounds.AddRange(internalBounds);
-			allBounds.Add(chunkTo.Min);
+			allBounds.Add(interval.Max);
 
 			var jsonSettings = new JsonWriterSettings()
 				{Indent = false, GuidRepresentation = GuidRepresentation.Unspecified};
 
-			allCommands.AppendLine("//Split Commands:");
-			foreach (var bound in internalBounds)
-			{
-				_log.Info("Split by: {0}", bound);
-				var boundJson = bound.ToJson(jsonSettings);
-				var splitCommand = $"sh.splitAt( \"{interval.Namespace.FullName}\", {boundJson} );";
-				allCommands.AppendLine(splitCommand);
-			}
-
 			var zoneIndex = 0;
-			allCommands.AppendLine("//Tag Range Commands:");
 			foreach (var range in allBounds.Zip(allBounds.Skip(1), (min, max) => new {min, max}))
 			{
 				var zoneName = interval.Zones[zoneIndex];
@@ -129,11 +108,10 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 			var filtered = _configDb.Chunks
 				.ByNamespace(interval.Namespace)
-				.ChunkFrom(interval.ChunkFrom)
-				.ChunkTo(interval.ChunkTo);
+				.From(interval.Min)
+				.To(interval.Max);
 
 			var chunks = await (await filtered.Find()).ToListAsync(token);
-
 			foreach (var part in chunks.Split(interval.Zones.Count).Select((items, order) => new {Items = items, Order = order}))
 			{
 				var zoneName = interval.Zones[part.Order];

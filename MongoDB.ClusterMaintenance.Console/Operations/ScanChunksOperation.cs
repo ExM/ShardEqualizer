@@ -6,6 +6,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.ClusterMaintenance.Config;
+using MongoDB.ClusterMaintenance.Models;
+using MongoDB.ClusterMaintenance.MongoCommands;
 using MongoDB.Driver;
 using NLog;
 
@@ -32,7 +34,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 		{
 			foreach (var interval in _intervals)
 			{
-				_log.Info("Scan interval {0} {1}", interval.ChunkFrom, interval.ChunkTo);
+				_log.Info("Scan collection {0}", interval.Namespace);
 				await scanInterval(interval, token);
 			}
 		}
@@ -48,13 +50,13 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 			var filtered = _configDb.Chunks
 				.ByNamespace(interval.Namespace)
-				.ChunkFrom(interval.ChunkFrom)
-				.ChunkTo(interval.ChunkTo);
+				.From(interval.Min)
+				.To(interval.Max);
 
 			var sizesBounds = _sizes.Select(BinaryPrefix.Parse).ToList();
 			var header = string.Join("; ",
 				new string[] {"shard", "jumbo", "empty"}.Concat(_sizes).Concat(new string[] {"Max"}));
-			var chunkCountByShards = new ConcurrentDictionary<string, ChunkCounts>();
+			var chunkCountByShards = new ConcurrentDictionary<ShardIdentity, ChunkCounts>();
 
 			var progress = new ProgressReporter(await filtered.Count(), () =>
 			{
@@ -83,7 +85,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 					chunkCountByShards
 						.GetOrAdd(chunk.Shard, _ => new ChunkCounts(sizesBounds))
-						.Increment(chunk.Jumbo ?? false, result.Size);
+						.Increment(chunk.Jumbo, result.Size);
 				}
 				else
 					_log.Warn("datasize command fail");

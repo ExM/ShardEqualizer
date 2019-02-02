@@ -1,44 +1,46 @@
 using System;
 using System.Threading.Tasks;
+using MongoDB.Bson;
+using MongoDB.ClusterMaintenance.Models;
 using MongoDB.Driver;
 
 namespace MongoDB.ClusterMaintenance
 {
 	public class ChunkRepository
 	{
-		private readonly IMongoCollection<ChunkInfo> _coll;
+		private readonly IMongoCollection<Chunk> _coll;
 
 		internal ChunkRepository(IMongoDatabase db)
 		{
-			_coll = db.GetCollection<ChunkInfo>("chunks");
+			_coll = db.GetCollection<Chunk>("chunks");
 		}
 		
-		public Task<ChunkInfo> Find(string id)
+		public Task<Chunk> Find(string id)
 		{
 			return _coll.Find(_ => _.Id == id).SingleOrDefaultAsync();
 		}
 
 		public Filtered ByNamespace(CollectionNamespace ns)
 		{
-			return new Filtered(_coll, Task.FromResult(Builders<ChunkInfo>.Filter.Eq(_ => _.Namespace, ns)));
+			return new Filtered(_coll, Builders<Chunk>.Filter.Eq(_ => _.Namespace, ns));
 		}
 		
 		public class Filtered
 		{
-			private readonly IMongoCollection<ChunkInfo> _coll;
-			private readonly Task<FilterDefinition<ChunkInfo>> _filterResolver;
+			private readonly IMongoCollection<Chunk> _coll;
+			private readonly FilterDefinition<Chunk> _filter;
 
-			internal Filtered(IMongoCollection<ChunkInfo> coll, Task<FilterDefinition<ChunkInfo>> filterResolver)
+			internal Filtered(IMongoCollection<Chunk> coll, FilterDefinition<Chunk> filter)
 			{
 				_coll = coll;
-				_filterResolver = filterResolver;
+				_filter = filter;
 			}
 
-			public async Task<IAsyncCursor<ChunkInfo>> Find()
+			public async Task<IAsyncCursor<Chunk>> Find()
 			{
-				return await _coll.FindAsync(await _filterResolver, new FindOptions<ChunkInfo>()
+				return await _coll.FindAsync(_filter, new FindOptions<Chunk>()
 				{
-					Sort = Builders<ChunkInfo>.Sort
+					Sort = Builders<Chunk>.Sort
 						.Ascending(_ => _.Namespace)
 						.Ascending(_ => _.Min)
 				});
@@ -46,41 +48,23 @@ namespace MongoDB.ClusterMaintenance
 
 			public async Task<long> Count()
 			{
-				return await _coll.CountDocumentsAsync(await _filterResolver);
+				return await _coll.CountDocumentsAsync(_filter);
 			}
 			
-			public Filtered ChunkFrom(string id)
+			public Filtered From(BsonDocument from)
 			{
-				if (string.IsNullOrWhiteSpace(id))
+				if (from == null)
 					return this;
 
-				return new Filtered(_coll, resolveChunkFromFilter(id));
-			}
-
-			private async Task<FilterDefinition<ChunkInfo>> resolveChunkFromFilter(string chunkId)
-			{
-				var chunkInfo = await _coll.Find(_ => _.Id == chunkId).SingleOrDefaultAsync();
-				if(chunkInfo == null)
-					throw new ArgumentException($"chunk {chunkId} not found");
-
-				return await _filterResolver & Builders<ChunkInfo>.Filter.Gte(_ => _.Min, chunkInfo.Max);
+				return new Filtered(_coll, _filter & Builders<Chunk>.Filter.Gte(_ => _.Min, from));
 			}
 			
-			public Filtered ChunkTo(string id)
+			public Filtered To(BsonDocument to)
 			{
-				if (string.IsNullOrWhiteSpace(id))
+				if (to == null)
 					return this;
-				
-				return new Filtered(_coll, resolveChunkToFilter(id));
-			}
-			
-			private async Task<FilterDefinition<ChunkInfo>> resolveChunkToFilter(string chunkId)
-			{
-				var chunkInfo = await _coll.Find(_ => _.Id == chunkId).SingleOrDefaultAsync();
-				if(chunkInfo == null)
-					throw new ArgumentException($"chunk {chunkId} not found");
 
-				return await _filterResolver & Builders<ChunkInfo>.Filter.Lt(_ => _.Min, chunkInfo.Min);
+				return new Filtered(_coll, _filter & Builders<Chunk>.Filter.Lt(_ => _.Min, to));
 			}
 		}
 	}

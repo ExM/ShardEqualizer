@@ -6,6 +6,11 @@ namespace MongoDB.ClusterMaintenance.Serialization
 {
 	public sealed class CollectionNamespaceSerializer : ClassSerializerBase<CollectionNamespace>
 	{
+		public static void Register()
+		{
+			BsonSerializer.RegisterSerializer(typeof(CollectionNamespace), new CollectionNamespaceSerializer());
+		}
+		
 		private readonly StringSerializer _serializer = new StringSerializer();
 
 		public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, CollectionNamespace value)

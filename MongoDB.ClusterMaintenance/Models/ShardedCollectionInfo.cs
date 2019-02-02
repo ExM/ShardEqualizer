@@ -3,7 +3,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 
-namespace MongoDB.ClusterMaintenance
+namespace MongoDB.ClusterMaintenance.Models
 {
 	public class ShardedCollectionInfo
 	{

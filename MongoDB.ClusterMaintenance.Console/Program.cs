@@ -1,9 +1,14 @@
 ﻿using CommandLine;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using MongoDB.Bson;
+using MongoDB.Bson.IO;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.ClusterMaintenance.Config;
 using MongoDB.ClusterMaintenance.Verbs;
 using MongoDB.Driver;
@@ -30,21 +35,42 @@ namespace MongoDB.ClusterMaintenance
 				_log.Warn("cancel operation requested...");
 			};
 			
-			var parsed = Parser.Default.ParseArguments<ScanChunksVerb, MergeChunksVerb, PresplitDataVerb>(args) as Parsed<object>;
+			var parsed = Parser.Default.ParseArguments<
+				ScanChunksVerb,
+				MergeChunksVerb,
+				PresplitDataVerb,
+				BalancerStateVerb,
+				DeviationVerb,
+				EqualizeVerb>(args) as Parsed<object>;
 
 			if (parsed == null)
 				return 1;
 
-			var options = (BaseOptions) parsed.Value;
+			try
+			{
+				var verbose = (BaseVerbose) parsed.Value;
 
-			var kernel = new StandardKernel(new NinjectSettings() { LoadExtensions = false });
-			kernel.Load<Module>();
-			BindConfiguration(options, kernel);
-			options.BindOperation(kernel);
-
-			var operation = kernel.Get<IOperation>();
+				var kernel = new StandardKernel(new NinjectSettings() { LoadExtensions = false });
+				kernel.Load<Module>();
+				BindConfiguration(verbose, kernel);
 			
-			return ProcessVerbAndReturnExitCode(operation.Run, cts.Token).Result;
+				var result = ProcessVerbAndReturnExitCode(t => verbose.RunOperation(kernel, t), cts.Token).Result;
+
+				foreach(var item in kernel.GetAll<IDisposable>())
+					item.Dispose();
+				
+				return result;
+			}
+			catch (Exception e)
+			{
+				_log.Fatal(e, "unexpected exception");
+				Console.Error.WriteLine(e.Message);
+				return 1;
+			}
+			finally
+			{
+				LogManager.Flush();
+			}
 		}
 		
 		private static IAppSettings loadConfiguration(string configFile)
@@ -55,22 +81,25 @@ namespace MongoDB.ClusterMaintenance
 			return loader.LoadSettings(new XmlFileSettings(configFile)).Joined.ToAppSettings();
 		}
 
-		public static void BindConfiguration(BaseOptions options, IKernel kernel)
+		public static void BindConfiguration(BaseVerbose verbose, IKernel kernel)
 		{
-			var appSettings = loadConfiguration(options.ConfigFile);
+			var appSettings = loadConfiguration(verbose.ConfigFile);
 			
 			var connectionConfig = appSettings.Get<Connection>();
 			kernel.Bind<IMongoClient>().ToMethod(_ => createClient(connectionConfig)).InSingletonScope();
 
-			var intervals = appSettings.LoadSections<Interval>();
+			var boundsFileConfig = appSettings.Get<BoundsFile>();
+			var bounds = readBoundsFile(boundsFileConfig.Path);
 			
-			if (options.Database != null)
-				intervals = intervals.Where(_ =>
-					_.Namespace.DatabaseNamespace.DatabaseName.Equals(options.Database, StringComparison.Ordinal));
+			var intervals = appSettings.LoadSections<IntervalConfig>().Select(_ => new Interval(_, bounds));
 			
-			if(options.Collection != null)
+			if (verbose.Database != null)
 				intervals = intervals.Where(_ =>
-					_.Namespace.CollectionName.Equals(options.Collection, StringComparison.Ordinal));
+					_.Namespace.DatabaseNamespace.DatabaseName.Equals(verbose.Database, StringComparison.Ordinal));
+			
+			if(verbose.Collection != null)
+				intervals = intervals.Where(_ =>
+					_.Namespace.CollectionName.Equals(verbose.Collection, StringComparison.Ordinal));
 
 			IReadOnlyList<Interval> finalIntervals = intervals.ToList();
 
@@ -78,6 +107,24 @@ namespace MongoDB.ClusterMaintenance
 				throw new ArgumentException("interval list is empty");
 			
 			kernel.Bind<IReadOnlyList<Interval>>().ToConstant(finalIntervals);
+		}
+		
+		public static BsonDocument readBoundsFile(string path)
+		{
+			if(string.IsNullOrWhiteSpace(path))
+				return new BsonDocument();
+			
+			var jsonReaderSettings = new JsonReaderSettings()
+				{GuidRepresentation = GuidRepresentation.Unspecified};
+			
+			using(var textReader = File.OpenText(path))
+			using (var jsonReader = new JsonReader(textReader, jsonReaderSettings))
+			{
+				var bsonDocument = BsonDocumentSerializer.Instance.Deserialize(BsonDeserializationContext.CreateRoot(jsonReader));
+				if (!jsonReader.IsAtEndOfFile())
+					throw new FormatException("String contains extra non-whitespace characters beyond the end of the document.");
+				return bsonDocument;
+			}
 		}
 		
 		private static IMongoClient createClient(Connection connectionConfig)
