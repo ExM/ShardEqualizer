@@ -10,7 +10,7 @@ namespace MongoDB.ClusterMaintenance.Models
 		{
 		}
 
-		public TagRange(string tagName, BsonDocument min, BsonDocument max)
+		public TagRange(string tagName, BsonBound min, BsonBound max)
 		{
 			Tag = new TagIdentity(tagName);
 			Min = min;
@@ -26,10 +26,10 @@ namespace MongoDB.ClusterMaintenance.Models
 		public CollectionNamespace Namespace { get; private set; }
 		
 		[BsonElement("min"), BsonRequired]
-		public BsonDocument Min { get; private set; }
+		public BsonBound Min { get; private set; }
 		
 		[BsonElement("max"), BsonRequired]
-		public BsonDocument Max { get; private set; }
+		public BsonBound Max { get; private set; }
 		
 		[BsonElement("tag"), BsonRequired]
 		public TagIdentity Tag { get; private set; }

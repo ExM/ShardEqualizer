@@ -17,11 +17,11 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			public Zone RightZone;
 			public Chunk RightChunk;
 			public Chunk RightNextChunk;
-			public BsonDocument Value { get; set; }
+			public BsonBound Value { get; set; }
 			public long ShiftSize => _shiftSize;
 			private long _shiftSize = 0;
 
-			public Bound(ShardSizeEqualizer shardSizeEqualizer, BsonDocument value)
+			public Bound(ShardSizeEqualizer shardSizeEqualizer, BsonBound value)
 			{
 				_shardSizeEqualizer = shardSizeEqualizer;
 				Value = value;

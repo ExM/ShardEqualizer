@@ -34,7 +34,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 			foreach (var interval in _intervals)
 			{
 				_log.Info("Merge chunks from {0}", interval.Namespace.FullName);
-				//UNDONE
+				//TODO
 				//_commandPlanWriter.DescriptionOnly($"Merge chunks from {interval.Namespace.FullName}");
 				//await mergeChunks(interval, token);
 			}

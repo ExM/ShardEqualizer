@@ -6,5 +6,6 @@ namespace MongoDB.ClusterMaintenance
 		CollectionRepository Collections { get; }
 		TagRangeRepository Tags { get; }
 		ShardRepository Shards { get; }
+		SettingsRepository Settings { get; }
 	}
 }

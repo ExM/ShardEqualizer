@@ -7,13 +7,13 @@ using Ninject;
 namespace MongoDB.ClusterMaintenance.Verbs
 {
 	[Verb("presplit", HelpText = "distribute data by zones with splitting existing chunks")]
-	public class PresplitDataVerb : BaseVerbose
+	public class PresplitDataVerb : BaseCommandFileVerb
 	{
-		public override async Task RunOperation(IKernel kernel, CancellationToken token)
+		public override Task RunOperation(IKernel kernel, CancellationToken token)
 		{
 			kernel.Bind<IOperation>().To<PresplitDataOperation>();
-			
-			await kernel.Get<IOperation>().Run(token);
+
+			return base.RunOperation(kernel, token);
 		}
 	}
 }

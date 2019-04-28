@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using MongoDB.Bson;
 using MongoDB.ClusterMaintenance.Config;
+using MongoDB.ClusterMaintenance.Models;
 using MongoDB.ClusterMaintenance.MongoCommands;
 using MongoDB.ClusterMaintenance.ShardSizeEqualizing;
 using MongoDB.Driver;
@@ -30,22 +32,26 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 		public async Task Run(CancellationToken token)
 		{
+			var chunkSize = await _configDb.Settings.GetChunksize();
+			
+			var targetDeviation = chunkSize + chunkSize / 64; // < 102%
+			
 			foreach (var interval in _intervals)
 			{
 				_log.Info("Equalize shards from {0}", interval.Namespace.FullName);
 				_commandPlanWriter.Comment($"Equalize shards from {interval.Namespace.FullName}");
-				await equalizeShards(interval, token);
+				await equalizeShards(interval, targetDeviation, token);
 			}
 		}
 
-		private async Task equalizeShards(Interval interval, CancellationToken token)
+		private async Task equalizeShards(Interval interval, long targetDeviation, CancellationToken token)
 		{
-			var targetDeviation = 65 * ScaleSuffix.Mega.Factor() * 2; //TODO read from configuration
-
 			var shards = await _configDb.Shards.GetAll();
 			
 			var allChunks = await (await _configDb.Chunks
 				.ByNamespace(interval.Namespace)
+				.From(interval.Min)
+				.To(interval.Max)
 				.Find()).ToListAsync(token);
 			
 			var collInfo = await _configDb.Collections.Find(interval.Namespace);
@@ -56,15 +62,17 @@ namespace MongoDB.ClusterMaintenance.Operations
 			var chunkColl = new ChunkCollection(allChunks);
 
 			var tagRanges = await _configDb.Tags.Get(interval.Namespace);
+			
+			//TODO use tags only into interval bounds
 
-			async Task<long> ChunkSizeResolver(string chunkId)
+			async Task<long> chunkSizeResolver(string chunkId)
 			{
 				var chunk = chunkColl.ById(chunkId);
 				var result = await db.Datasize(collInfo, chunk, token);
 				return result.Size;
 			}
 
-			var equalizer = new ShardSizeEqualizer(shards, collStats.Shards, tagRanges, chunkColl, ChunkSizeResolver);
+			var equalizer = new ShardSizeEqualizer(shards, collStats.Shards, tagRanges, chunkColl, chunkSizeResolver);
 			var rounds = 0;
 			var progress = new TargetProgressReporter(equalizer.CurrentSizeDeviation, targetDeviation, LongExtensions.ByteSize, () =>
 			{
@@ -98,7 +106,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 			_commandPlanWriter.Comment("set new tags");
 			foreach (var zone in equalizer.Zones)
 			{
-				_commandPlanWriter.RemoveTagRange(
+				_commandPlanWriter.AddTagRange(
 					interval.Namespace, zone.Min, zone.Max, zone.Tag);
 			}
 			

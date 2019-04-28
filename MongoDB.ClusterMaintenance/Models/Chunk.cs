@@ -19,10 +19,10 @@ namespace MongoDB.ClusterMaintenance.Models
 		public CollectionNamespace Namespace { get; set; }
 		
 		[BsonElement("min"), BsonRequired]
-		public BsonDocument Min { get; set; }
+		public BsonBound Min { get; set; }
 		
 		[BsonElement("max"), BsonRequired]
-		public BsonDocument Max { get; set; }
+		public BsonBound Max { get; set; }
 		
 		[BsonElement("shard"), BsonRequired]
 		public ShardIdentity Shard { get; set; }

@@ -31,17 +31,17 @@ namespace MongoDB.ClusterMaintenance.MongoCommands
 			_writer.WriteLine(text);
 		}
 
-		public void AddTagRange(CollectionNamespace collection, BsonDocument min, BsonDocument max, TagIdentity tag) 
+		public void AddTagRange(CollectionNamespace collection, BsonBound min, BsonBound max, TagIdentity tag) 
 		{
-			var minText = min.ToJson(_jsonWriterSettings);
-			var maxText = max.ToJson(_jsonWriterSettings);
+			var minText = ((BsonDocument)min).ToJson(_jsonWriterSettings);
+			var maxText = ((BsonDocument)max).ToJson(_jsonWriterSettings);
 			_writer.WriteLine($"sh.addTagRange( \"{collection.FullName}\", {minText}, {maxText}, \"{tag}\");");
 		}
 		
-		public void RemoveTagRange(CollectionNamespace collection, BsonDocument min, BsonDocument max, TagIdentity tag) 
+		public void RemoveTagRange(CollectionNamespace collection, BsonBound min, BsonBound max, TagIdentity tag) 
 		{
-			var minText = min.ToJson(_jsonWriterSettings);
-			var maxText = max.ToJson(_jsonWriterSettings);
+			var minText = ((BsonDocument)min).ToJson(_jsonWriterSettings);
+			var maxText = ((BsonDocument)max).ToJson(_jsonWriterSettings);
 			_writer.WriteLine($"sh.removeTagRange( \"{collection.FullName}\", {minText}, {maxText}, \"{tag}\");");
 		}
 	}

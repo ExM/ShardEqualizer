@@ -6,22 +6,23 @@ namespace MongoDB.ClusterMaintenance
 {
 	public static class CollectionExtensions
 	{
-		public static IEnumerable<IList<T>> Split<T>(this ICollection<T> items, 
-			int numberOfChunks)
+		public static IEnumerable<List<T>> Split<T>(this List<T> items, int partCount)
 		{
-			if (numberOfChunks <= 0 || numberOfChunks > items.Count)
-				throw new ArgumentOutOfRangeException(nameof(numberOfChunks));
-
-			var sizePerPacket = items.Count / numberOfChunks;
-			var extra = items.Count % numberOfChunks;
-
-			for (var i = 0; i < numberOfChunks - extra; i++)
-				yield return items.Skip(i * sizePerPacket).Take(sizePerPacket).ToList();
-
-			var alreadyReturnedCount = (numberOfChunks - extra) * sizePerPacket;
-			var toReturnCount = extra == 0 ? 0 : (items.Count - numberOfChunks) / extra + 1;
-			for (var i = 0; i < extra; i++)
-				yield return items.Skip(alreadyReturnedCount + i * toReturnCount).Take(toReturnCount).ToList();
+			var partSize = items.Count / partCount;
+			var extra = items.Count % partCount;
+			var offset = 0;
+			for (var i = 0; i < partCount; i++)
+			{
+				var currentPartSize = partSize;
+				if (extra > 0)
+				{
+					currentPartSize++;
+					extra--;
+				}
+				
+				yield return items.Skip(offset).Take(currentPartSize).ToList();
+				offset += currentPartSize;
+			}
 		}
 	}
 }

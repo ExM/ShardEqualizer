@@ -13,14 +13,14 @@ namespace MongoDB.ClusterMaintenance.MongoCommands
 			return db.Datasize(collInfo.Id, collInfo.Key, chunk.Min, chunk.Max, token);
 		}
 		
-		public static async Task<DatasizeResult> Datasize(this IMongoDatabase db, CollectionNamespace ns, BsonDocument key, BsonDocument min, BsonDocument max, CancellationToken token)
+		public static async Task<DatasizeResult> Datasize(this IMongoDatabase db, CollectionNamespace ns, BsonDocument key, BsonBound min, BsonBound max, CancellationToken token)
 		{
 			var cmd = new BsonDocument
 			{
 				{ "datasize", ns.FullName },
 				{ "keyPattern", key },
-				{ "min", min },
-				{ "max", max }
+				{ "min", (BsonDocument)min },
+				{ "max", (BsonDocument)max }
 			};
 
 			var result = await db.RunCommandAsync<DatasizeResult>(cmd, ReadPreference.SecondaryPreferred, token);

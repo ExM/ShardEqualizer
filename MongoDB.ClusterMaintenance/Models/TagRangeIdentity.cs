@@ -10,7 +10,7 @@ namespace MongoDB.ClusterMaintenance.Models
 		{
 		}
 		
-		public TagRangeIdentity(CollectionNamespace ns, BsonDocument min)
+		public TagRangeIdentity(CollectionNamespace ns, BsonBound min)
 		{
 			Namespace = ns;
 			Min = min;
@@ -20,6 +20,6 @@ namespace MongoDB.ClusterMaintenance.Models
 		public CollectionNamespace Namespace { get; private set; }
 		
 		[BsonElement("min"), BsonRequired]
-		public BsonDocument Min { get; private set; }
+		public BsonBound Min { get; private set; }
 	}
 }

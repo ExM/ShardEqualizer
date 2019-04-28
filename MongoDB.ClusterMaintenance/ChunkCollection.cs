@@ -9,8 +9,8 @@ namespace MongoDB.ClusterMaintenance
 	public class ChunkCollection
 	{
 		private readonly IDictionary<string, Chunk> _idMap;
-		private readonly IDictionary<BsonDocument, Chunk> _maxMap = new Dictionary<BsonDocument, Chunk>();
-		private readonly IDictionary<BsonDocument, Chunk> _minMap = new Dictionary<BsonDocument, Chunk>();
+		private readonly IDictionary<BsonBound, Chunk> _maxMap = new Dictionary<BsonBound, Chunk>();
+		private readonly IDictionary<BsonBound, Chunk> _minMap = new Dictionary<BsonBound, Chunk>();
 		
 		public ChunkCollection(IReadOnlyList<Chunk> chunks)
 		{
@@ -36,12 +36,12 @@ namespace MongoDB.ClusterMaintenance
 			return _idMap[id];
 		}
 
-		public Chunk FindRight(BsonDocument value)
+		public Chunk FindRight(BsonBound value)
 		{
 			return _minMap.TryGetValue(value, out var result) ? result : null;
 		}
 		
-		public Chunk FindLeft(BsonDocument value)
+		public Chunk FindLeft(BsonBound value)
 		{
 			return _maxMap.TryGetValue(value, out var result) ? result : null;
 		}

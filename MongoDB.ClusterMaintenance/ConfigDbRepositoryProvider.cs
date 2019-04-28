@@ -14,6 +14,7 @@ namespace MongoDB.ClusterMaintenance
 			Collections = new CollectionRepository(db);
 			Tags = new TagRangeRepository(db);
 			Shards = new ShardRepository(db);
+			Settings = new SettingsRepository(db);
 		}
 
 		public ChunkRepository Chunks { get; }
@@ -23,5 +24,8 @@ namespace MongoDB.ClusterMaintenance
 		public TagRangeRepository Tags { get; }
 		
 		public ShardRepository Shards { get; }
+		
+		public SettingsRepository Settings { get; }
+
 	}
 }

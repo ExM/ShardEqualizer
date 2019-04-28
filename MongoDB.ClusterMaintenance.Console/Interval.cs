@@ -9,7 +9,7 @@ namespace MongoDB.ClusterMaintenance
 {
 	public class Interval
 	{
-		public Interval(CollectionNamespace ns, IReadOnlyList<TagIdentity> zones, PreSplitType preSplit, bool correction, BsonDocument min, BsonDocument max)
+		public Interval(CollectionNamespace ns, IReadOnlyList<TagIdentity> zones, PreSplitType preSplit, bool correction, BsonBound min, BsonBound max)
 		{
 			Namespace = ns;
 			Zones = zones;
@@ -29,14 +29,14 @@ namespace MongoDB.ClusterMaintenance
 			if (config.Bounds != null)
 			{
 				var b = bounds[config.Bounds];
-				Min = b["min"].AsBsonDocument;
-				Max = b["max"].AsBsonDocument;
+				Min = (BsonBound)b["min"].AsBsonDocument;
+				Max = (BsonBound)b["max"].AsBsonDocument;
 			}
 		}
 
 		public CollectionNamespace Namespace { get; private set; }
-		public BsonDocument Min { get; private set; }
-		public BsonDocument Max { get; private set; }
+		public BsonBound? Min { get; private set; }
+		public BsonBound? Max { get; private set; }
 		public IReadOnlyList<TagIdentity> Zones { get; private set; }
 		public PreSplitType PreSplit { get; private set; }
 		public bool Correction { get; private set; }

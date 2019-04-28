@@ -37,8 +37,8 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			public ShardIdentity Main { get; set; }
 			public TagIdentity Tag { get; set; }
 
-			public BsonDocument Min => _left.Value;
-			public BsonDocument Max => _right.Value;
+			public BsonBound Min => _left.Value;
+			public BsonBound Max => _right.Value;
 		}
 	}
 }

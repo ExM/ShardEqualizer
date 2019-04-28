@@ -9,9 +9,9 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 	{
 		private class BoundState: IEquatable<BoundState>
 		{
-			private readonly BsonDocument[] _bounds;
+			private readonly BsonBound[] _bounds;
 
-			public BoundState(BsonDocument[] bounds)
+			public BoundState(BsonBound[] bounds)
 			{
 				_bounds = bounds;
 			}

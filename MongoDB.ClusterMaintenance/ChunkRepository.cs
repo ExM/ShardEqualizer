@@ -51,7 +51,7 @@ namespace MongoDB.ClusterMaintenance
 				return await _coll.CountDocumentsAsync(_filter);
 			}
 			
-			public Filtered From(BsonDocument from)
+			public Filtered From(BsonBound? from)
 			{
 				if (from == null)
 					return this;
@@ -59,7 +59,7 @@ namespace MongoDB.ClusterMaintenance
 				return new Filtered(_coll, _filter & Builders<Chunk>.Filter.Gte(_ => _.Min, from));
 			}
 			
-			public Filtered To(BsonDocument to)
+			public Filtered To(BsonBound? to)
 			{
 				if (to == null)
 					return this;

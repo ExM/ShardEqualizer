@@ -5,11 +5,17 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using MongoDB.Bson;
+using MongoDB.ClusterMaintenance.Models;
 
 namespace MongoDB.ClusterMaintenance
 {
 	public static class BsonSplitter
 	{
+		public static IList<BsonBound> SplitFirstValue(BsonBound min, BsonBound max, int zonesCount)
+		{
+			return SplitFirstValue((BsonDocument) min, (BsonDocument) max, zonesCount).Select(_=> (BsonBound)_).ToList();
+		}
+		
 		public static IList<BsonDocument> SplitFirstValue(BsonDocument min, BsonDocument max, int zonesCount)
 		{
 			if(!min.Elements.Select(_ => _.Name).SequenceEqual(max.Elements.Select(_ => _.Name), StringComparer.Ordinal))

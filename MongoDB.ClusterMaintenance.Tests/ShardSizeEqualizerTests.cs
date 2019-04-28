@@ -89,9 +89,9 @@ namespace MongoDB.ClusterMaintenance
 			}
 		}
 
-		private BsonDocument testBound(int x)
+		private BsonBound testBound(int x)
 		{
-			return new BsonDocument("x", x);
+			return (BsonBound)new BsonDocument("x", x);
 		}
 	}
 }
