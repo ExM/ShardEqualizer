@@ -50,6 +50,26 @@ namespace MongoDB.ClusterMaintenance.Models
 		{
 			return _value.CompareTo(other._value);
 		}
+		
+		public static bool operator >(BsonBound x, BsonBound y)
+		{
+			return x.CompareTo(y) > 0;
+		}
+
+		public static bool operator <(BsonBound x, BsonBound y)
+		{
+			return x.CompareTo(y) < 0;
+		}
+		
+		public static bool operator >=(BsonBound x, BsonBound y)
+		{
+			return x.CompareTo(y) >= 0;
+		}
+
+		public static bool operator <=(BsonBound x, BsonBound y)
+		{
+			return x.CompareTo(y) <= 0;
+		}
 
 		public override string ToString()
 		{

@@ -62,8 +62,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 			var chunkColl = new ChunkCollection(allChunks);
 
 			var tagRanges = await _configDb.Tags.Get(interval.Namespace);
-			
-			//TODO use tags only into interval bounds
+			tagRanges = tagRanges.Where(r => interval.Min <= r.Min && r.Max <= interval.Max).ToList().AsReadOnly();
 
 			async Task<long> chunkSizeResolver(string chunkId)
 			{

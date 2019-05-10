@@ -1,7 +1,9 @@
 using System;
+using System.Linq;
 using System.Text;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
+using MongoDB.ClusterMaintenance.Models;
 using NUnit.Framework;
 
 namespace MongoDB.ClusterMaintenance
@@ -15,10 +17,22 @@ namespace MongoDB.ClusterMaintenance
 		}
 
 		[Test]
-		public void DemoGuid()
+		public void GuidBounds()
 		{
-			var bounds = BsonSplitter.Split((BsonValue) Guid.Empty, (BsonValue) Guid.Parse("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"), 13);
+			var guidMin = (BsonValue) Guid.Empty;
+			var guidMax = (BsonValue) Guid.Parse("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF");
+			
+			var bounds = BsonSplitter.Split(guidMin, guidMax, 13);
+			var docBounds = bounds.Select(_ => new BsonBound(new BsonDocument("x", _))).ToList();
 
+			docBounds.Insert(0, new BsonBound(new BsonDocument("x",  guidMin)));
+			docBounds.Add(new BsonBound(new BsonDocument("x",  guidMax)));
+			
+			foreach (var pair in docBounds.Take(docBounds.Count - 1).Zip(docBounds.Skip(1), (x, y) => new { x, y}))
+			{
+				Assert.IsTrue(pair.x < pair.y);
+			}
+			
 			foreach (var bound in bounds)
 			{
 				var hex = ByteArrayToString(((BsonBinaryData) bound).Bytes);
@@ -30,10 +44,24 @@ namespace MongoDB.ClusterMaintenance
 		}
 		
 		[Test]
-		public void DemoObjectId()
+		public void InvObjectIdBounds()
 		{
-			var bounds = BsonSplitter.Split(ObjectId.Parse("800000000000000000000000"), ObjectId.Parse("ffffffffffffffffffffffff"), 17);
+			var invOidMin = (BsonValue) ObjectId.Parse("800000000000000000000000");
+			var invOidMax = (BsonValue) ObjectId.Parse("ffffffffffffffffffffffff");
+			
+			var bounds = BsonSplitter.Split(invOidMin, invOidMax, 17);
 
+			var docBounds = bounds.Select(_ => new BsonBound(new BsonDocument("x", _))).ToList();
+
+			docBounds.Insert(0, new BsonBound(new BsonDocument("x",  invOidMin)));
+			docBounds.Add(new BsonBound(new BsonDocument("x",  invOidMax)));
+			
+			foreach (var pair in docBounds.Take(docBounds.Count - 1).Zip(docBounds.Skip(1), (x, y) => new { x, y}))
+			{
+				Assert.IsTrue(pair.x < pair.y);
+			}
+			
+			
 			foreach (var bound in bounds)
 			{
 				var hex = ByteArrayToString(((ObjectId) bound).ToByteArray());
