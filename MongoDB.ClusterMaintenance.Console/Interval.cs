@@ -26,7 +26,7 @@ namespace MongoDB.ClusterMaintenance
 			PreSplit = config.PreSplit;
 			Correction = config.Correction;
 
-			if (config.Bounds != null)
+			if (!string.IsNullOrWhiteSpace(config.Bounds))
 			{
 				var b = bounds[config.Bounds];
 				Min = (BsonBound)b["min"].AsBsonDocument;

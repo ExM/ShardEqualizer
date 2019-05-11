@@ -36,6 +36,7 @@ namespace MongoDB.ClusterMaintenance
 			};
 			
 			var parsed = Parser.Default.ParseArguments<
+				FindNewCollectionsVerb,
 				ScanChunksVerb,
 				MergeChunksVerb,
 				PresplitDataVerb,
