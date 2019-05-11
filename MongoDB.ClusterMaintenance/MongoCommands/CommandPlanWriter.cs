@@ -44,5 +44,7 @@ namespace MongoDB.ClusterMaintenance.MongoCommands
 			var maxText = ((BsonDocument)max).ToJson(_jsonWriterSettings);
 			_writer.WriteLine($"sh.removeTagRange( \"{collection.FullName}\", {minText}, {maxText}, \"{tag}\");");
 		}
+		
+		//TODO remove commands 'removeTagRange - addTagRange' with the same parameters
 	}
 }

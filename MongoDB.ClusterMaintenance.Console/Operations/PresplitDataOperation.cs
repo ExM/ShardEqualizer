@@ -38,19 +38,30 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 				if (preSplit == PreSplitType.Auto)
 				{
-					var totalChunks = await _configDb.Chunks
-						.ByNamespace(interval.Namespace)
-						.From(interval.Min)
-						.To(interval.Max).Count();
+					if (interval.Min.HasValue && interval.Max.HasValue)
+					{
+						var totalChunks = await _configDb.Chunks
+							.ByNamespace(interval.Namespace)
+							.From(interval.Min)
+							.To(interval.Max).Count();
 
-					preSplit = totalChunks / interval.Zones.Count < 100 ? PreSplitType.Interval : PreSplitType.Chunks;
-					
-					_log.Info("detect presplit mode of {0} total chunks {1}", interval.Namespace.FullName, totalChunks);
+						preSplit = totalChunks / interval.Zones.Count < 100
+							? PreSplitType.Interval
+							: PreSplitType.Chunks;
+						
+						_log.Info("detect presplit mode of {0} with total chunks {1}", interval.Namespace.FullName, totalChunks);
+					}
+					else
+					{
+						preSplit = PreSplitType.Chunks;
+						
+						_log.Info("detect presplit mode of {0} without bounds", interval.Namespace.FullName);
+					}
 				}
+				
+				await removeOldTagRanges(interval);
 
 				_log.Info("presplit data of {0} with mode {1}", interval.Namespace.FullName, preSplit);
-				
-				//TODO remove old tag ranges
 				
 				switch (preSplit)
 				{
@@ -66,6 +77,17 @@ namespace MongoDB.ClusterMaintenance.Operations
 						throw new NotSupportedException($"unexpected PreSplitType:{preSplit}");
 				}
 			}
+		}
+
+		private async Task removeOldTagRanges(Interval interval)
+		{
+			var tagRanges = await _configDb.Tags.Get(interval.Namespace);
+			if (interval.Min.HasValue && interval.Max.HasValue)
+				tagRanges = tagRanges.Where(r => interval.Min.Value <= r.Min && r.Max <= interval.Max.Value).ToList()
+					.AsReadOnly();
+
+			foreach (var tagRange in tagRanges)
+				_commandPlanWriter.RemoveTagRange(interval.Namespace, tagRange.Min, tagRange.Max, tagRange.Tag);
 		}
 
 		private async Task presplitData(Interval interval, CancellationToken token)
