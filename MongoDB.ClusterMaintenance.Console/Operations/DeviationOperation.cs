@@ -29,20 +29,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 		public async Task Run(CancellationToken token)
 		{
-			var allDatabaseNames = await _mongoClient.ListDatabaseNames().ToListAsync(token);
-
-			var allCollectionNames = new List<CollectionNamespace>();
-			
-			foreach (var dbName in allDatabaseNames.Except(new []{ "admin", "config" }))
-			{
-				_log.Info("db: {0}", dbName);
-				
-				var db = _mongoClient.GetDatabase(dbName);
-				var collNames = await db.ListCollectionNames().ToListAsync(token);
-
-				allCollectionNames.AddRange(collNames.Select(_ => new CollectionNamespace(dbName, _)));
-			}
-			
+			var allCollectionNames = await _mongoClient.ListUserCollections(token);
 			_log.Info("Found: {0} collections", allCollectionNames.Count);
 
 			var result = await allCollectionNames.ParallelsAsync(runCollStats, 32, token);

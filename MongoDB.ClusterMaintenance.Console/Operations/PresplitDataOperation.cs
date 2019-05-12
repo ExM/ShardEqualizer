@@ -36,7 +36,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 				_commandPlanWriter.Comment($"presplit commands for {interval.Namespace.FullName}");
 				var preSplit = interval.PreSplit;
 
-				if (preSplit == PreSplitType.Auto)
+				if (preSplit == PreSplitMode.Auto)
 				{
 					if (interval.Min.HasValue && interval.Max.HasValue)
 					{
@@ -46,14 +46,14 @@ namespace MongoDB.ClusterMaintenance.Operations
 							.To(interval.Max).Count();
 
 						preSplit = totalChunks / interval.Zones.Count < 100
-							? PreSplitType.Interval
-							: PreSplitType.Chunks;
+							? PreSplitMode.Interval
+							: PreSplitMode.Chunks;
 						
 						_log.Info("detect presplit mode of {0} with total chunks {1}", interval.Namespace.FullName, totalChunks);
 					}
 					else
 					{
-						preSplit = PreSplitType.Chunks;
+						preSplit = PreSplitMode.Chunks;
 						
 						_log.Info("detect presplit mode of {0} without bounds", interval.Namespace.FullName);
 					}
@@ -65,14 +65,14 @@ namespace MongoDB.ClusterMaintenance.Operations
 				
 				switch (preSplit)
 				{
-					case PreSplitType.Interval:
+					case PreSplitMode.Interval:
 						await presplitData(interval, token);
 						break;
-					case PreSplitType.Chunks:
+					case PreSplitMode.Chunks:
 						await distributeCollection(interval, token);
 						break;
 					
-					case PreSplitType.Auto:
+					case PreSplitMode.Auto:
 					default:
 						throw new NotSupportedException($"unexpected PreSplitType:{preSplit}");
 				}
@@ -132,11 +132,21 @@ namespace MongoDB.ClusterMaintenance.Operations
 				.To(interval.Max);
 
 			var chunks = await (await filtered.Find()).ToListAsync(token);
-			foreach (var part in chunks.Split(interval.Zones.Count).Select((items, order) => new {Items = items, Order = order}))
+			var parts = chunks.Split(interval.Zones.Count).Select((items, order) => new {Items = items, Order = order}).ToList();
+			foreach (var part in parts)
 			{
 				var zoneName = interval.Zones[part.Order];
+
+				var minBound = part.Items.First().Min;
+				var maxBound = part.Items.Last().Max;
+
+				if (part.Order == 0 && interval.Min.HasValue)
+					minBound = interval.Min.Value;
 				
-				_commandPlanWriter.AddTagRange(interval.Namespace, part.Items.First().Min, part.Items.Last().Max, zoneName);
+				if (part.Order == interval.Zones.Count - 1 && interval.Max.HasValue)
+					maxBound = interval.Max.Value;
+				
+				_commandPlanWriter.AddTagRange(interval.Namespace, minBound, maxBound, zoneName);
 			}
 		}
 	}

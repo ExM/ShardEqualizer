@@ -102,7 +102,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 				sb.AppendLine($"\t<!-- totalSize: {newShardedCollection.Stats.Size.ByteSize()} storageSize: {newShardedCollection.Stats.StorageSize.ByteSize()} distribution: {string.Join(" ", distribution)} -->");
 				sb.AppendLine($"\t<!-- key: {newShardedCollection.Info.Key.ToJson(_jsonWriterSettings)} -->");
 				sb.AppendLine($"\t<Interval nameSpace=\"{newShardedCollection.Info.Id}\" bounds=\"\"");
-				sb.AppendLine($"\t\tpreSplit=\"chunks\" correction=\"true\" zones=\"{defaultZones}\" />");
+				sb.AppendLine($"\t\tpreSplit=\"chunks\"\tcorrection=\"unShard\"\tzones=\"{defaultZones}\" />");
 			}
 			
 			Console.WriteLine("New intervals:");

@@ -31,14 +31,40 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 				}
 			}
 			
-			public long InitialSize;
-			public long CurrentSize;
-		
-			public ShardIdentity Main { get; set; }
-			public TagIdentity Tag { get; set; }
+			public long InitialSize  { get; }
+			public long UnShardCorrection  { get; private set; }
+
+			public Zone(ShardIdentity main, TagIdentity tag, long size)
+			{
+				Main = main;
+				Tag = tag;
+				InitialSize = size;
+				CurrentSize = size;
+			}
+
+			public ShardIdentity Main { get; }
+			public TagIdentity Tag { get; }
 
 			public BsonBound Min => _left.Value;
 			public BsonBound Max => _right.Value;
+
+			public long CurrentSize { get; private set; }
+
+			public void SizeUp(long v)
+			{
+				CurrentSize += v;
+			}
+			
+			public void SizeDown(long v)
+			{
+				CurrentSize -= v;
+			}
+
+			public void Correction(long v)
+			{
+				UnShardCorrection = v;
+				CurrentSize += v;
+			}
 		}
 	}
 }

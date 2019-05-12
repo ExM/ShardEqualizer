@@ -1,6 +1,6 @@
 namespace MongoDB.ClusterMaintenance.Config
 {
-	public enum PreSplitType
+	public enum PreSplitMode
 	{
 		Auto,
 		Interval,

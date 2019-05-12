@@ -19,9 +19,9 @@ namespace MongoDB.ClusterMaintenance.Config
 		public string Zones { get; set; }
 
 		[DataMember(Name = "preSplit")]
-		public PreSplitType PreSplit { get; private set; }
+		public PreSplitMode? PreSplit { get; private set; }
 
 		[DataMember(Name = "correction")]
-		public bool Correction { get; private set; }
+		public CorrectionMode? Correction { get; private set; }
 	}
 }

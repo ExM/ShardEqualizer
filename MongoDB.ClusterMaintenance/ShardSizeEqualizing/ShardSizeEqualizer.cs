@@ -29,14 +29,8 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			
 			_zones = tagRanges
 				.Select(r => new { tagId = r.Tag, shardId = shards.Single(s => s.Tags.Contains(r.Tag)).Id})
-				.Select(i => new { tagId = i.tagId, shardId = i.shardId, size = collStatsByShards[i.shardId].Size })
-				.Select(_ => new Zone()
-				{
-					Main = _.shardId,
-					Tag = _.tagId,
-					CurrentSize = _.size,
-					InitialSize = _.size
-				}).ToList();
+				.Select(i => new Zone(i.shardId, i.tagId, collStatsByShards[i.shardId].Size))
+				.ToList();
 			
 			// create left fixed bound
 			_zones.First().Left = new Bound(this, tagRanges.First().Min);

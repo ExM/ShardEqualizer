@@ -115,8 +115,8 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 				var chunkSize = await _shardSizeEqualizer._datasize.Get(RightNextChunk.Id);
 
 				Interlocked.Add(ref _shiftSize, chunkSize);
-				RightZone.CurrentSize -= chunkSize;
-				LeftZone.CurrentSize += chunkSize;
+				RightZone.SizeDown(chunkSize);
+				LeftZone.SizeUp(chunkSize);
 				LeftChunk = RightNextChunk;
 				Value = RightNextChunk.Max;
 
@@ -134,8 +134,8 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 				var chunkSize = await _shardSizeEqualizer._datasize.Get(LeftNextChunk.Id);
 
 				Interlocked.Add(ref _shiftSize, -chunkSize);
-				RightZone.CurrentSize += chunkSize;
-				LeftZone.CurrentSize -= chunkSize;
+				RightZone.SizeUp(chunkSize);
+				LeftZone.SizeDown(chunkSize);
 				RightChunk = LeftNextChunk;
 				Value = LeftNextChunk.Min;
 
