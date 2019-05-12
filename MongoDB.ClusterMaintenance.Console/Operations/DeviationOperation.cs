@@ -45,9 +45,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 			
 			_log.Info("Found: {0} collections", allCollectionNames.Count);
 
-			var tasks = allCollectionNames.Split(32).Select(batch => collStats(batch, token)).ToArray();
-
-			var result = (await Task.WhenAll(tasks)).SelectMany(_ => _).ToList();
+			var result = await allCollectionNames.ParallelsAsync(runCollStats, 32, token);
 
 			var report = new Report();
 			foreach (var collStats in result)
@@ -64,21 +62,12 @@ namespace MongoDB.ClusterMaintenance.Operations
 			Console.WriteLine();
 			Console.WriteLine(sb);
 		}
-
-		private async Task<IList<CollStatsResult>> collStats(IEnumerable<CollectionNamespace> batch, CancellationToken token)
+		
+		private async Task<CollStatsResult> runCollStats(CollectionNamespace ns, CancellationToken token)
 		{
-			var result = new List<CollStatsResult>();
-			foreach (var ns in batch)
-			{
-				_log.Info("collection: {0}", ns);
-				
-				var db = _mongoClient.GetDatabase(ns.DatabaseNamespace.DatabaseName);
-				
-				var collStats = await db.CollStats(ns.CollectionName, 1, token);
-				result.Add(collStats);
-			}
-
-			return result;
+			_log.Info("collection: {0}", ns);
+			var db = _mongoClient.GetDatabase(ns.DatabaseNamespace.DatabaseName);
+			return await db.CollStats(ns.CollectionName, 1, token);
 		}
 		
 		private class Report

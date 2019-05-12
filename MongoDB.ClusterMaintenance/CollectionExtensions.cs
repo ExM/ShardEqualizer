@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace MongoDB.ClusterMaintenance
 {
@@ -23,6 +25,32 @@ namespace MongoDB.ClusterMaintenance
 				yield return items.Skip(offset).Take(currentPartSize).ToList();
 				offset += currentPartSize;
 			}
+		}
+		
+		public static async Task<IReadOnlyList<R>> ParallelsAsync<S, R>(this IList<S> sourceList, Func<S, CancellationToken, Task<R>> actionTask, int maxParallelizm, CancellationToken token)
+		{
+			var collTasks = new List<Task<R>>(sourceList.Count);
+			var throttler = new SemaphoreSlim(maxParallelizm);
+
+			async Task<R> runAction(S source)
+			{
+				try
+				{
+					return await actionTask(source, token);
+				}
+				finally
+				{
+					throttler.Release();
+				}
+			}
+
+			foreach (var source in sourceList)
+			{
+				await throttler.WaitAsync(token);
+				collTasks.Add(runAction(source));
+			}
+
+			return await Task.WhenAll(collTasks);
 		}
 	}
 }

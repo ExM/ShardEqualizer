@@ -66,40 +66,25 @@ namespace MongoDB.ClusterMaintenance.Operations
 			}
 
 			_log.Info("scan new sharded collections...");
-			
-			var collTasks = new List<Task<NewShardedCollection>>(shardedCollections.Count);
-			var throttler = new SemaphoreSlim(20);
 
-			async Task<NewShardedCollection> runCollStat(ShardedCollectionInfo shardedCollection)
+			async Task<NewShardedCollection> runCollStat(ShardedCollectionInfo shardedCollection, CancellationToken innerToken)
 			{
-				try
-				{
-					var ns = shardedCollection.Id;
-					_log.Info("collStats '{0}'", ns);
-					var db = _mongoClient.GetDatabase(ns.DatabaseNamespace.DatabaseName);
-					var collStats = await db.CollStats(ns.CollectionName, 1, token);
+				var ns = shardedCollection.Id;
+				_log.Info("collStats '{0}'", ns);
+				var db = _mongoClient.GetDatabase(ns.DatabaseNamespace.DatabaseName);
+				var collStats = await db.CollStats(ns.CollectionName, 1, token);
 
-					return new NewShardedCollection()
-					{
-						Info = shardedCollection,
-						Stats = collStats
-					};
-				}
-				finally
+				return new NewShardedCollection()
 				{
-					throttler.Release();
-				}
+					Info = shardedCollection,
+					Stats = collStats
+				};
 			}
 
-			foreach (var shardedCollection in shardedCollections.Values.Where(_ => !_.Dropped))
-			{
-				await throttler.WaitAsync(token);
-				collTasks.Add(runCollStat(shardedCollection));
-			}
-			
+			var newShardedCollections = shardedCollections.Values.Where(_ => !_.Dropped).ToList();
 			var sb = new StringBuilder();
 
-			foreach (var newShardedCollection in await Task.WhenAll(collTasks))
+			foreach (var newShardedCollection in await newShardedCollections.ParallelsAsync(runCollStat, 20, token))
 			{
 				var totalSize = newShardedCollection.Stats.Size;
 				if (totalSize == 0)
