@@ -18,15 +18,17 @@ namespace MongoDB.ClusterMaintenance.Operations
 	{
 		private readonly IReadOnlyList<Interval> _intervals;
 		private readonly CommandPlanWriter _commandPlanWriter;
+		private readonly bool _renew;
 		private readonly IConfigDbRepositoryProvider _configDb;
 			
 		private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 
-		public PresplitDataOperation(IConfigDbRepositoryProvider configDb, IReadOnlyList<Interval> intervals, CommandPlanWriter commandPlanWriter)
+		public PresplitDataOperation(IConfigDbRepositoryProvider configDb, IReadOnlyList<Interval> intervals, CommandPlanWriter commandPlanWriter, bool renew)
 		{
 			_configDb = configDb;
 			_intervals = intervals;
 			_commandPlanWriter = commandPlanWriter;
+			_renew = renew;
 		}
 
 		public async Task Run(CancellationToken token)
@@ -58,8 +60,12 @@ namespace MongoDB.ClusterMaintenance.Operations
 						_log.Info("detect presplit mode of {0} without bounds", interval.Namespace.FullName);
 					}
 				}
-				
-				await removeOldTagRanges(interval);
+
+				if (!await removeOldTagRangesIfRequired(interval))
+				{
+					_commandPlanWriter.Comment($"zones not changed");
+					continue;
+				}
 
 				_log.Info("presplit data of {0} with mode {1}", interval.Namespace.FullName, preSplit);
 				
@@ -79,15 +85,24 @@ namespace MongoDB.ClusterMaintenance.Operations
 			}
 		}
 
-		private async Task removeOldTagRanges(Interval interval)
+		private async Task<bool> removeOldTagRangesIfRequired(Interval interval)
 		{
-			var tagRanges = await _configDb.Tags.Get(interval.Namespace);
-			if (interval.Min.HasValue && interval.Max.HasValue)
-				tagRanges = tagRanges.Where(r => interval.Min.Value <= r.Min && r.Max <= interval.Max.Value).ToList()
-					.AsReadOnly();
+			var tagRanges = await _configDb.Tags.Get(interval.Namespace, interval.Min, interval.Max);
+
+			if (!_renew && tagRanges.Select(_ => _.Tag).SequenceEqual(interval.Zones))
+			{
+				if (!interval.Min.HasValue || !interval.Max.HasValue)
+					return false;
+
+				if (tagRanges.First().Min == interval.Min.Value &&
+				    tagRanges.Last().Max == interval.Max.Value)
+					return false;
+			}
 
 			foreach (var tagRange in tagRanges)
 				_commandPlanWriter.RemoveTagRange(interval.Namespace, tagRange.Min, tagRange.Max, tagRange.Tag);
+
+			return true;
 		}
 
 		private async Task presplitData(Interval interval, CancellationToken token)

@@ -99,9 +99,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 		private async Task equalizeShards(Interval interval, long targetDeviation, CollStatsResult collStats, IReadOnlyCollection<Shard> shards, IDictionary<TagIdentity, long> sizeCorrection, CancellationToken token)
 		{
-			var tagRanges = await _configDb.Tags.Get(interval.Namespace);
-			if(interval.Min.HasValue && interval.Max.HasValue)
-				tagRanges = tagRanges.Where(r => interval.Min.Value <= r.Min && r.Max <= interval.Max.Value).ToList().AsReadOnly();
+			var tagRanges = await _configDb.Tags.Get(interval.Namespace, interval.Min, interval.Max);
 
 			if (tagRanges.Count == 0)
 			{
