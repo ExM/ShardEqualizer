@@ -32,7 +32,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 		public async Task Run(CancellationToken token)
 		{
-			foreach (var interval in _intervals)
+			foreach (var interval in _intervals.Where(_ => _.Selected))
 			{
 				_log.Info("Scan collection {0}", interval.Namespace);
 				await scanInterval(interval, token);

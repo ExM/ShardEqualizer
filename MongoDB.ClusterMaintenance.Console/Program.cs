@@ -92,22 +92,26 @@ namespace MongoDB.ClusterMaintenance
 			var boundsFileConfig = appSettings.Get<BoundsFile>();
 			var bounds = readBoundsFile(boundsFileConfig.Path);
 			
-			var intervals = appSettings.LoadSections<IntervalConfig>().Select(_ => new Interval(_, bounds));
+			var intervals = appSettings.LoadSections<IntervalConfig>().Select(_ => new Interval(_, bounds)).ToList().AsReadOnly();
 			
 			if (verbose.Database != null)
-				intervals = intervals.Where(_ =>
-					_.Namespace.DatabaseNamespace.DatabaseName.Equals(verbose.Database, StringComparison.Ordinal));
+				foreach (var interval in intervals)
+				{
+					if (!interval.Namespace.DatabaseNamespace.DatabaseName.Equals(verbose.Database, StringComparison.Ordinal))
+						interval.Selected = false;
+				}
 			
 			if(verbose.Collection != null)
-				intervals = intervals.Where(_ =>
-					_.Namespace.CollectionName.Equals(verbose.Collection, StringComparison.Ordinal));
+				foreach (var interval in intervals)
+				{
+					if (!interval.Namespace.CollectionName.Equals(verbose.Collection, StringComparison.Ordinal))
+						interval.Selected = false;
+				}
 
-			IReadOnlyList<Interval> finalIntervals = intervals.ToList();
-
-			if (finalIntervals.Count == 0)
+			if (intervals.Count == 0)
 				throw new ArgumentException("interval list is empty");
 			
-			kernel.Bind<IReadOnlyList<Interval>>().ToConstant(finalIntervals);
+			kernel.Bind<IReadOnlyList<Interval>>().ToConstant(intervals);
 		}
 		
 		public static BsonDocument readBoundsFile(string path)

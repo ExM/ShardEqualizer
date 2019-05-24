@@ -9,6 +9,8 @@ namespace MongoDB.ClusterMaintenance
 {
 	public class Interval
 	{
+		
+
 		public Interval(CollectionNamespace ns, IReadOnlyList<TagIdentity> zones, PreSplitMode preSplit, CorrectionMode correction, BsonBound min, BsonBound max)
 		{
 			Namespace = ns;
@@ -21,6 +23,7 @@ namespace MongoDB.ClusterMaintenance
 		
 		public Interval(IntervalConfig config, BsonDocument bounds)
 		{
+			Selected = true;
 			Namespace = CollectionNamespace.FromFullName(config.Namespace);;
 			Zones = config.Zones?.Split(',').Select(_ => new TagIdentity(_)).ToList();;
 			PreSplit = config.PreSplit ?? PreSplitMode.Auto;
@@ -34,11 +37,12 @@ namespace MongoDB.ClusterMaintenance
 			}
 		}
 
-		public CollectionNamespace Namespace { get; private set; }
-		public BsonBound? Min { get; private set; }
-		public BsonBound? Max { get; private set; }
-		public IReadOnlyList<TagIdentity> Zones { get; private set; }
-		public PreSplitMode PreSplit { get; private set; }
-		public CorrectionMode Correction { get; private set; }
+		public CollectionNamespace Namespace { get; }
+		public BsonBound? Min { get; }
+		public BsonBound? Max { get; }
+		public IReadOnlyList<TagIdentity> Zones { get; }
+		public PreSplitMode PreSplit { get; }
+		public CorrectionMode Correction { get; }
+		public bool Selected { get; set; }
 	}
 }

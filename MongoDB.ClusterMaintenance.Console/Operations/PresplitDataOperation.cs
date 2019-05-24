@@ -33,7 +33,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 		public async Task Run(CancellationToken token)
 		{
-			foreach (var interval in _intervals)
+			foreach (var interval in _intervals.Where(_ => _.Selected))
 			{
 				_commandPlanWriter.Comment($"presplit commands for {interval.Namespace.FullName}");
 				var preSplit = interval.PreSplit;

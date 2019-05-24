@@ -31,12 +31,16 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 				.Select(r => new { tagId = r.Tag, shardId = shards.Single(s => s.Tags.Contains(r.Tag)).Id})
 				.Select(i => new Zone(i.shardId, i.tagId, collStatsByShards[i.shardId].Size))
 				.ToList();
+
+			var leftFixedBound = new Bound(this, tagRanges.First().Min);
+			if (leftFixedBound.RightChunk == null)
+				throw new Exception($"First chunk not found by first bound of tags");
+			_zones.First().Left = leftFixedBound;
 			
-			// create left fixed bound
-			_zones.First().Left = new Bound(this, tagRanges.First().Min);
-			
-			// create right fixed bound
-			_zones.Last().Right = new Bound(this, tagRanges.Last().Max);
+			var rightFixedBound = new Bound(this, tagRanges.Last().Max);
+			if(rightFixedBound.LeftChunk == null)
+				throw new Exception($"Last chunk not found by last bound of tags");
+			_zones.Last().Right = rightFixedBound;
 
 			_movingBounds = tagRanges.Skip(1).Select(item => new Bound(this, item.Min)).ToList();
 
@@ -72,7 +76,7 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 
 		public string RenderState()
 		{
-			var sb = new StringBuilder(_movingBounds.First().LeftZone.Main.ToString());
+			var sb = new StringBuilder($"[{_movingBounds.First().LeftZone.Main}]");
 			
 			foreach (var bound in _movingBounds)
 			{
@@ -89,7 +93,7 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 				sb.Append(target);
 				sb.Append(shiftSize.ByteSize());
 				sb.Append(target);
-				sb.Append(bound.RightZone.Main);
+				sb.Append($"[{bound.RightZone.Main}]");
 			}
 
 			return sb.ToString();

@@ -49,15 +49,14 @@ namespace MongoDB.ClusterMaintenance.Operations
 				.Distinct()
 				.ToDictionary(_ => _, _ => shards.Single(s => s.Tags.Contains(_)));
 
-
 			var collSizeSumByShard = shards.Select(_ => _.Id).ToDictionary(
 				shId => shId,
 				shId => _intervals
 					.Where(i => i.Zones.Select(t => shardByTag[t].Id).Contains(shId))
 					.Select(i => collStatsMap[i.Namespace].Size)
 					.Sum());
-			
-			foreach (var interval in _intervals.Where(_ => _.Correction != CorrectionMode.None))
+
+			foreach (var interval in _intervals.Where(_ => _.Selected).Where(_ => _.Correction != CorrectionMode.None))
 			{
 				var collSize = collStatsMap[interval.Namespace].Size;
 

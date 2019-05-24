@@ -28,7 +28,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 			var shards = await _configDb.Shards.GetAll();
 			var totalUnMovedChunks = 0;
 			
-			foreach (var interval in _intervals)
+			foreach (var interval in _intervals.Where(_ => _.Selected))
 			{
 				_log.Info("Scan interval: {0}", interval.Namespace);
 				
