@@ -31,10 +31,10 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 
 			public async Task<long> CalcMoveDelta()
 			{
-				if (LeftZone.CurrentSize == RightZone.CurrentSize)
+				if (LeftZone.BalanceSize == RightZone.BalanceSize)
 					return 0;
 
-				if (LeftZone.CurrentSize < RightZone.CurrentSize)
+				if (LeftZone.BalanceSize < RightZone.BalanceSize)
 					return await findRightNextChunk();
 				else
 					return await findLeftNextChunk();
@@ -58,7 +58,7 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 						if (chunkSize != 0)
 						{
 							RightNextChunk = candidate;
-							return RightZone.CurrentSize - LeftZone.CurrentSize;
+							return RightZone.BalanceSize - LeftZone.BalanceSize;
 						}
 					}
 
@@ -86,7 +86,7 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 						if (chunkSize != 0)
 						{
 							LeftNextChunk = candidate;
-							return LeftZone.CurrentSize - RightZone.CurrentSize;
+							return LeftZone.BalanceSize - RightZone.BalanceSize;
 						}
 					}
 
@@ -98,10 +98,10 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 
 			public async Task Move()
 			{
-				if (LeftZone.CurrentSize == RightZone.CurrentSize)
+				if (LeftZone.BalanceSize == RightZone.BalanceSize)
 					throw new Exception();
 
-				if (LeftZone.CurrentSize < RightZone.CurrentSize)
+				if (LeftZone.BalanceSize < RightZone.BalanceSize)
 					await moveToRight();
 				else
 					await moveToLeft();

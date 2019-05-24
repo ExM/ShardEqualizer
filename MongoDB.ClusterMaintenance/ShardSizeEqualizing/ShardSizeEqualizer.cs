@@ -68,8 +68,8 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 		{
 			get
 			{
-				var minSize = _zones.Select(_ => _.CurrentSize).Min();
-				var maxSize = _zones.Select(_ => _.CurrentSize).Max();
+				var minSize = _zones.Select(_ => _.BalanceSize).Min();
+				var maxSize = _zones.Select(_ => _.BalanceSize).Max();
 				return maxSize - minSize;
 			}
 		}

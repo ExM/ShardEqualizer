@@ -165,6 +165,12 @@ namespace MongoDB.ClusterMaintenance.Operations
 				return;
 			}
 			
+			foreach (var zone in equalizer.Zones)
+			{
+				_log.Info("Zone: {0} InitialSize: {1} CurrentSize: {2} UnShardCorrection: {3}",
+					zone.Tag, zone.InitialSize.ByteSize(), zone.CurrentSize.ByteSize(), zone.UnShardCorrection.ByteSize());
+			}
+			
 			_commandPlanWriter.Comment(equalizer.RenderState());
 			_commandPlanWriter.Comment("remove old tags");
 			foreach (var tagRange in tagRanges)
