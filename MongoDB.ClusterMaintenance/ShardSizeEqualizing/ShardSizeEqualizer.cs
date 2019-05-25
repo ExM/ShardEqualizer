@@ -7,24 +7,26 @@ using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.ClusterMaintenance.Models;
 using MongoDB.ClusterMaintenance.MongoCommands;
+using NLog;
 
 namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 {
 	public partial class ShardSizeEqualizer
 	{
-		private readonly ChunkCollection _chunks;
-		private readonly DatasizeCache _datasize;
+		private static readonly Logger _log = LogManager.GetCurrentClassLogger();
+	
 		private readonly IReadOnlyList<Zone> _zones;
 		private readonly IReadOnlyList<Bound> _movingBounds;
 		
 		private readonly HashSet<BoundState> _boundStates = new HashSet<BoundState>();
+		private readonly List<BoundState> _stateLog = new List<BoundState>();
 		
-		public ShardSizeEqualizer(IReadOnlyCollection<Shard> shards, IReadOnlyDictionary<ShardIdentity, CollStats> collStatsByShards,
-			IReadOnlyList<TagRange> tagRanges, ChunkCollection chunks, Func<string, Task<long>> chunkSizeResolver)
+		public ShardSizeEqualizer(
+			IReadOnlyCollection<Shard> shards,
+			IReadOnlyDictionary<ShardIdentity, CollStats> collStatsByShards,
+			IReadOnlyList<TagRange> tagRanges,
+			ChunkCollection chunks)
 		{
-			_chunks = chunks;
-			_datasize = new DatasizeCache(chunkSizeResolver);
-
 			continuityCheck(tagRanges);
 			
 			_zones = tagRanges
@@ -32,17 +34,17 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 				.Select(i => new Zone(i.shardId, i.tagId, collStatsByShards[i.shardId].Size))
 				.ToList();
 
-			var leftFixedBound = new Bound(this, tagRanges.First().Min);
+			var leftFixedBound = new Bound(chunks, tagRanges.First().Min);
 			if (leftFixedBound.RightChunk == null)
 				throw new Exception($"First chunk not found by first bound of tags");
 			_zones.First().Left = leftFixedBound;
 			
-			var rightFixedBound = new Bound(this, tagRanges.Last().Max);
+			var rightFixedBound = new Bound(chunks, tagRanges.Last().Max);
 			if(rightFixedBound.LeftChunk == null)
 				throw new Exception($"Last chunk not found by last bound of tags");
 			_zones.Last().Right = rightFixedBound;
 
-			_movingBounds = tagRanges.Skip(1).Select(item => new Bound(this, item.Min)).ToList();
+			_movingBounds = tagRanges.Skip(1).Select(item => new Bound(chunks, item.Min)).ToList();
 
 			var zoneIndex = 0;
 			foreach (var bound in _movingBounds)
@@ -57,7 +59,9 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 
 		private bool checkCycle()
 		{
-			return !_boundStates.Add(new BoundState(_movingBounds.Select(_ => _.Value).ToArray()));
+			var state = new BoundState(_movingBounds.Select(_ => _.LeftChunk.Order).ToArray());
+			_stateLog.Add(state);
+			return !_boundStates.Add(state);
 		}
 
 		public IReadOnlyList<Bound> MovingBounds => _movingBounds;
@@ -115,13 +119,19 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			}
 
 			if (candidate == null)
+			{
+				_log.Info("no candidate");
 				return false;
-			
+			}
+
 			await candidate.Move();
 			
 			var cycle =  checkCycle();
 			if (cycle)
+			{
+				_log.Info("cycle detect");
 				return false;
+			}
 
 			return true;
 		}

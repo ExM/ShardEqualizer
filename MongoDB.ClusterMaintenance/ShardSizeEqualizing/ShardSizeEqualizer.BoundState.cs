@@ -9,11 +9,11 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 	{
 		private class BoundState: IEquatable<BoundState>
 		{
-			private readonly BsonBound[] _bounds;
+			private readonly int[] _boundOrders;
 
-			public BoundState(BsonBound[] bounds)
+			public BoundState(int[] boundOrders)
 			{
-				_bounds = bounds;
+				_boundOrders = boundOrders;
 			}
 
 			public bool Equals(BoundState other)
@@ -21,11 +21,11 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 				if (other == null)
 					return false;
 				
-				if (_bounds.Length != other._bounds.Length)
+				if (_boundOrders.Length != other._boundOrders.Length)
 					return false;
 
-				for (var i = 0; i < _bounds.Length; i++)
-					if (_bounds[i] != other._bounds[i])
+				for (var i = 0; i < _boundOrders.Length; i++)
+					if (_boundOrders[i] != other._boundOrders[i])
 						return false;
 
 				return true;
@@ -40,7 +40,7 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			{
 				unchecked
 				{
-					return _bounds.Aggregate(13, (current, bound) => current * 7 + bound.GetHashCode());
+					return _boundOrders.Aggregate(13, (current, bound) => current * 7 + bound.GetHashCode());
 				}
 			}
 		}

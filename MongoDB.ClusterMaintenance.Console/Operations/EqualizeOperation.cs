@@ -117,16 +117,15 @@ namespace MongoDB.ClusterMaintenance.Operations
 			var collInfo = await _configDb.Collections.Find(interval.Namespace);
 			var db = _mongoClient.GetDatabase(interval.Namespace.DatabaseNamespace.DatabaseName);
 			
-			var chunkColl = new ChunkCollection(allChunks);
-
-			async Task<long> chunkSizeResolver(string chunkId)
+			async Task<long> chunkSizeResolver(Chunk chunk)
 			{
-				var chunk = chunkColl.ById(chunkId);
 				var result = await db.Datasize(collInfo, chunk, token);
 				return result.Size;
 			}
+			
+			var chunkColl = new ChunkCollection(allChunks, chunkSizeResolver);
 
-			var equalizer = new ShardSizeEqualizer(shards, collStats.Shards, tagRanges, chunkColl, chunkSizeResolver);
+			var equalizer = new ShardSizeEqualizer(shards, collStats.Shards, tagRanges, chunkColl);
 			if(sizeCorrection != null)
 				foreach (var pair in sizeCorrection)
 				{
