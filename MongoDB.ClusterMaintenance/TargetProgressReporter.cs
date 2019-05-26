@@ -14,6 +14,7 @@ namespace MongoDB.ClusterMaintenance
 		private readonly long _target;
 		private readonly Func<long, string> _renderer;
 		private readonly long _source;
+		private readonly bool _forward;
 		private readonly Action _onShowProgress;
 		private readonly CancellationTokenSource _cts;
 		private readonly Task _loop;
@@ -25,6 +26,7 @@ namespace MongoDB.ClusterMaintenance
 			_renderer = renderer ?? defaultRenderer;
 			_source = source;
 			_current = source;
+			_forward = _source < _target;
 			
 			_onShowProgress = onShowProgress;
 			_cts = new CancellationTokenSource();
@@ -59,11 +61,11 @@ namespace MongoDB.ClusterMaintenance
 
 			var eta = TimeSpan.FromSeconds(elapsed.TotalSeconds * s);
 
-			_log.Info("Progress {0} Elapsed: {1} ETA: {2}", _renderer(copyCurrent), elapsed, eta);
+			_log.Info("Progress {0}/{1} Elapsed: {2} ETA: {3}", _renderer(copyCurrent), _renderer(_target), elapsed, eta);
 
 			_onShowProgress?.Invoke();
 			
-			return _target < copyCurrent;
+			return _forward ? copyCurrent < _target : _target < copyCurrent;
 		}
 
 		public async Task Finalize()

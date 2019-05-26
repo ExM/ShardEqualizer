@@ -32,14 +32,15 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			}
 			
 			public long InitialSize  { get; }
-			public long UnShardCorrection  { get; private set; }
+			public long UnShardCorrection  { get; }
 
-			public Zone(ShardIdentity main, TagIdentity tag, long size)
+			public Zone(ShardIdentity main, TagIdentity tag, long size, long unShardCorrection)
 			{
 				Main = main;
 				Tag = tag;
 				InitialSize = size;
 				CurrentSize = size;
+				UnShardCorrection = unShardCorrection;
 			}
 
 			public ShardIdentity Main { get; }
@@ -60,11 +61,6 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			public void SizeDown(long v)
 			{
 				CurrentSize -= v;
-			}
-
-			public void Correction(long v)
-			{
-				UnShardCorrection = v;
 			}
 		}
 	}

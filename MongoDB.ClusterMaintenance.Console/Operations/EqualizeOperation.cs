@@ -32,10 +32,6 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 		public async Task Run(CancellationToken token)
 		{
-			var chunkSize = await _configDb.Settings.GetChunksize();
-			
-			var targetDeviation = chunkSize + chunkSize / 64; // < 102%
-			
 			var shards = await _configDb.Shards.GetAll();
 			var collStatsMap = (await listCollStats(token)).ToDictionary(_ => _.Ns);
 
@@ -76,7 +72,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 				_log.Info("Equalize shards from {0}", interval.Namespace.FullName);
 				_commandPlanWriter.Comment($"Equalize shards from {interval.Namespace.FullName}");
-				await equalizeShards(interval, targetDeviation, collStatsMap[interval.Namespace], shards, correctionSize, token);
+				await equalizeShards(interval, collStatsMap[interval.Namespace], shards, correctionSize, token);
 			}
 		}
 
@@ -96,7 +92,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 			return await db.CollStats(ns.CollectionName, 1, token);
 		}
 
-		private async Task equalizeShards(Interval interval, long targetDeviation, CollStatsResult collStats, IReadOnlyCollection<Shard> shards, IDictionary<TagIdentity, long> sizeCorrection, CancellationToken token)
+		private async Task equalizeShards(Interval interval, CollStatsResult collStats, IReadOnlyCollection<Shard> shards, IDictionary<TagIdentity, long> sizeCorrection, CancellationToken token)
 		{
 			var tagRanges = await _configDb.Tags.Get(interval.Namespace, interval.Min, interval.Max);
 
@@ -124,37 +120,31 @@ namespace MongoDB.ClusterMaintenance.Operations
 			}
 			
 			var chunkColl = new ChunkCollection(allChunks, chunkSizeResolver);
+			var equalizer = new ShardSizeEqualizer(shards, collStats.Shards, tagRanges, sizeCorrection, chunkColl);
 
-			var equalizer = new ShardSizeEqualizer(shards, collStats.Shards, tagRanges, chunkColl);
-			if(sizeCorrection != null)
-				foreach (var pair in sizeCorrection)
-				{
-					equalizer.Zones.Single(_ => _.Tag == pair.Key).Correction(pair.Value);
-				}
-
+			var lastZone = equalizer.Zones.Last();
 			foreach (var zone in equalizer.Zones)
 			{
 				_log.Info("Zone: {0} Coll: {1} UnShardCorrection: {2}",
 					zone.Tag, zone.InitialSize.ByteSize(), zone.UnShardCorrection.ByteSize());
+				if(zone != lastZone)
+					_log.Info("RequireShiftSize: {0} ", zone.Right.RequireShiftSize.ByteSize());
 			}
 			
 			var rounds = 0;
-			var progress = new TargetProgressReporter(equalizer.CurrentSizeDeviation, targetDeviation, LongExtensions.ByteSize, () =>
+			var progress = new TargetProgressReporter(equalizer.MovedSize, equalizer.RequireMoveSize, LongExtensions.ByteSize, () =>
 			{
-				_log.Info("Rounds: {0} State: {1}", rounds, equalizer.RenderState());
+				_log.Info("Rounds: {0} SizeDeviation: {1}", rounds, equalizer.CurrentSizeDeviation.ByteSize());
+				_log.Info(equalizer.RenderState());
 			});
 			
-			while(equalizer.CurrentSizeDeviation >= targetDeviation)
+			while(await equalizer.Equalize())
 			{
-				if (!await equalizer.Equalize())
-					break;
-
 				rounds++;
-				progress.Update(equalizer.CurrentSizeDeviation);
+				progress.Update(equalizer.MovedSize);
 				token.ThrowIfCancellationRequested();
 			}
 
-			progress.Update(equalizer.CurrentSizeDeviation);
 			await progress.Finalize();
 
 			if (rounds == 0)

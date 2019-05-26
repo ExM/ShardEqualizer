@@ -11,17 +11,19 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 		public class Bound
 		{
 			private readonly ChunkCollection _chunks;
-			public Zone LeftZone;
-			public ChunkCollection.Entry LeftChunk;
-			public ChunkCollection.Entry LeftNextChunk;
-			public Zone RightZone;
-			public ChunkCollection.Entry RightChunk;
-			public ChunkCollection.Entry RightNextChunk;
-			public BsonBound Value { get; set; }
+			public Zone LeftZone { get; set; }
+			public ChunkCollection.Entry LeftChunk { get; private set; }
+			public Zone RightZone { get; set; }
+			public ChunkCollection.Entry RightChunk { get; private set; }
+			public BsonBound Value { get; private set; }
 			public long ShiftSize => _shiftSize;
 			private long _shiftSize = 0;
+			
+			public long RequireShiftSize = 0;
+			
+			private ChunkCollection.Entry _nextChunk;
 
-			public Bound(ChunkCollection chunks, BsonBound value)
+			internal Bound(ChunkCollection chunks, BsonBound value)
 			{
 				Value = value;
 				_chunks = chunks;
@@ -29,120 +31,98 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 				RightChunk =_chunks.FindRight(value);
 			}
 
-			public async Task<long> CalcMoveDelta()
+			public async Task<bool> TryMove()
 			{
-				if (LeftZone.BalanceSize == RightZone.BalanceSize)
-					return 0;
+				if (RequireShiftSize == 0)
+					return false;
 
-				if (LeftZone.BalanceSize < RightZone.BalanceSize)
-					return await findRightNextChunk();
-				else
-					return await findLeftNextChunk();
-			}
+				if (RequireShiftSize < 0)
+				{ // to left
+					if (_shiftSize <= RequireShiftSize)
+						return false;
+				
+					if (_nextChunk == null)
+						_nextChunk = await findLeftNextChunk();
 
-			private async Task<long> findRightNextChunk()
-			{
-				var stopChunkId = RightZone.Right.LeftChunk.Chunk.Id;
-				RightNextChunk = null;
+					if (_nextChunk == null)
+						return false;
+					
+					var nextChunkSize = await _nextChunk.Size;
+				
+					if ((_shiftSize - nextChunkSize/2) < RequireShiftSize)
+						return false;
 
-				var candidate = RightChunk;
-
-				while (true)
-				{
-					if (candidate.Chunk.Id == stopChunkId)
-						return 0;
-
-					if (!candidate.Chunk.Jumbo)
-					{
-						var chunkSize = await candidate.Size;
-						if (chunkSize != 0)
-						{
-							RightNextChunk = candidate;
-							return RightZone.BalanceSize - LeftZone.BalanceSize;
-						}
-					}
-
-					candidate = _chunks.FindRight(candidate);
-					if (candidate == null)
-						return 0;
+					Interlocked.Add(ref _shiftSize, -nextChunkSize);
+					LeftZone.SizeDown(nextChunkSize);
+					RightZone.SizeUp(nextChunkSize);
+					RightChunk = _nextChunk;
+					Value = _nextChunk.Chunk.Min;
+					LeftChunk = _chunks.FindLeft(_nextChunk);
 				}
+				else
+				{ // to right
+					if (RequireShiftSize <= _shiftSize)
+						return false;
+				
+					if (_nextChunk == null)
+						_nextChunk = await findRightNextChunk();
+
+					if (_nextChunk == null)
+						return false;
+					
+					var nextChunkSize = await _nextChunk.Size;
+					
+					if ((_shiftSize + nextChunkSize/2) > RequireShiftSize)
+						return false;
+					
+					Interlocked.Add(ref _shiftSize, nextChunkSize);
+					LeftZone.SizeUp(nextChunkSize);
+					RightZone.SizeDown(nextChunkSize);
+					LeftChunk = _nextChunk;
+					Value = _nextChunk.Chunk.Max;
+					RightChunk = _chunks.FindRight(_nextChunk);
+				}
+				
+				_nextChunk = null;
+				return true;
 			}
-
-			private async Task<long> findLeftNextChunk()
+			
+			private async Task<ChunkCollection.Entry> findLeftNextChunk()
 			{
-				var stopChunkId = LeftZone.Left.RightChunk.Chunk.Id;
-				LeftNextChunk = null;
-
+				var stopEntry = LeftZone.Left.RightChunk;
 				var candidate = LeftChunk;
 
 				while (true)
 				{
-					if (candidate.Chunk.Id == stopChunkId)
-						return 0;
+					if (candidate == stopEntry)
+						return null;
 
-					if (!candidate.Chunk.Jumbo)
-					{
-						var chunkSize = await candidate.Size;
-						if (chunkSize != 0)
-						{
-							LeftNextChunk = candidate;
-							return LeftZone.BalanceSize - RightZone.BalanceSize;
-						}
-					}
+					if (!candidate.Chunk.Jumbo && await candidate.Size > 0)
+						return candidate;
 
 					candidate = _chunks.FindLeft(candidate);
 					if (candidate == null)
-						return 0;
+						return null;
 				}
 			}
 
-			public async Task Move()
+			private async Task<ChunkCollection.Entry> findRightNextChunk()
 			{
-				if (LeftZone.BalanceSize == RightZone.BalanceSize)
-					throw new Exception();
+				var stopEntry =  RightZone.Right.LeftChunk;
+				var candidate = RightChunk;
 
-				if (LeftZone.BalanceSize < RightZone.BalanceSize)
-					await moveToRight();
-				else
-					await moveToLeft();
-			}
+				while (true)
+				{
+					if (candidate == stopEntry)
+						return null;
 
-			private async Task moveToRight()
-			{
-				if (RightNextChunk == null)
-					throw new Exception();
+					if (!candidate.Chunk.Jumbo && await candidate.Size > 0)
+						return candidate;
 
-				var chunkSize = await RightNextChunk.Size;
-
-				Interlocked.Add(ref _shiftSize, chunkSize);
-				RightZone.SizeDown(chunkSize);
-				LeftZone.SizeUp(chunkSize);
-				LeftChunk = RightNextChunk;
-				Value = RightNextChunk.Chunk.Max;
-
-				RightNextChunk = null;
-				LeftNextChunk = null;
-
-				RightChunk = _chunks.FindRight(LeftChunk);
-			}
-
-			private async Task moveToLeft()
-			{
-				if (LeftNextChunk == null)
-					throw new Exception();
-
-				var chunkSize = await LeftNextChunk.Size;
-
-				Interlocked.Add(ref _shiftSize, -chunkSize);
-				RightZone.SizeUp(chunkSize);
-				LeftZone.SizeDown(chunkSize);
-				RightChunk = LeftNextChunk;
-				Value = LeftNextChunk.Chunk.Min;
-
-				RightNextChunk = null;
-				LeftNextChunk = null;
-
-				LeftChunk = _chunks.FindLeft(RightChunk);
+					candidate = _chunks.FindRight(candidate);
+					if (candidate == null)
+						return null;
+				}
 			}
 		}
 	}
