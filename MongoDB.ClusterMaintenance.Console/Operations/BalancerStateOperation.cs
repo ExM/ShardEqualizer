@@ -43,9 +43,14 @@ namespace MongoDB.ClusterMaintenance.Operations
 					var chunks = await (await _configDb.Chunks.ByNamespace(interval.Namespace)
 						.From(tagRange.Min).To(tagRange.Max).Find()).ToListAsync(token);
 
-					var unMovedChunks = chunks.Count(_ => _.Jumbo != true && !validShards.Contains(_.Shard));
-					_log.Info("  tag range {0} contains {1} unmoved chunks", tagRange.Tag, unMovedChunks);
-					totalUnMovedChunks += unMovedChunks;
+					var unMovedChunks = chunks.Where(_ => _.Jumbo != true && !validShards.Contains(_.Shard)).ToList();
+					if (unMovedChunks.Count != 0)
+					{
+						var sourceShards = unMovedChunks.Select(_ => _.Shard).Distinct().Select(_ => $"'{_}'");
+						_log.Info("  tag range '{0}' wait {1} chunks from {2} shards",
+							tagRange.Tag, unMovedChunks.Count, string.Join(", ", sourceShards));
+						totalUnMovedChunks += unMovedChunks.Count;
+					}
 				}
 			}
 			
