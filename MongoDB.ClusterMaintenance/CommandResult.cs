@@ -1,4 +1,5 @@
 using System;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace MongoDB.ClusterMaintenance
@@ -23,6 +24,12 @@ namespace MongoDB.ClusterMaintenance
 				throw new InvalidOperationException(ErrorMessage);
 			}
 		}
+		
+		[BsonElement("operationTime"), BsonIgnoreIfNull]
+		public BsonTimestamp OperationTime { get; private set; }
+		
+		[BsonElement("$clusterTime"), BsonIgnoreIfNull]
+		public BsonDocument ClusterTime { get; private set; }
 	}
 
 }

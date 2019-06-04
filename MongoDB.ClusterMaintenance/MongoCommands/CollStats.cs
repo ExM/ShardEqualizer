@@ -40,5 +40,11 @@ namespace MongoDB.ClusterMaintenance.MongoCommands
 
 		[BsonElement("indexSizes"), BsonDictionaryOptions(DictionaryRepresentation.Document), BsonRequired]
 		public IReadOnlyDictionary<string, long> IndexSizes;
+		
+		[BsonElement("$gleStats"), BsonIgnoreIfNull]
+		public BsonDocument GleStats { get; private set; }
+		
+		[BsonElement("$configServerState"), BsonIgnoreIfNull]
+		public BsonDocument ConfigServerState { get; private set; }
 	}
 }

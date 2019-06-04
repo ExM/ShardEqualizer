@@ -147,6 +147,10 @@ namespace MongoDB.ClusterMaintenance.Operations
 				.To(interval.Max);
 
 			var chunks = await (await filtered.Find()).ToListAsync(token);
+			
+			if(chunks.Count < interval.Zones.Count)
+				throw new InvalidOperationException($"collection {interval.Namespace.FullName} does not contain enough chunks");
+			
 			var parts = chunks.Split(interval.Zones.Count).Select((items, order) => new {Items = items, Order = order}).ToList();
 			foreach (var part in parts)
 			{

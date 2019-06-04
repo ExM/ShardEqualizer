@@ -9,7 +9,7 @@ namespace MongoDB.ClusterMaintenance.Models
 	{
 		[BsonId]
 		public CollectionNamespace Id { get; private set; }
-
+		
 		[BsonElement("lastmodEpoch"), BsonRequired]
 		public ObjectId LastmodEpoch { get; private set; }
 		
@@ -27,5 +27,8 @@ namespace MongoDB.ClusterMaintenance.Models
 		
 		[BsonElement("noBalance"), BsonIgnoreIfNull]
 		public bool? NoBalance { get; private set; }
+		
+		[BsonElement("uuid"), BsonIgnoreIfNull]
+		public Guid? UUID { get; private set; }
 	}
 }
