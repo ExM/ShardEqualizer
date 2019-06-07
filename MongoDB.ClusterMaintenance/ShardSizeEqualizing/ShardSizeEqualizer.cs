@@ -103,7 +103,7 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 		
 		public async Task<bool> Equalize()
 		{
-			foreach (var bound in _movingBounds)
+			foreach (var bound in _movingBounds.OrderByDescending(b => b.ElapsedShiftSize))
 				if (await bound.TryMove())
 					return true;
 

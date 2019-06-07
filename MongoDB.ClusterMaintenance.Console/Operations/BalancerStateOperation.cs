@@ -49,8 +49,11 @@ namespace MongoDB.ClusterMaintenance.Operations
 						var sourceShards = unMovedChunks.Select(_ => _.Shard).Distinct().Select(_ => $"'{_}'");
 						_log.Info("  tag range '{0}' wait {1} chunks from {2} shards",
 							tagRange.Tag, unMovedChunks.Count, string.Join(", ", sourceShards));
-						_log.Info("  chunksIds: {0}",
-							string.Join(", ", unMovedChunks.Take(5).Select(_ => _.Id)));
+						if (unMovedChunks.Count <= 5)
+						{
+							_log.Info("  chunksIds: {0}",
+								string.Join(", ", unMovedChunks.Select(_ => _.Id)));
+						}
 						totalUnMovedChunks += unMovedChunks.Count;
 					}
 				}

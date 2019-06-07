@@ -21,6 +21,8 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			
 			public long RequireShiftSize = 0;
 			
+			public long ElapsedShiftSize => Math.Abs(_shiftSize - RequireShiftSize);
+			
 			private ChunkCollection.Entry _nextChunk;
 
 			internal Bound(ChunkCollection chunks, BsonBound value)

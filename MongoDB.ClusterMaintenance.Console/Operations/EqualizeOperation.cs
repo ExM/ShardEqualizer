@@ -21,13 +21,15 @@ namespace MongoDB.ClusterMaintenance.Operations
 		private readonly IConfigDbRepositoryProvider _configDb;
 		private readonly IMongoClient _mongoClient;
 		private readonly CommandPlanWriter _commandPlanWriter;
+		private long? _moveLimit;
 
-		public EqualizeOperation(IConfigDbRepositoryProvider configDb, IReadOnlyList<Interval> intervals, IMongoClient mongoClient, CommandPlanWriter commandPlanWriter)
+		public EqualizeOperation(IConfigDbRepositoryProvider configDb, IReadOnlyList<Interval> intervals, IMongoClient mongoClient, CommandPlanWriter commandPlanWriter, long? moveLimit)
 		{
 			_configDb = configDb;
 			_intervals = intervals;
 			_mongoClient = mongoClient;
 			_commandPlanWriter = commandPlanWriter;
+			_moveLimit = moveLimit;
 		}
 
 		public async Task Run(CancellationToken token)
@@ -54,6 +56,9 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 			foreach (var interval in _intervals.Where(_ => _.Selected).Where(_ => _.Correction != CorrectionMode.None))
 			{
+				if (_moveLimit.HasValue && _moveLimit.Value <= 0)
+					break;
+				
 				var collSize = collStatsMap[interval.Namespace].Size;
 
 				Dictionary<TagIdentity, long> correctionSize = null;
@@ -141,12 +146,29 @@ namespace MongoDB.ClusterMaintenance.Operations
 			while(await equalizer.Equalize())
 			{
 				rounds++;
-				progress.Update(equalizer.MovedSize);
+				var moved = equalizer.MovedSize;
+				if (_moveLimit.HasValue && moved > _moveLimit.Value)
+				{
+					_log.Info("data size limit of the moved data is reached");
+					break;
+				}
+
+				progress.Update(moved);
 				token.ThrowIfCancellationRequested();
 			}
 
 			await progress.Finalize();
 
+			if (_moveLimit.HasValue)
+			{
+				var moved = equalizer.MovedSize;
+				_moveLimit = moved > _moveLimit.Value 
+					? 0 
+					: _moveLimit.Value - moved;
+				
+				_log.Info("remaining data size limit: {0}", _moveLimit.Value.ByteSize());
+			}
+			
 			if (rounds == 0)
 			{
 				_commandPlanWriter.Comment("no correction");
