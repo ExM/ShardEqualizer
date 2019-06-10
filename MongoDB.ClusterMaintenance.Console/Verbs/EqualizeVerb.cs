@@ -12,6 +12,9 @@ namespace MongoDB.ClusterMaintenance.Verbs
 		[Option("moveLimit", Required = false, Default = null, HelpText = "limit of moving data (Gb)")]
 		public long? MoveLimit { get; set; }
 		
+		[Option("planOnly", Required = false, Default = false, HelpText = "show moving plan without equalization")]
+		public bool PlanOnly { get; set; }
+		
 		public override Task RunOperation(IKernel kernel, CancellationToken token)
 		{
 			long? scaledMoveLimit = null;
@@ -19,7 +22,8 @@ namespace MongoDB.ClusterMaintenance.Verbs
 				scaledMoveLimit = MoveLimit.Value * ScaleSuffix.Giga.Factor();
 			
 			kernel.Bind<IOperation>().To<EqualizeOperation>()
-				.WithConstructorArgument(scaledMoveLimit);
+				.WithConstructorArgument(scaledMoveLimit)
+				.WithConstructorArgument(PlanOnly);
 			
 			return base.RunOperation(kernel, token);
 		}

@@ -25,10 +25,15 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			ChunkCollection chunks)
 		{
 			continuityCheck(tagRanges);
+
+			long sizeByShard(ShardIdentity shard)
+			{
+				return collStatsByShards.TryGetValue(shard, out var stats) ? stats.Size : 0;
+			}
 			
 			Zones = tagRanges
 				.Select(r => new { tagId = r.Tag, shardId = shards.Single(s => s.Tags.Contains(r.Tag)).Id})
-				.Select(i => new Zone(i.shardId, i.tagId, collStatsByShards[i.shardId].Size, sizeCorrection?[i.tagId] ?? 0))
+				.Select(i => new Zone(i.shardId, i.tagId, sizeByShard(i.shardId), sizeCorrection?[i.tagId] ?? 0))
 				.ToList();
 
 			var leftFixedBound = new Bound(chunks, tagRanges.First().Min);
@@ -101,9 +106,13 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			return sb.ToString();
 		}
 		
-		public async Task<bool> Equalize()
+		public async Task<bool> Equalize(long? moveLimit)
 		{
-			foreach (var bound in _movingBounds.OrderByDescending(b => b.ElapsedShiftSize))
+			var movingBounds = moveLimit.HasValue
+				? _movingBounds.Where(_ => Math.Abs(_.ShiftSize) < moveLimit.Value)
+				: _movingBounds;
+			
+			foreach (var bound in movingBounds.OrderByDescending(b => b.ElapsedShiftSize))
 				if (await bound.TryMove())
 					return true;
 

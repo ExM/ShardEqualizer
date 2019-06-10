@@ -22,14 +22,17 @@ namespace MongoDB.ClusterMaintenance.Operations
 		private readonly IMongoClient _mongoClient;
 		private readonly CommandPlanWriter _commandPlanWriter;
 		private long? _moveLimit;
+		private readonly bool _planOnly;
 
-		public EqualizeOperation(IConfigDbRepositoryProvider configDb, IReadOnlyList<Interval> intervals, IMongoClient mongoClient, CommandPlanWriter commandPlanWriter, long? moveLimit)
+		public EqualizeOperation(IConfigDbRepositoryProvider configDb, IReadOnlyList<Interval> intervals,
+			IMongoClient mongoClient, CommandPlanWriter commandPlanWriter, long? moveLimit, bool planOnly)
 		{
 			_configDb = configDb;
 			_intervals = intervals;
 			_mongoClient = mongoClient;
 			_commandPlanWriter = commandPlanWriter;
 			_moveLimit = moveLimit;
+			_planOnly = planOnly;
 		}
 
 		public async Task Run(CancellationToken token)
@@ -56,9 +59,6 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 			foreach (var interval in _intervals.Where(_ => _.Selected).Where(_ => _.Correction != CorrectionMode.None))
 			{
-				if (_moveLimit.HasValue && _moveLimit.Value <= 0)
-					break;
-				
 				var collSize = collStatsMap[interval.Namespace].Size;
 
 				Dictionary<TagIdentity, long> correctionSize = null;
@@ -136,6 +136,11 @@ namespace MongoDB.ClusterMaintenance.Operations
 					_log.Info("RequireShiftSize: {0} ", zone.Right.RequireShiftSize.ByteSize());
 			}
 			
+			if (_planOnly)
+			{
+				return;
+			}
+			
 			var rounds = 0;
 			var progress = new TargetProgressReporter(equalizer.MovedSize, equalizer.RequireMoveSize, LongExtensions.ByteSize, () =>
 			{
@@ -143,31 +148,14 @@ namespace MongoDB.ClusterMaintenance.Operations
 				_log.Info(equalizer.RenderState());
 			});
 			
-			while(await equalizer.Equalize())
+			while(await equalizer.Equalize(_moveLimit))
 			{
 				rounds++;
-				var moved = equalizer.MovedSize;
-				if (_moveLimit.HasValue && moved > _moveLimit.Value)
-				{
-					_log.Info("data size limit of the moved data is reached");
-					break;
-				}
-
-				progress.Update(moved);
+				progress.Update(equalizer.MovedSize);
 				token.ThrowIfCancellationRequested();
 			}
 
 			await progress.Finalize();
-
-			if (_moveLimit.HasValue)
-			{
-				var moved = equalizer.MovedSize;
-				_moveLimit = moved > _moveLimit.Value 
-					? 0 
-					: _moveLimit.Value - moved;
-				
-				_log.Info("remaining data size limit: {0}", _moveLimit.Value.ByteSize());
-			}
 			
 			if (rounds == 0)
 			{
