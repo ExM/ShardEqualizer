@@ -9,8 +9,8 @@ namespace MongoDB.ClusterMaintenance
 {
 	public class ChunkCollection
 	{
-		private readonly IDictionary<BsonBound, Entry> _maxMap = new Dictionary<BsonBound, Entry>();
-		private readonly IDictionary<BsonBound, Entry> _minMap = new Dictionary<BsonBound, Entry>();
+		private readonly IDictionary<BsonBound, Entry> _maxMap = new SortedDictionary<BsonBound, Entry>();
+		private readonly IDictionary<BsonBound, Entry> _minMap = new SortedDictionary<BsonBound, Entry>();
 		
 		private readonly IReadOnlyList<Entry> _chunks;
 

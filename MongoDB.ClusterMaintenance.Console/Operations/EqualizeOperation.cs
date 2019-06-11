@@ -186,6 +186,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 			}
 			
 			_commandPlanWriter.Comment("---");
+			_commandPlanWriter.Flush();
 		}
 	}
 }

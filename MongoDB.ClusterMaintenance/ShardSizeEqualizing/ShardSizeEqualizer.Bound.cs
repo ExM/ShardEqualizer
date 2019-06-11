@@ -118,6 +118,14 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 					if (candidate == stopEntry)
 						return null;
 
+					if (candidate == null)
+					{
+					}
+
+					if (candidate.Chunk == null)
+					{
+					}
+
 					if (!candidate.Chunk.Jumbo && await candidate.Size > 0)
 						return candidate;
 

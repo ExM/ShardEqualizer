@@ -46,5 +46,10 @@ namespace MongoDB.ClusterMaintenance.MongoCommands
 		}
 		
 		//TODO remove commands 'removeTagRange - addTagRange' with the same parameters
+		
+		public void Flush()
+		{
+			_writer.Flush();
+		}
 	}
 }
