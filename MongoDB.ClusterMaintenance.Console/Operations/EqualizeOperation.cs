@@ -125,7 +125,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 			}
 			
 			var chunkColl = new ChunkCollection(allChunks, chunkSizeResolver);
-			var equalizer = new ShardSizeEqualizer(shards, collStats.Shards, tagRanges, sizeCorrection, chunkColl);
+			var equalizer = new ShardSizeEqualizer(shards, collStats.Shards, tagRanges, sizeCorrection, chunkColl, _moveLimit);
 
 			var lastZone = equalizer.Zones.Last();
 			foreach (var zone in equalizer.Zones)
@@ -148,7 +148,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 				_log.Info(equalizer.RenderState());
 			});
 			
-			while(await equalizer.Equalize(_moveLimit))
+			while(await equalizer.Equalize())
 			{
 				rounds++;
 				progress.Update(equalizer.MovedSize);

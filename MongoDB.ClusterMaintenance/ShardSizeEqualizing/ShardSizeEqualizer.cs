@@ -17,12 +17,11 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 
 		private readonly IReadOnlyList<Bound> _movingBounds;
 		
-		public ShardSizeEqualizer(
-			IReadOnlyCollection<Shard> shards,
+		public ShardSizeEqualizer(IReadOnlyCollection<Shard> shards,
 			IReadOnlyDictionary<ShardIdentity, CollStats> collStatsByShards,
 			IReadOnlyList<TagRange> tagRanges,
 			IDictionary<TagIdentity, long> sizeCorrection,
-			ChunkCollection chunks)
+			ChunkCollection chunks, long? moveLimit)
 		{
 			continuityCheck(tagRanges);
 
@@ -60,8 +59,16 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			long toRight = 0;
 			foreach (var bound in _movingBounds)
 			{
-				toRight += avgSize - bound.LeftZone.BalanceSize;;
+				toRight += avgSize - bound.LeftZone.BalanceSize;
 				bound.RequireShiftSize = toRight;
+
+				if (!moveLimit.HasValue)
+					continue;
+				
+				if (bound.RequireShiftSize > 0 && moveLimit.Value < bound.RequireShiftSize)
+					bound.RequireShiftSize = moveLimit.Value;
+				if (bound.RequireShiftSize < 0 && moveLimit.Value < -bound.RequireShiftSize)
+					bound.RequireShiftSize = -moveLimit.Value;
 			}
 		}
 
@@ -106,13 +113,9 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			return sb.ToString();
 		}
 		
-		public async Task<bool> Equalize(long? moveLimit)
+		public async Task<bool> Equalize()
 		{
-			var movingBounds = moveLimit.HasValue
-				? _movingBounds.Where(_ => Math.Abs(_.ShiftSize) < moveLimit.Value)
-				: _movingBounds;
-			
-			foreach (var bound in movingBounds.OrderByDescending(b => b.ElapsedShiftSize))
+			foreach (var bound in _movingBounds.OrderByDescending(b => b.ElapsedShiftSize))
 				if (await bound.TryMove())
 					return true;
 

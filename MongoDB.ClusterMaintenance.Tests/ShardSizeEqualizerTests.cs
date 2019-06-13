@@ -77,10 +77,10 @@ namespace MongoDB.ClusterMaintenance
 
 			var chunkColl = new ChunkCollection(chunks, (ch) => Task.FromResult<long>(10));
 
-			var shifter = new ShardSizeEqualizer(shards, collStatsByShards, tagRanges, null, chunkColl);
+			var shifter = new ShardSizeEqualizer(shards, collStatsByShards, tagRanges, null, chunkColl, null);
 
 			var round = 0;
-			while(await shifter.Equalize(null))
+			while(await shifter.Equalize())
 			{
 				if (shifter.CurrentSizeDeviation < 3)
 					break;
