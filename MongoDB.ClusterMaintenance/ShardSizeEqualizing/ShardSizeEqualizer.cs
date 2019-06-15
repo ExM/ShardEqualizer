@@ -56,6 +56,10 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			}
 			
 			var avgSize = Zones.Sum(_ => _.BalanceSize) / Zones.Count;
+
+			foreach (var zone in Zones)
+				zone.TargetSize = avgSize - zone.UnShardCorrection;
+			
 			long toRight = 0;
 			foreach (var bound in _movingBounds)
 			{

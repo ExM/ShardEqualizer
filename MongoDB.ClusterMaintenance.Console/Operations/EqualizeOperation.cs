@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 using MongoDB.Bson;
 using MongoDB.ClusterMaintenance.Config;
 using MongoDB.ClusterMaintenance.Models;
@@ -53,9 +54,54 @@ namespace MongoDB.ClusterMaintenance.Operations
 			var collSizeSumByShard = shards.Select(_ => _.Id).ToDictionary(
 				shId => shId,
 				shId => _intervals
-					.Where(i => i.Zones.Select(t => shardByTag[t].Id).Contains(shId))
+					.Where(i => i.Correction == CorrectionMode.UnShard && i.Zones.Select(t => shardByTag[t].Id).Contains(shId))
 					.Select(i => collStatsMap[i.Namespace].Size)
 					.Sum());
+
+			var shardSize = shards.ToDictionary(_ => _.Id, _ => (long) 0);
+			foreach (var collStats in collStatsMap.Values)
+			{
+				if (collStats.Sharded)
+				{
+					foreach (var pair in collStats.Shards)
+						shardSize[pair.Key] += pair.Value.Size;
+				}
+				else
+				{
+					shardSize[collStats.Primary] += collStats.Size;
+				}
+			}
+			
+			
+			var headMsg = "";
+			
+			foreach (var shard in shards)
+				headMsg += ";" + shard.Id + ";;";
+			
+			Console.WriteLine(headMsg);
+			
+			foreach (var shCollStats in collStatsMap.Where(_ => _.Value.Sharded))
+			{
+				var msg = shCollStats.Key.ToString();
+
+				foreach (var shard in shards)
+				{
+					var size = shCollStats.Value.Shards.TryGetValue(shard.Id, out var collStat) ? collStat.Size : 0;
+					msg += ";" + size / 1024 / 1024 + ";;";
+				}
+				
+				Console.WriteLine(msg);
+			}
+			
+			var unShMsg = "unsharded";
+
+			foreach (var shard in shards)
+			{
+				var size = unShardedSizeMap.TryGetValue(shard.Id, out var shSize) ? shSize : 0;
+				unShMsg += ";" + size / 1024 / 1024 + ";;";
+			}
+				
+			Console.WriteLine(unShMsg);
 
 			foreach (var interval in _intervals.Where(_ => _.Selected).Where(_ => _.Correction != CorrectionMode.None))
 			{
@@ -126,6 +172,26 @@ namespace MongoDB.ClusterMaintenance.Operations
 			
 			var chunkColl = new ChunkCollection(allChunks, chunkSizeResolver);
 			var equalizer = new ShardSizeEqualizer(shards, collStats.Shards, tagRanges, sizeCorrection, chunkColl, _moveLimit);
+
+			var rowMsg = interval.Namespace.ToString();
+
+			foreach (var shard in shards)
+			{
+				var zone = equalizer.Zones.FirstOrDefault(_ => _.Main == shard.Id);
+				if (zone != null)
+				{
+					var reqDelta = (zone.TargetSize - zone.InitialSize) / 1024 / 1024;
+					
+					rowMsg += ";;" + reqDelta + ";" + zone.UnShardCorrection  / 1024 / 1024;
+					
+				}
+				else
+				{
+					rowMsg += ";;;";
+				}
+			}
+			
+			Console.WriteLine(rowMsg);
 
 			var lastZone = equalizer.Zones.Last();
 			foreach (var zone in equalizer.Zones)

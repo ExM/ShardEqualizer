@@ -52,6 +52,8 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			public long CurrentSize { get; private set; }
 
 			public long BalanceSize => CurrentSize + UnShardCorrection;
+			
+			public long TargetSize { get; set; }
 
 			public void SizeUp(long v)
 			{
