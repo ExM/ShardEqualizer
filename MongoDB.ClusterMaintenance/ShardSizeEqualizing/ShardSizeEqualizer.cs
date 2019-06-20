@@ -20,7 +20,7 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 		public ShardSizeEqualizer(IReadOnlyCollection<Shard> shards,
 			IReadOnlyDictionary<ShardIdentity, CollStats> collStatsByShards,
 			IReadOnlyList<TagRange> tagRanges,
-			IDictionary<TagIdentity, long> sizeCorrection,
+			IDictionary<TagIdentity, long> targetSize,
 			ChunkCollection chunks, long? moveLimit)
 		{
 			continuityCheck(tagRanges);
@@ -32,7 +32,7 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			
 			Zones = tagRanges
 				.Select(r => new { tagId = r.Tag, shardId = shards.Single(s => s.Tags.Contains(r.Tag)).Id})
-				.Select(i => new Zone(i.shardId, i.tagId, sizeByShard(i.shardId), sizeCorrection?[i.tagId] ?? 0))
+				.Select(i => new Zone(i.shardId, i.tagId, sizeByShard(i.shardId), targetSize[i.tagId]))
 				.ToList();
 
 			var leftFixedBound = new Bound(chunks, tagRanges.First().Min);
@@ -55,15 +55,10 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 				zoneIndex++;
 			}
 			
-			var avgSize = Zones.Sum(_ => _.BalanceSize) / Zones.Count;
-
-			foreach (var zone in Zones)
-				zone.TargetSize = avgSize - zone.UnShardCorrection;
-			
 			long toRight = 0;
 			foreach (var bound in _movingBounds)
 			{
-				toRight += avgSize - bound.LeftZone.BalanceSize;
+				toRight += bound.LeftZone.TargetSize - bound.LeftZone.CurrentSize;
 				bound.RequireShiftSize = toRight;
 
 				if (!moveLimit.HasValue)
@@ -82,8 +77,8 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 		{
 			get
 			{
-				var minSize = Zones.Select(_ => _.BalanceSize).Min();
-				var maxSize = Zones.Select(_ => _.BalanceSize).Max();
+				var minSize = Zones.Select(_ => _.CurrentSize).Min();
+				var maxSize = Zones.Select(_ => _.CurrentSize).Max();
 				return maxSize - minSize;
 			}
 		}

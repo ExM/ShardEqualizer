@@ -40,6 +40,8 @@ namespace MongoDB.ClusterMaintenance.Operations
 		{
 			var shards = await _configDb.Shards.GetAll();
 			var collStatsMap = (await listCollStats(token)).ToDictionary(_ => _.Ns);
+			
+			var chunksByCollection = await loadAllCollChunks(token);
 
 			var unShardedSizeMap = collStatsMap.Values
 				.Where(_ => !_.Sharded)
@@ -71,62 +73,122 @@ namespace MongoDB.ClusterMaintenance.Operations
 					shardSize[collStats.Primary] += collStats.Size;
 				}
 			}
+
+			var shardAvgSize = shardSize.Values.Sum() / shardSize.Count;
 			
+			var shardSizeCorrection = shardSize.ToDictionary(_ => _.Key, _ => shardAvgSize - _.Value);
 			
 			var headMsg = "";
 			
 			foreach (var shard in shards)
-				headMsg += ";" + shard.Id + ";;";
+				headMsg += ";" + shard.Id;
 			
 			Console.WriteLine(headMsg);
 			
-			foreach (var shCollStats in collStatsMap.Where(_ => _.Value.Sharded))
-			{
-				var msg = shCollStats.Key.ToString();
-
-				foreach (var shard in shards)
-				{
-					var size = shCollStats.Value.Shards.TryGetValue(shard.Id, out var collStat) ? collStat.Size : 0;
-					msg += ";" + size / 1024 / 1024 + ";;";
-				}
-				
-				Console.WriteLine(msg);
-			}
+			var sizeMsg = "";
 			
-			var unShMsg = "unsharded";
-
 			foreach (var shard in shards)
-			{
-				var size = unShardedSizeMap.TryGetValue(shard.Id, out var shSize) ? shSize : 0;
-				unShMsg += ";" + size / 1024 / 1024 + ";;";
-			}
-				
-			Console.WriteLine(unShMsg);
+				sizeMsg += ";" + shardSize[shard.Id] /1024/1024;
+			
+			Console.WriteLine(sizeMsg);
+			
+			var deltaMsg = "";
+			
+			foreach (var shard in shards)
+				deltaMsg += ";" + shardSizeCorrection[shard.Id] /1024/1024;
+			
+			Console.WriteLine(deltaMsg);
+			
+			var zoneOpt = new ZoneOptimizationDescriptor(_intervals.Where(_ => _.Correction != CorrectionMode.None).Select(_=> _.Namespace), shards.Select(_ => _.Id));
 
+			foreach (var p in unShardedSizeMap)
+				zoneOpt.UnShardedSize[p.Key] = p.Value;
+
+			foreach (var coll in zoneOpt.Collections)
+			{
+				if(!collStatsMap[coll].Sharded)
+					continue;
+
+				foreach (var s in collStatsMap[coll].Shards)
+					zoneOpt[coll, s.Key].CurrentSize = s.Value.Size;
+			}
+
+			foreach (var interval in _intervals.Where(_ => _.Correction != CorrectionMode.None))
+			{
+				var allChunks = chunksByCollection[interval.Namespace];
+				foreach (var tag in interval.Zones)
+				{
+					var shard = shardByTag[tag].Id;
+					zoneOpt[interval.Namespace, shard].Managed = true;
+
+					if (allChunks.Count(_ => _.Shard == shard && !_.Jumbo) <= 1)
+					{
+						_log.Info("Disable size reduction {0} on {1}", interval.Namespace, shard);
+						zoneOpt[interval.Namespace, shard].EnableSizeReduction = false;
+					}
+				}
+			}
+
+			var solver = zoneOpt.BuildSolver();
+
+			if(!solver.Find())
+				throw new Exception("solution for zone optimization not found");
+			
+			_log.Info("Found solution with max deviation {0} by shards", zoneOpt.TargetShardMaxDeviation.ByteSize());
+			_commandPlanWriter.Comment($"Found solution with max deviation {zoneOpt.TargetShardMaxDeviation.ByteSize()} by shards");
+
+			foreach(var msg in solver.ActiveConstraint)
+				_log.Info("Active constraint: {0}", msg);
+			
 			foreach (var interval in _intervals.Where(_ => _.Selected).Where(_ => _.Correction != CorrectionMode.None))
 			{
-				var collSize = collStatsMap[interval.Namespace].Size;
-
-				Dictionary<TagIdentity, long> correctionSize = null;
+				var targetSize = new Dictionary<TagIdentity, long>();
 
 				if (interval.Correction == CorrectionMode.UnShard)
 				{
-					correctionSize = new Dictionary<TagIdentity, long>();
 					foreach (var tag in interval.Zones)
 					{
 						var shId = shardByTag[tag].Id;
-						var shSize = unShardedSizeMap[shId];
-						var correctionPart = (double) collSize / collSizeSumByShard[shId];
-						correctionSize[tag] = (long) Math.Truncate(shSize * correctionPart);
+						targetSize[tag] = zoneOpt[interval.Namespace, shId].TargetSize;
 					}
+				}
+				else
+				{
+					var collStat = collStatsMap[interval.Namespace];
+					var managedCollSize = interval.Zones.Sum(tag => collStat.Shards[shardByTag[tag].Id].Size);
+					var avgZoneSize = managedCollSize / interval.Zones.Count;
+
+					foreach (var tag in interval.Zones)
+						targetSize[tag] = avgZoneSize;
 				}
 
 				_log.Info("Equalize shards from {0}", interval.Namespace.FullName);
 				_commandPlanWriter.Comment($"Equalize shards from {interval.Namespace.FullName}");
-				await equalizeShards(interval, collStatsMap[interval.Namespace], shards, correctionSize, token);
+				await equalizeShards(interval, collStatsMap[interval.Namespace], shards, targetSize, chunksByCollection[interval.Namespace], token);
 			}
 		}
+		
+		private async Task<IReadOnlyDictionary<CollectionNamespace, List<Chunk>>> loadAllCollChunks(CancellationToken token)
+		{
+			_log.Info("load coll chunks...");
 
+			return (await _intervals
+				.Where(_ => _.Correction != CorrectionMode.None)
+				.ToList()
+				.ParallelsAsync(loadCollChunks, 32, token)).ToDictionary(_ => _.Item1, _ => _.Item2);
+		}
+		
+		private async Task<Tuple<CollectionNamespace, List<Chunk>>> loadCollChunks(Interval interval, CancellationToken token)
+		{
+			_log.Info("load chunks collection: {0}", interval.Namespace);
+			var allChunks = await (await _configDb.Chunks
+				.ByNamespace(interval.Namespace)
+				.From(interval.Min)
+				.To(interval.Max)
+				.Find()).ToListAsync(token);
+			return new Tuple<CollectionNamespace, List<Chunk>>(interval.Namespace, allChunks);
+		}
+		
 		private async Task<IReadOnlyList<CollStatsResult>> listCollStats(CancellationToken token)
 		{
 			_log.Info("list coll stats...");
@@ -143,7 +205,9 @@ namespace MongoDB.ClusterMaintenance.Operations
 			return await db.CollStats(ns.CollectionName, 1, token);
 		}
 
-		private async Task equalizeShards(Interval interval, CollStatsResult collStats, IReadOnlyCollection<Shard> shards, IDictionary<TagIdentity, long> sizeCorrection, CancellationToken token)
+		private async Task equalizeShards(Interval interval, CollStatsResult collStats,
+			IReadOnlyCollection<Shard> shards, IDictionary<TagIdentity, long> targetSize, List<Chunk> allChunks,
+			CancellationToken token)
 		{
 			var tagRanges = await _configDb.Tags.Get(interval.Namespace, interval.Min, interval.Max);
 
@@ -155,12 +219,6 @@ namespace MongoDB.ClusterMaintenance.Operations
 				return;
 			}
 			
-			var allChunks = await (await _configDb.Chunks
-				.ByNamespace(interval.Namespace)
-				.From(interval.Min)
-				.To(interval.Max)
-				.Find()).ToListAsync(token);
-			
 			var collInfo = await _configDb.Collections.Find(interval.Namespace);
 			var db = _mongoClient.GetDatabase(interval.Namespace.DatabaseNamespace.DatabaseName);
 			
@@ -171,33 +229,13 @@ namespace MongoDB.ClusterMaintenance.Operations
 			}
 			
 			var chunkColl = new ChunkCollection(allChunks, chunkSizeResolver);
-			var equalizer = new ShardSizeEqualizer(shards, collStats.Shards, tagRanges, sizeCorrection, chunkColl, _moveLimit);
-
-			var rowMsg = interval.Namespace.ToString();
-
-			foreach (var shard in shards)
-			{
-				var zone = equalizer.Zones.FirstOrDefault(_ => _.Main == shard.Id);
-				if (zone != null)
-				{
-					var reqDelta = (zone.TargetSize - zone.InitialSize) / 1024 / 1024;
-					
-					rowMsg += ";;" + reqDelta + ";" + zone.UnShardCorrection  / 1024 / 1024;
-					
-				}
-				else
-				{
-					rowMsg += ";;;";
-				}
-			}
-			
-			Console.WriteLine(rowMsg);
+			var equalizer = new ShardSizeEqualizer(shards, collStats.Shards, tagRanges, targetSize, chunkColl, _moveLimit);
 
 			var lastZone = equalizer.Zones.Last();
 			foreach (var zone in equalizer.Zones)
 			{
-				_log.Info("Zone: {0} Coll: {1} UnShardCorrection: {2}",
-					zone.Tag, zone.InitialSize.ByteSize(), zone.UnShardCorrection.ByteSize());
+				_log.Info("Zone: {0} Coll: {1} -> {2}",
+					zone.Tag, zone.InitialSize.ByteSize(), zone.TargetSize.ByteSize());
 				if(zone != lastZone)
 					_log.Info("RequireShiftSize: {0} ", zone.Right.RequireShiftSize.ByteSize());
 			}
@@ -232,8 +270,8 @@ namespace MongoDB.ClusterMaintenance.Operations
 			
 			foreach (var zone in equalizer.Zones)
 			{
-				_log.Info("Zone: {0} InitialSize: {1} CurrentSize: {2} UnShardCorrection: {3}",
-					zone.Tag, zone.InitialSize.ByteSize(), zone.CurrentSize.ByteSize(), zone.UnShardCorrection.ByteSize());
+				_log.Info("Zone: {0} InitialSize: {1} CurrentSize: {2} TargetSize: {3}",
+					zone.Tag, zone.InitialSize.ByteSize(), zone.CurrentSize.ByteSize(), zone.TargetSize.ByteSize());
 			}
 			
 			_commandPlanWriter.Comment(equalizer.RenderState());

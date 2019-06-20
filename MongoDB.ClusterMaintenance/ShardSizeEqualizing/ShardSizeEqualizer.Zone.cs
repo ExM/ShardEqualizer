@@ -32,15 +32,14 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			}
 			
 			public long InitialSize  { get; }
-			public long UnShardCorrection  { get; }
 
-			public Zone(ShardIdentity main, TagIdentity tag, long size, long unShardCorrection)
+			public Zone(ShardIdentity main, TagIdentity tag, long size, long targetSize)
 			{
 				Main = main;
 				Tag = tag;
 				InitialSize = size;
 				CurrentSize = size;
-				UnShardCorrection = unShardCorrection;
+				TargetSize = targetSize;
 			}
 
 			public ShardIdentity Main { get; }
@@ -50,10 +49,8 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			public BsonBound Max => _right.Value;
 
 			public long CurrentSize { get; private set; }
-
-			public long BalanceSize => CurrentSize + UnShardCorrection;
 			
-			public long TargetSize { get; set; }
+			public long TargetSize { get; private set; }
 
 			public void SizeUp(long v)
 			{
