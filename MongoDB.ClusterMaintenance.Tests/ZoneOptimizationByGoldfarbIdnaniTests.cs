@@ -56,7 +56,7 @@ namespace MongoDB.ClusterMaintenance
 		}
 		
 		[Test]
-		public void EnableSizeReduction()
+		public void BlockSizeReduction()
 		{
 			var zoneOpt = new ZoneOptimizationDescriptor(
 				new []{_cA, _cB, _cC},
@@ -67,7 +67,7 @@ namespace MongoDB.ClusterMaintenance
 			zoneOpt[_cA, _sC].Init(b => { b.CurrentSize = 2000; b.Managed = true;});
 			
 			zoneOpt[_cB, _sA].Init(b => { b.CurrentSize = 3000; b.Managed = true; });
-			zoneOpt[_cB, _sB].Init(b => { b.CurrentSize = 4000; b.Managed = true; b.EnableSizeReduction = false; });
+			zoneOpt[_cB, _sB].Init(b => { b.CurrentSize = 4000; b.Managed = true; b.BlockSizeReduction(); });
 			zoneOpt[_cB, _sC].Init(b => { b.CurrentSize = 2000; b.Managed = true; });
 			
 			zoneOpt[_cC, _sA].Init(b => { b.CurrentSize =  500; b.Managed = true; });
@@ -85,7 +85,7 @@ namespace MongoDB.ClusterMaintenance
 			Assert.That(zoneOpt[_cC, _sB].TargetSize, Is.EqualTo(250));
 			Assert.That(zoneOpt[_cC, _sC].TargetSize, Is.EqualTo(500));
 
-			Assert.That(solver.ActiveConstraint.Count, Is.EqualTo(5));
+			Assert.That(solver.ActiveConstraints.Count, Is.EqualTo(6));
 		}
 		
 		[Test]
@@ -117,6 +117,46 @@ namespace MongoDB.ClusterMaintenance
 			Assert.That(zoneOpt[_cC, _sA].TargetSize, Is.EqualTo(500));
 			Assert.That(zoneOpt[_cC, _sB].TargetSize, Is.EqualTo(500));
 			Assert.That(zoneOpt[_cC, _sC].TargetSize, Is.EqualTo(500));
+		}
+		
+		[Test]
+		public void ExcessConstraints()
+		{
+			var zoneOpt = new ZoneOptimizationDescriptor(
+				new []{_cA, _cB, _cC},
+				new []{_sA, _sB, _sC});
+			
+			zoneOpt[_cA, _sA].Init(b => { b.CurrentSize =    0; b.Managed = false;});
+			zoneOpt[_cA, _sB].Init(b => { b.CurrentSize = 1000; b.Managed = true;});
+			zoneOpt[_cA, _sC].Init(b => { b.CurrentSize = 3000; b.Managed = true;});
+			
+			zoneOpt[_cB, _sA].Init(b => { b.CurrentSize = 3000; b.Managed = true; b.BlockSizeReduction(); });
+			zoneOpt[_cB, _sB].Init(b => { b.CurrentSize = 3000; b.Managed = true; b.BlockSizeReduction(); });
+			zoneOpt[_cB, _sC].Init(b => { b.CurrentSize = 1000; b.Managed = true; b.BlockSizeReduction(); });
+			
+			zoneOpt[_cC, _sA].Init(b => { b.CurrentSize = 1000; b.Managed = true; });
+			zoneOpt[_cC, _sB].Init(b => { b.CurrentSize =  100; b.Managed = true; });
+			zoneOpt[_cC, _sC].Init(b => { b.CurrentSize =  100; b.Managed = true; });
+
+			zoneOpt.ShardEqualsPriority = 1;
+			
+			var solver = zoneOpt.BuildSolver();
+			
+			Assert.IsTrue(solver.Find());
+			
+			Assert.That(solver.ActiveConstraints.Count, Is.EqualTo(3));
+
+			var activeConstraint = solver.ActiveConstraints.Single(_ => _.Bucket.Collection == _cB && _.Bucket.Shard == _sA);
+			
+			Assert.That(activeConstraint.Bound, Is.EqualTo(3000));
+			Assert.That(activeConstraint.Bucket.Collection, Is.EqualTo(_cB));
+			Assert.That(activeConstraint.Bucket.Shard, Is.EqualTo(_sA));
+			Assert.That(activeConstraint.Type, Is.EqualTo(BucketConstraint.ConstraintType.Min));
+			
+			Assert.That(zoneOpt[_cA, _sB].TargetSize, Is.EqualTo(1807));
+			Assert.That(zoneOpt[_cB, _sB].TargetSize, Is.EqualTo(3000));
+			Assert.That(zoneOpt[_cC, _sA].TargetSize, Is.EqualTo(406));
+			Assert.That(zoneOpt[_cC, _sB].TargetSize, Is.EqualTo(389));
 		}
 
 		[Test]
@@ -177,7 +217,7 @@ namespace MongoDB.ClusterMaintenance
 			zoneOpt[_cA, _sC].Init(b => { b.CurrentSize = 4000 - bucketAB; b.Managed = true;});
 			
 			zoneOpt[_cB, _sA].Init(b => { b.CurrentSize = bucketBA; b.Managed = true; });
-			zoneOpt[_cB, _sB].Init(b => { b.CurrentSize = 4500; b.Managed = true; b.EnableSizeReduction = false; });
+			zoneOpt[_cB, _sB].Init(b => { b.CurrentSize = 4500; b.Managed = true; b.BlockSizeReduction(); });
 			zoneOpt[_cB, _sC].Init(b => { b.CurrentSize = 4500 - bucketBA; b.Managed = true; });
 			
 			zoneOpt[_cC, _sA].Init(b => { b.CurrentSize =  bucketCA; b.Managed = true; });

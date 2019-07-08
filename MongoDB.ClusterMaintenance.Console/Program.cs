@@ -15,6 +15,8 @@ using MongoDB.Driver;
 using NConfiguration;
 using NConfiguration.Joining;
 using NConfiguration.Xml;
+using NConfiguration.Combination;
+using NConfiguration.Variables;
 using NLog;
 using Ninject;
 
@@ -76,7 +78,8 @@ namespace MongoDB.ClusterMaintenance
 		
 		private static IAppSettings loadConfiguration(string configFile)
 		{
-			var loader = new SettingsLoader();
+			var storage = new VariableStorage();
+			var loader = new SettingsLoader(storage.CfgNodeConverter);
 			loader.Loaded += (s, e) => _log.Info("Loaded: {0} ({1})", e.Settings.GetType(), e.Settings.Identity);
 			loader.XmlFileBySection().FindingSettings += (s, e) => _log.Info("Search '{0}' from '{1}'", e.IncludeFile.Path, e.SearchPath);
 			return loader.LoadSettings(new XmlFileSettings(configFile)).Joined.ToAppSettings();
@@ -91,8 +94,9 @@ namespace MongoDB.ClusterMaintenance
 
 			var boundsFileConfig = appSettings.Get<BoundsFile>();
 			var bounds = readBoundsFile(boundsFileConfig.Path);
-			
-			var intervals = appSettings.LoadSections<IntervalConfig>().Select(_ => new Interval(_, bounds)).ToList().AsReadOnly();
+
+			var intervalConfigs = loadIntervalConfigurations(appSettings);
+			var intervals = intervalConfigs.Select(_ => new Interval(_, bounds)).ToList().AsReadOnly();
 			
 			if (verbose.Database != null)
 				foreach (var interval in intervals)
@@ -112,6 +116,30 @@ namespace MongoDB.ClusterMaintenance
 				throw new ArgumentException("interval list is empty");
 			
 			kernel.Bind<IReadOnlyList<Interval>>().ToConstant(intervals);
+		}
+
+		private static IEnumerable<IntervalConfig> loadIntervalConfigurations(IAppSettings settings)
+		{
+			var nsMap = new Dictionary<string, IntervalConfig>(StringComparer.Ordinal);
+
+			foreach (var g in settings.LoadSections<IntervalConfig>().GroupBy(_ => _.Namespace, StringComparer.Ordinal))
+			{
+				using (var cfgItem = g.GetEnumerator())
+				{
+					cfgItem.MoveNext();
+					var sumItem = cfgItem.Current;
+					while (cfgItem.MoveNext())
+						sumItem = settings.Combine(sumItem, cfgItem.Current);
+					
+					nsMap.Add(g.Key, sumItem);
+				}
+			}
+
+			if (!nsMap.TryGetValue("default", out var defaultItem))
+				return nsMap.Values;
+			
+			nsMap.Remove("default");
+			return nsMap.Values.Select(_ => settings.Combine(defaultItem, _));
 		}
 		
 		public static BsonDocument readBoundsFile(string path)

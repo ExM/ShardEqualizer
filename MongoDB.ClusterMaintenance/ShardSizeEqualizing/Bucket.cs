@@ -6,20 +6,32 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 {
 	public class Bucket: IBucket
 	{
+		private long _minSize;
+
 		public Bucket(CollectionNamespace collection, ShardIdentity shard)
 		{
 			Shard = shard;
 			Collection = collection;
 			CurrentSize = 0;
 			Managed = false;
-			EnableSizeReduction = true;
+			MinSize = 0;
 		}
 
 		public ShardIdentity Shard { get; }
 		public CollectionNamespace Collection { get; }
 		public long CurrentSize { get; set; }
 		public bool Managed { get; set; }
-		public bool EnableSizeReduction { get; set; }
+
+		public void BlockSizeReduction()
+		{
+			MinSize = CurrentSize;
+		}
+
+		public long MinSize
+		{
+			get => _minSize;
+			set => _minSize = value < 0 ? 0 : value;
+		}
 
 		public int? VariableIndex { get; set; }
 		public LinearPolinomial VariableFunction { get; set; }
@@ -33,7 +45,8 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 	{
 		long CurrentSize { get; set; }
 		bool Managed { get; set; }
-		bool EnableSizeReduction { get; set; }
+		void BlockSizeReduction();
+		long MinSize { get; set; }
 		long TargetSize { get; }
 	}
 

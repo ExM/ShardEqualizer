@@ -38,6 +38,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 		public async Task Run(CancellationToken token)
 		{
+			var chunkSize = await _configDb.Settings.GetChunksize();
 			var shards = await _configDb.Shards.GetAll();
 			var collStatsMap = (await listCollStats(token)).ToDictionary(_ => _.Ns);
 			
@@ -119,13 +120,19 @@ namespace MongoDB.ClusterMaintenance.Operations
 				foreach (var tag in interval.Zones)
 				{
 					var shard = shardByTag[tag].Id;
-					zoneOpt[interval.Namespace, shard].Managed = true;
 
-					if (allChunks.Count(_ => _.Shard == shard && !_.Jumbo) <= 1)
+					var bucket = zoneOpt[interval.Namespace, shard];
+					
+					bucket.Managed = true;
+
+					var movedChunks = allChunks.Count(_ => _.Shard == shard && !_.Jumbo);
+					if (movedChunks <= 1)
 					{
+						bucket.MinSize = bucket.CurrentSize;
 						_log.Info("Disable size reduction {0} on {1}", interval.Namespace, shard);
-						zoneOpt[interval.Namespace, shard].EnableSizeReduction = false;
 					}
+					else
+						bucket.MinSize = bucket.CurrentSize - chunkSize * (movedChunks - 1);
 				}
 			}
 
@@ -137,7 +144,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 			_log.Info("Found solution with max deviation {0} by shards", zoneOpt.TargetShardMaxDeviation.ByteSize());
 			_commandPlanWriter.Comment($"Found solution with max deviation {zoneOpt.TargetShardMaxDeviation.ByteSize()} by shards");
 
-			foreach(var msg in solver.ActiveConstraint)
+			foreach(var msg in solver.ActiveConstraints)
 				_log.Info("Active constraint: {0}", msg);
 			
 			foreach (var interval in _intervals.Where(_ => _.Selected).Where(_ => _.Correction != CorrectionMode.None))

@@ -29,7 +29,7 @@ namespace MongoDB.ClusterMaintenance
 			if (!_log.IsTraceEnabled)
 				return;
 
-			_log.Trace($"Request id - {ev.RequestId}, operation id - {ev.OperationId}, duration - {ev.Duration}: {ev.CommandName} {ev.Reply.ToJson()}");
+			_log.Trace($"Response success id - {ev.RequestId}, operation id - {ev.OperationId}, duration - {ev.Duration}: {ev.CommandName} {ev.Reply.ToJson()}");
 		}
 
 		private static void onCommandFailed(CommandFailedEvent ev)
@@ -37,7 +37,7 @@ namespace MongoDB.ClusterMaintenance
 			if (!_log.IsTraceEnabled)
 				return;
 
-			_log.Trace(ev.Failure, $"Request id - {ev.RequestId}, operation id - {ev.OperationId}, duration - {ev.Duration}: {ev.CommandName}");
+			_log.Trace(ev.Failure, $"Response fail id - {ev.RequestId}, operation id - {ev.OperationId}, duration - {ev.Duration}: {ev.CommandName}");
 		}
 	}
 

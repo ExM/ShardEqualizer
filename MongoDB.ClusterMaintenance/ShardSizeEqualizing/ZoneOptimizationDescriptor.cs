@@ -187,19 +187,22 @@ namespace MongoDB.ClusterMaintenance
 			foreach (var bucket in _bucketList.Where(_ => _.Managed))
 			{
 				var avg = avgCollectionSize[bucket.Collection];
+				
+				if(avg <= 0)
+					continue;
 
 				var sum = bucket.VariableFunction + new LinearPolinomial(_totalVariables) {ConstantTerm = -avg};
 
 				var error = sum.Square();
 
-				targetFunction += error / (_collectionPriorities[bucket.Collection] * avg * avg);
+				targetFunction += error * (_collectionPriorities[bucket.Collection] / (avg * avg));
 			}
 
 			//Console.WriteLine(targetFunction.QuadraticTerms.ToCSharp());
 			//Console.WriteLine(targetFunction.QuadraticTerms.Determinant());
 
 			var constraints = new List<LinearConstraint>();
-			var constraintDescriptions = new List<string>();
+			var constraintDescriptions = new List<BucketConstraint>();
 
 			var variablesAtIndices = Enumerable.Range(0, _totalVariables).ToArray();
 
@@ -214,12 +217,14 @@ namespace MongoDB.ClusterMaintenance
 			foreach (var bucket in _bucketList.Where(_ => _.Managed))
 			{
 				var avg = avgCollectionSize[bucket.Collection];
-				
-				var min = Math.Min(bucket.CurrentSize, avg * lowShare);
+
+				var min = Math.Min(bucket.CurrentSize,
+					Math.Max(avg * lowShare, bucket.MinSize));
+
 				var max = Math.Max(bucket.CurrentSize, avg * highShare);
 
-				if (!bucket.EnableSizeReduction && min < bucket.CurrentSize)
-					min = bucket.CurrentSize;
+				if (max - min <= 1)
+					max *= highShare;
 
 				constraints.Add(new LinearConstraint(_totalVariables)
 				{
@@ -228,8 +233,7 @@ namespace MongoDB.ClusterMaintenance
 					ShouldBe = ConstraintType.GreaterThanOrEqualTo,
 					Value = min - bucket.VariableFunction.ConstantTerm,
 				});
-				
-				constraintDescriptions.Add($"collection {bucket.Collection} from {bucket.Shard} > {((long)Math.Round(min)).ByteSize()}");
+				constraintDescriptions.Add(new BucketConstraint(bucket, BucketConstraint.ConstraintType.Min, (long) Math.Round(min)));
 
 				constraints.Add(new LinearConstraint(_totalVariables)
 				{
@@ -238,8 +242,7 @@ namespace MongoDB.ClusterMaintenance
 					ShouldBe = ConstraintType.LesserThanOrEqualTo,
 					Value = max - bucket.VariableFunction.ConstantTerm
 				});
-				
-				constraintDescriptions.Add($"collection {bucket.Collection} from {bucket.Shard} < {((long)Math.Round(max)).ByteSize()}");
+				constraintDescriptions.Add(new BucketConstraint(bucket, BucketConstraint.ConstraintType.Max, (long) Math.Round(max)));
 			}
 
 			var solver = new GoldfarbIdnani(targetFunction, constraints);

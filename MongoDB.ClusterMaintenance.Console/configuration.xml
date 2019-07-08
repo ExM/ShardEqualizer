@@ -1,6 +1,5 @@
 <Configuration>
-	<IncludeXmlFile path='etc/MongoDB.ClusterMaintenance/intervals.config' search='all' include='all' required='true'/>
-	<IncludeXmlFile path='etc/MongoDB.ClusterMaintenance/connection.config' search='all' include='all' required='true'/>
+	<IncludeXmlFile path='etc/MongoDB.ClusterMaintenance/local.config' search='all' include='all' required='true'/>
 	
 	<BoundsFile path='bounds.json'/>
 	<!-- sample of interval configuration

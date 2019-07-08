@@ -28,10 +28,10 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 		private readonly IList<Bucket> _buckets;
 		private readonly GoldfarbIdnani _solver;
 		private readonly double[] _initialVector;
-		private readonly List<string> _constraintDescriptions;
+		private readonly List<BucketConstraint> _constraintDescriptions;
 
 		public ZoneOptimizationSolver(IEnumerable<Bucket> managedBuckets, GoldfarbIdnani solver, double[] initialVector,
-			List<string> constraintDescriptions)
+			List<BucketConstraint> constraintDescriptions)
 		{
 			_buckets = managedBuckets.ToList();
 			_solver = solver;
@@ -39,7 +39,37 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			_constraintDescriptions = constraintDescriptions;
 		}
 
-		public List<string> ActiveConstraint =>
-			_solver.ActiveConstraints.Select(_ => _constraintDescriptions[_]).ToList();
+		public List<BucketConstraint> ActiveConstraints => _constraintDescriptions.Where(_ => _.IsActive).ToList();
+	}
+
+	public class BucketConstraint
+	{
+		public Bucket Bucket { get; }
+		public ConstraintType Type { get; }
+		public long Bound { get; }
+
+		public BucketConstraint(Bucket bucket, ConstraintType constraintType, long bound)
+		{
+			Bucket = bucket;
+			Type = constraintType;
+			Bound = bound;
+		}
+
+		public bool IsActive => Type == ConstraintType.Min 
+			? Bucket.TargetSize <= Bound + 1 
+			: Bucket.TargetSize >= Bound - 1;
+
+		public override string ToString()
+		{
+			return $"collection {Bucket.Collection} from {Bucket.Shard} {TypeAsText} {Bound.ByteSize()}";
+		}
+
+		public string TypeAsText => Type == ConstraintType.Min ? "≥" : "≤";
+
+		public enum ConstraintType
+		{
+			Max,
+			Min
+		}
 	}
 }
