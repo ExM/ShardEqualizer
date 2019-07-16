@@ -14,31 +14,21 @@ namespace MongoDB.ClusterMaintenance
 		public ZoneOptimizationDescriptor(IEnumerable<CollectionNamespace> collections, IEnumerable<ShardIdentity> shards)
 		{
 			Collections = collections.ToList();
-			_collIndex = Collections
-				.Select((coll, index) => new {index, coll})
-				.ToDictionary(_ => _.coll, _ => _.index);
-				
 			foreach (var coll in Collections)
 				_collectionPriorities.Add(coll, 1);
 			
 			Shards = shards.ToList();
-			_shardIndex = Shards
-				.Select((shard, index) => new {index, shard})
-				.ToDictionary(_ => _.shard, _ => _.index);
-
 			foreach (var shard in Shards)
 				_unShardedSizes.Add(shard, 0);
 			
-			_bucketArray = new Bucket[Collections.Count, Shards.Count];
 			_bucketList = new List<Bucket>(Collections.Count * Shards.Count);
-			for (var c = 0; c < Collections.Count; c++)
-			for (var s = 0; s < Shards.Count; s++)
-			{
-				var bucket = new Bucket(Collections[c], Shards[s]);
-				_bucketList.Add(bucket);
-				_bucketArray[c, s] = bucket;
-			}
+			foreach (var coll in Collections)
+				foreach (var sh in Shards)
+					_bucketList.Add(new Bucket(coll, sh));
 
+			_bucketsByShardByCollection =  _bucketList.GroupBy(_ => _.Shard)
+				.ToDictionary(k => k.Key, v => (IReadOnlyDictionary<CollectionNamespace, Bucket>)v.ToDictionary(_ => _.Collection, _ => _));
+			
 			_bucketsByShard = _bucketList.GroupBy(_ => _.Shard)
 				.ToDictionary(_ => _.Key, _ => (IReadOnlyList<Bucket>) _.ToList());
 
@@ -48,8 +38,9 @@ namespace MongoDB.ClusterMaintenance
 			ShardEqualsPriority = 100;
 			DeviationLimitFromAverage = 0.5;
 		}
-		
-		public IBucket this[CollectionNamespace coll, ShardIdentity shard] => _bucketArray[_collIndex[coll],_shardIndex[shard]];
+
+		public IBucket this[CollectionNamespace coll, ShardIdentity shard] =>
+			_bucketsByShardByCollection[shard][coll];
 
 		long IUnShardedSizeDescriptor.this[ShardIdentity shard]
 		{
@@ -97,7 +88,6 @@ namespace MongoDB.ClusterMaintenance
 				if (collCount >= 2)
 					_totalVariables += collCount - 1;
 			}
-			
 			
 			_initialVector = new double[_totalVariables];
 		}
@@ -173,14 +163,12 @@ namespace MongoDB.ClusterMaintenance
 			//Console.WriteLine(targetFunction.QuadraticTerms.Determinant());
 
 			var avgCollectionSize = new Dictionary<CollectionNamespace, double>();
-			var managedCollectionSize = new Dictionary<CollectionNamespace, long>();
 
 			foreach (var coll in Collections)
 			{
 				var buckets = _bucketsByCollection[coll].Where(_ => _.Managed).ToArray();
 				var sum = buckets.Sum(_ => _.CurrentSize);
 
-				managedCollectionSize[coll] = sum;
 				avgCollectionSize[coll] = (double) sum / buckets.Length;
 			}
 
@@ -211,20 +199,20 @@ namespace MongoDB.ClusterMaintenance
 				_initialVector[bucket.VariableIndex.Value] = bucket.CurrentSize;
 			}
 
-			var lowShare = 1 - DeviationLimitFromAverage;
-			var highShare = 1 + DeviationLimitFromAverage;
+			var lowRate = 1 - DeviationLimitFromAverage;
+			var highRate = 1 + DeviationLimitFromAverage;
 
 			foreach (var bucket in _bucketList.Where(_ => _.Managed))
 			{
 				var avg = avgCollectionSize[bucket.Collection];
 
 				var min = Math.Min(bucket.CurrentSize,
-					Math.Max(avg * lowShare, bucket.MinSize));
+					Math.Max(avg * lowRate, bucket.MinSize));
 
-				var max = Math.Max(bucket.CurrentSize, avg * highShare);
+				var max = Math.Max(bucket.CurrentSize, avg * highRate);
 
 				if (max - min <= 1)
-					max *= highShare;
+					max *= highRate;
 
 				constraints.Add(new LinearConstraint(_totalVariables)
 				{
@@ -267,17 +255,14 @@ namespace MongoDB.ClusterMaintenance
 		public long TargetShardMaxDeviation => TargetShards.Values.Max() - TargetShards.Values.Min();
 
 		public IReadOnlyList<CollectionNamespace> Collections { get; }
-		private readonly IReadOnlyDictionary<CollectionNamespace, int> _collIndex;
 		public IReadOnlyList<ShardIdentity> Shards { get; }
-		private readonly IReadOnlyDictionary<ShardIdentity, int> _shardIndex;
 
 		private readonly IDictionary<ShardIdentity, long> _unShardedSizes = new Dictionary<ShardIdentity, long>();
 		
 		private readonly IDictionary<CollectionNamespace, double> _collectionPriorities = new Dictionary<CollectionNamespace, double>();
 		
-		private readonly Bucket[,] _bucketArray;
-		
 		private readonly IReadOnlyDictionary<ShardIdentity, IReadOnlyList<Bucket>> _bucketsByShard;
+		private readonly IReadOnlyDictionary<ShardIdentity, IReadOnlyDictionary<CollectionNamespace, Bucket>> _bucketsByShardByCollection;
 		private readonly IReadOnlyDictionary<CollectionNamespace, IReadOnlyList<Bucket>> _bucketsByCollection;
 		private readonly IList<Bucket> _bucketList;
 		private double[] _initialVector;

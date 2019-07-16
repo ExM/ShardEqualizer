@@ -58,4 +58,32 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 		}
 	}
 	
+	public class BucketSolve
+	{
+		private long _targetSize;
+		public Bucket Source { get; }
+
+		public BucketSolve(Bucket source)
+		{
+			Source = source;
+			_targetSize = source.CurrentSize;
+			Delta = 0;
+		}
+
+		public int? VariableIndex { get; set; }
+		public LinearPolinomial VariableFunction { get; set; }
+
+		public long TargetSize
+		{
+			get => _targetSize;
+			set
+			{
+				_targetSize = value;
+				Delta = _targetSize - Source.CurrentSize;
+			}
+		}
+
+		public long Delta { get; private set; }
+	}
+	
 }

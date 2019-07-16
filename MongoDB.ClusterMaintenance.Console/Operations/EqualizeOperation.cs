@@ -22,7 +22,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 		private readonly IConfigDbRepositoryProvider _configDb;
 		private readonly IMongoClient _mongoClient;
 		private readonly CommandPlanWriter _commandPlanWriter;
-		private long? _moveLimit;
+		private readonly long? _moveLimit;
 		private readonly bool _planOnly;
 
 		public EqualizeOperation(IConfigDbRepositoryProvider configDb, IReadOnlyList<Interval> intervals,
@@ -53,52 +53,6 @@ namespace MongoDB.ClusterMaintenance.Operations
 				.SelectMany(_ => _.Zones)
 				.Distinct()
 				.ToDictionary(_ => _, _ => shards.Single(s => s.Tags.Contains(_)));
-
-			var collSizeSumByShard = shards.Select(_ => _.Id).ToDictionary(
-				shId => shId,
-				shId => _intervals
-					.Where(i => i.Correction == CorrectionMode.UnShard && i.Zones.Select(t => shardByTag[t].Id).Contains(shId))
-					.Select(i => collStatsMap[i.Namespace].Size)
-					.Sum());
-
-			var shardSize = shards.ToDictionary(_ => _.Id, _ => (long) 0);
-			foreach (var collStats in collStatsMap.Values)
-			{
-				if (collStats.Sharded)
-				{
-					foreach (var pair in collStats.Shards)
-						shardSize[pair.Key] += pair.Value.Size;
-				}
-				else
-				{
-					shardSize[collStats.Primary] += collStats.Size;
-				}
-			}
-
-			var shardAvgSize = shardSize.Values.Sum() / shardSize.Count;
-			
-			var shardSizeCorrection = shardSize.ToDictionary(_ => _.Key, _ => shardAvgSize - _.Value);
-			
-			var headMsg = "";
-			
-			foreach (var shard in shards)
-				headMsg += ";" + shard.Id;
-			
-			Console.WriteLine(headMsg);
-			
-			var sizeMsg = "";
-			
-			foreach (var shard in shards)
-				sizeMsg += ";" + shardSize[shard.Id] /1024/1024;
-			
-			Console.WriteLine(sizeMsg);
-			
-			var deltaMsg = "";
-			
-			foreach (var shard in shards)
-				deltaMsg += ";" + shardSizeCorrection[shard.Id] /1024/1024;
-			
-			Console.WriteLine(deltaMsg);
 			
 			var zoneOpt = new ZoneOptimizationDescriptor(_intervals.Where(_ => _.Correction != CorrectionMode.None).Select(_=> _.Namespace), shards.Select(_ => _.Id));
 
