@@ -48,11 +48,9 @@ namespace MongoDB.ClusterMaintenance
 			zoneOpt[_cE, _sC].Init(b => { b.CurrentSize =   20; b.Managed = true;});
 			zoneOpt[_cE, _sD].Init(b => { b.CurrentSize =   30; b.Managed = false;});
 
-			var solver = zoneOpt.BuildSolver();
+			var solve = ZoneOptimizationSolve.Find(zoneOpt);
 
-			Assert.IsTrue(solver.Find());
-			
-			var targetShards = zoneOpt.TargetShards;
+			Assert.IsTrue(solve.IsSuccess);
 		}
 		
 		[Test]
@@ -76,16 +74,16 @@ namespace MongoDB.ClusterMaintenance
 
 			zoneOpt.ShardEqualsPriority = 100;
 			
-			var solver = zoneOpt.BuildSolver();
-			
-			Assert.IsTrue(solver.Find());
+			var solve = ZoneOptimizationSolve.Find(zoneOpt);
 
-			Assert.That(zoneOpt[_cB, _sB].TargetSize, Is.EqualTo(4000));
-			Assert.That(zoneOpt[_cC, _sA].TargetSize, Is.EqualTo(750));
-			Assert.That(zoneOpt[_cC, _sB].TargetSize, Is.EqualTo(250));
-			Assert.That(zoneOpt[_cC, _sC].TargetSize, Is.EqualTo(500));
+			Assert.IsTrue(solve.IsSuccess);
 
-			Assert.That(solver.ActiveConstraints.Count, Is.EqualTo(6));
+			Assert.That(solve[_cB, _sB].TargetSize, Is.EqualTo(4000));
+			Assert.That(solve[_cC, _sA].TargetSize, Is.EqualTo(750));
+			Assert.That(solve[_cC, _sB].TargetSize, Is.EqualTo(250));
+			Assert.That(solve[_cC, _sC].TargetSize, Is.EqualTo(500));
+
+			Assert.That(solve.ActiveConstraints.Count, Is.EqualTo(6));
 		}
 		
 		[Test]
@@ -109,14 +107,14 @@ namespace MongoDB.ClusterMaintenance
 
 			zoneOpt.ShardEqualsPriority = 1;
 			
-			var solver = zoneOpt.BuildSolver();
-			
-			Assert.IsTrue(solver.Find());
+			var solve = ZoneOptimizationSolve.Find(zoneOpt);
 
-			Assert.That(zoneOpt[_cB, _sB].TargetSize, Is.EqualTo(2784));
-			Assert.That(zoneOpt[_cC, _sA].TargetSize, Is.EqualTo(500));
-			Assert.That(zoneOpt[_cC, _sB].TargetSize, Is.EqualTo(500));
-			Assert.That(zoneOpt[_cC, _sC].TargetSize, Is.EqualTo(500));
+			Assert.IsTrue(solve.IsSuccess);
+
+			Assert.That(solve[_cB, _sB].TargetSize, Is.EqualTo(2784));
+			Assert.That(solve[_cC, _sA].TargetSize, Is.EqualTo(500));
+			Assert.That(solve[_cC, _sB].TargetSize, Is.EqualTo(500));
+			Assert.That(solve[_cC, _sC].TargetSize, Is.EqualTo(500));
 		}
 		
 		[Test]
@@ -140,23 +138,23 @@ namespace MongoDB.ClusterMaintenance
 
 			zoneOpt.ShardEqualsPriority = 1;
 			
-			var solver = zoneOpt.BuildSolver();
-			
-			Assert.IsTrue(solver.Find());
-			
-			Assert.That(solver.ActiveConstraints.Count, Is.EqualTo(3));
+			var solve = ZoneOptimizationSolve.Find(zoneOpt);
 
-			var activeConstraint = solver.ActiveConstraints.Single(_ => _.Bucket.Collection == _cB && _.Bucket.Shard == _sA);
+			Assert.IsTrue(solve.IsSuccess);
+			
+			Assert.That(solve.ActiveConstraints.Count, Is.EqualTo(3));
+
+			var activeConstraint = solve.ActiveConstraints.Single(_ => _.Bucket.Collection == _cB && _.Bucket.Shard == _sA);
 			
 			Assert.That(activeConstraint.Bound, Is.EqualTo(3000));
 			Assert.That(activeConstraint.Bucket.Collection, Is.EqualTo(_cB));
 			Assert.That(activeConstraint.Bucket.Shard, Is.EqualTo(_sA));
 			Assert.That(activeConstraint.Type, Is.EqualTo(BucketConstraint.ConstraintType.Min));
 			
-			Assert.That(zoneOpt[_cA, _sB].TargetSize, Is.EqualTo(1807));
-			Assert.That(zoneOpt[_cB, _sB].TargetSize, Is.EqualTo(3000));
-			Assert.That(zoneOpt[_cC, _sA].TargetSize, Is.EqualTo(406));
-			Assert.That(zoneOpt[_cC, _sB].TargetSize, Is.EqualTo(389));
+			Assert.That(solve[_cA, _sB].TargetSize, Is.EqualTo(1807));
+			Assert.That(solve[_cB, _sB].TargetSize, Is.EqualTo(3000));
+			Assert.That(solve[_cC, _sA].TargetSize, Is.EqualTo(406));
+			Assert.That(solve[_cC, _sB].TargetSize, Is.EqualTo(389));
 		}
 
 		[Test]
@@ -184,18 +182,18 @@ namespace MongoDB.ClusterMaintenance
 
 			zoneOpt.ShardEqualsPriority = 10;
 			
-			var solver = zoneOpt.BuildSolver();
+			var solve = ZoneOptimizationSolve.Find(zoneOpt);
+
+			Assert.IsTrue(solve.IsSuccess);
 			
-			Assert.IsTrue(solver.Find());
+			var targetShards = solve.TargetShards;
 			
-			var targetShards = zoneOpt.TargetShards;
+			Assert.That(solve[_cA, _sB].TargetSize, Is.EqualTo(2000));
 			
-			Assert.That(zoneOpt[_cA, _sB].TargetSize, Is.EqualTo(2000));
+			Assert.That(solve[_cB, _sA].TargetSize, Is.EqualTo(4036));
+			Assert.That(solve[_cB, _sB].TargetSize, Is.EqualTo(2482));
 			
-			Assert.That(zoneOpt[_cB, _sA].TargetSize, Is.EqualTo(4036));
-			Assert.That(zoneOpt[_cB, _sB].TargetSize, Is.EqualTo(2482));
-			
-			Assert.That(zoneOpt[_cC, _sA].TargetSize, Is.EqualTo(529));
+			Assert.That(solve[_cC, _sA].TargetSize, Is.EqualTo(529));
 
 			Assert.That(targetShards.Values, Is.EquivalentTo(new []{4565, 4968, 4968}));
 		}
@@ -226,22 +224,21 @@ namespace MongoDB.ClusterMaintenance
 
 			zoneOpt.ShardEqualsPriority = 10;
 			
-			var solver = zoneOpt.BuildSolver();
-			
-			Assert.IsTrue(solver.Find());
-			var expectedTargets = zoneOpt.AllManagedBuckets.Select(_ => _.TargetSize).ToList();
+			var solve = ZoneOptimizationSolve.Find(zoneOpt);
+
+			Assert.IsTrue(solve.IsSuccess);
+			var expectedTargets = solve.AllManagedBuckets.Select(_ => _.TargetSize).ToList();
 
 			foreach (var b in zoneOpt.AllManagedBuckets)
 			{
-				b.CurrentSize = b.CurrentSize + (long)Math.Round(pathPercent * (b.TargetSize - b.CurrentSize));
+				b.CurrentSize = b.CurrentSize + (long)Math.Round(pathPercent * (solve[b.Collection, b.Shard].TargetSize - b.CurrentSize));
 			}
 			
-			var solver2 = zoneOpt.BuildSolver();
+			var solve2 = ZoneOptimizationSolve.Find(zoneOpt);
 			
-			Assert.IsTrue(solver2.Find());
+			Assert.IsTrue(solve2.IsSuccess);
 
-
-			var actualTargets = zoneOpt.AllManagedBuckets.Select(_ => _.TargetSize);
+			var actualTargets = solve2.AllManagedBuckets.Select(_ => _.TargetSize);
 
 			foreach (var pair in actualTargets.Zip(expectedTargets, (actual, expected) => new {actual, expected}))
 			{
@@ -277,13 +274,13 @@ namespace MongoDB.ClusterMaintenance
 
 			zoneOpt.ShardEqualsPriority = shardEqualsPriority;
 			
-			var solver = zoneOpt.BuildSolver();
+			var solve = ZoneOptimizationSolve.Find(zoneOpt);
+
+			Assert.IsTrue(solve.IsSuccess);
 			
-			Assert.IsTrue(solver.Find());
+			var targetShards = solve.TargetShards;
 			
-			var targetShards = zoneOpt.TargetShards;
-			
-			Assert.That(zoneOpt[_cC, _sA].TargetSize, Is.EqualTo(bucketCA));
+			Assert.That(solve[_cC, _sA].TargetSize, Is.EqualTo(bucketCA));
 			Assert.That(targetShards.Values, Is.EquivalentTo(expectedShards));
 		}
 		
@@ -317,15 +314,15 @@ namespace MongoDB.ClusterMaintenance
 				b.CurrentSize = 1000;
 				b.Managed = true;
 			});
-			
-			var solver = zoneOpt.BuildSolver();
 
-			Assert.IsTrue(solver.Find());
+			var solve = ZoneOptimizationSolve.Find(zoneOpt);
+
+			Assert.IsTrue(solve.IsSuccess);
 			
-			Assert.That(zoneOpt[_cA, _sA].TargetSize, Is.EqualTo(2000));
-			Assert.That(zoneOpt[_cA, _sB].TargetSize, Is.EqualTo(2000));
-			Assert.That(zoneOpt[_cB, _sA].TargetSize, Is.EqualTo(2000));
-			Assert.That(zoneOpt[_cB, _sB].TargetSize, Is.EqualTo(2000));
+			Assert.That(solve[_cA, _sA].TargetSize, Is.EqualTo(2000));
+			Assert.That(solve[_cA, _sB].TargetSize, Is.EqualTo(2000));
+			Assert.That(solve[_cB, _sA].TargetSize, Is.EqualTo(2000));
+			Assert.That(solve[_cB, _sB].TargetSize, Is.EqualTo(2000));
 		}
 		
 		private static readonly ShardIdentity _sA = new ShardIdentity("shA");

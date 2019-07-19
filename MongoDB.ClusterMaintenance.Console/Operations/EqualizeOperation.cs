@@ -90,15 +90,15 @@ namespace MongoDB.ClusterMaintenance.Operations
 				}
 			}
 
-			var solver = zoneOpt.BuildSolver();
+			var solve = ZoneOptimizationSolve.Find(zoneOpt, token);
 
-			if(!solver.Find())
+			if(!solve.IsSuccess)
 				throw new Exception("solution for zone optimization not found");
 			
-			_log.Info("Found solution with max deviation {0} by shards", zoneOpt.TargetShardMaxDeviation.ByteSize());
-			_commandPlanWriter.Comment($"Found solution with max deviation {zoneOpt.TargetShardMaxDeviation.ByteSize()} by shards");
+			_log.Info("Found solution with max deviation {0} by shards", solve.TargetShardMaxDeviation.ByteSize());
+			_commandPlanWriter.Comment($"Found solution with max deviation {solve.TargetShardMaxDeviation.ByteSize()} by shards");
 
-			foreach(var msg in solver.ActiveConstraints)
+			foreach(var msg in solve.ActiveConstraints)
 				_log.Info("Active constraint: {0}", msg);
 			
 			foreach (var interval in _intervals.Where(_ => _.Selected).Where(_ => _.Correction != CorrectionMode.None))
@@ -110,7 +110,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 					foreach (var tag in interval.Zones)
 					{
 						var shId = shardByTag[tag].Id;
-						targetSize[tag] = zoneOpt[interval.Namespace, shId].TargetSize;
+						targetSize[tag] = solve[interval.Namespace, shId].TargetSize;
 					}
 				}
 				else
