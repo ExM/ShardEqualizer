@@ -87,6 +87,41 @@ namespace MongoDB.ClusterMaintenance
 		}
 		
 		[Test]
+		public void WithoutUnShardCompensation()
+		{
+			var zoneOpt = new ZoneOptimizationDescriptor(
+				new []{_cA, _cB, _cC},
+				new []{_sA, _sB, _sC});
+			
+			zoneOpt[_cA, _sA].Init(b => { b.CurrentSize =    0; b.Managed = false;});
+			zoneOpt[_cA, _sB].Init(b => { b.CurrentSize = 2000; b.Managed = true;});
+			zoneOpt[_cA, _sC].Init(b => { b.CurrentSize = 2000; b.Managed = true;});
+			
+			zoneOpt[_cB, _sA].Init(b => { b.CurrentSize = 3000; b.Managed = true; });
+			zoneOpt[_cB, _sB].Init(b => { b.CurrentSize = 4000; b.Managed = true; });
+			zoneOpt[_cB, _sC].Init(b => { b.CurrentSize = 2000; b.Managed = true; });
+			
+			zoneOpt[_cC, _sA].Init(b => { b.CurrentSize =  600; b.Managed = true; });
+			zoneOpt[_cC, _sB].Init(b => { b.CurrentSize =  500; b.Managed = true; });
+			zoneOpt[_cC, _sC].Init(b => { b.CurrentSize =  400; b.Managed = true; });
+
+			zoneOpt.ShardEqualsPriority = 100;
+			zoneOpt.CollectionSettings[_cC].UnShardCompensation = false;
+			
+			var solve = ZoneOptimizationSolve.Find(zoneOpt);
+
+			Assert.IsTrue(solve.IsSuccess);
+
+			Assert.That(solve[_cB, _sA].TargetSize, Is.EqualTo(4300));
+			Assert.That(solve[_cB, _sB].TargetSize, Is.EqualTo(2350));
+			Assert.That(solve[_cC, _sA].TargetSize, Is.EqualTo(500));
+			Assert.That(solve[_cC, _sB].TargetSize, Is.EqualTo(500));
+			Assert.That(solve[_cC, _sC].TargetSize, Is.EqualTo(500));
+
+			Assert.That(solve.ActiveConstraints, Is.Empty);
+		}
+		
+		[Test]
 		public void NoManagedCollection()
 		{
 			var zoneOpt = new ZoneOptimizationDescriptor(

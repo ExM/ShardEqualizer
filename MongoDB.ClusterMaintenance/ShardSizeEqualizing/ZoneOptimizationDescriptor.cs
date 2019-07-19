@@ -7,13 +7,13 @@ using MongoDB.Driver;
 
 namespace MongoDB.ClusterMaintenance
 {
-	public class ZoneOptimizationDescriptor: IUnShardedSizeDescriptor, ICollectionPriorityDescriptor
+	public class ZoneOptimizationDescriptor: IUnShardedSizeDescriptor, ICollectionSettingsDescriptor
 	{
 		public ZoneOptimizationDescriptor(IEnumerable<CollectionNamespace> collections, IEnumerable<ShardIdentity> shards)
 		{
 			Collections = collections.ToList();
 			foreach (var coll in Collections)
-				_collectionPriorities.Add(coll, 1);
+				_collectionSettings.Add(coll, new CollectionSettings(){ Priority = 1, UnShardCompensation = true });
 			
 			Shards = shards.ToList();
 			foreach (var shard in Shards)
@@ -40,10 +40,9 @@ namespace MongoDB.ClusterMaintenance
 			set =>  _unShardedSizes[shard] = value;
 		}
 		
-		double ICollectionPriorityDescriptor.this[CollectionNamespace coll]
+		CollectionSettings ICollectionSettingsDescriptor.this[CollectionNamespace coll]
 		{
-			get => _collectionPriorities[coll];
-			set =>  _collectionPriorities[coll] = value;
+			get => _collectionSettings[coll];
 		}
 		
 		public double ShardEqualsPriority { get; set; }
@@ -55,7 +54,7 @@ namespace MongoDB.ClusterMaintenance
 
 		public IUnShardedSizeDescriptor UnShardedSize => this;
 		
-		public ICollectionPriorityDescriptor CollectionPriority => this;
+		public ICollectionSettingsDescriptor CollectionSettings => this;
 
 		public IReadOnlyList<Bucket> AllManagedBuckets => _bucketList.Where(_ => _.Managed).ToList();
 
@@ -73,20 +72,26 @@ namespace MongoDB.ClusterMaintenance
 
 		private readonly IDictionary<ShardIdentity, long> _unShardedSizes = new Dictionary<ShardIdentity, long>();
 		
-		private readonly IDictionary<CollectionNamespace, double> _collectionPriorities = new Dictionary<CollectionNamespace, double>();
+		private readonly IDictionary<CollectionNamespace, CollectionSettings> _collectionSettings = new Dictionary<CollectionNamespace, CollectionSettings>();
 		
 		private readonly IReadOnlyDictionary<ShardIdentity, IReadOnlyList<Bucket>> _bucketsByShard;
 		private readonly IReadOnlyDictionary<ShardIdentity, IReadOnlyDictionary<CollectionNamespace, Bucket>> _bucketsByShardByCollection;
 		private readonly IReadOnlyList<Bucket> _bucketList;
 	}
 
-	public interface ICollectionPriorityDescriptor
+	public interface ICollectionSettingsDescriptor
 	{
-		double this[CollectionNamespace coll] { get; set; }
+		CollectionSettings this[CollectionNamespace coll] { get; }
 	}
 	
 	public interface IUnShardedSizeDescriptor
 	{
 		long this[ShardIdentity shard] { get; set; }
+	}
+
+	public class CollectionSettings
+	{
+		public double Priority { get; set; }
+		public bool UnShardCompensation { get; set; }
 	}
 }

@@ -78,7 +78,8 @@ namespace MongoDB.ClusterMaintenance
 
 				foreach (var bucket in managedBucketsByShard[shard])
 				{
-					sum += bucket.VariableFunction;
+					if(source.CollectionSettings[bucket.Collection].UnShardCompensation)
+						sum += bucket.VariableFunction;
 				}
 
 				targetFunction += sum.Square() * (source.ShardEqualsPriority / (avgManagedShardSize * avgManagedShardSize));
@@ -108,7 +109,7 @@ namespace MongoDB.ClusterMaintenance
 
 				var error = sum.Square();
 
-				targetFunction += error * (source.CollectionPriority[bucket.Collection] / (avg * avg));
+				targetFunction += error * (source.CollectionSettings[bucket.Collection].Priority / (avg * avg));
 			}
 
 			//Console.WriteLine(targetFunction.QuadraticTerms.ToCSharp());
