@@ -8,6 +8,7 @@
 		bounds="gridFS_invObjectId"
 		preSplit="auto|interval|chunk"
 		correction="none|self|unShard"
+		priority="1"
 		zones="A,B,C,D" />
 	-->
 	<!-- sample of connection configuration

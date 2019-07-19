@@ -54,7 +54,9 @@ namespace MongoDB.ClusterMaintenance.Operations
 				.Distinct()
 				.ToDictionary(_ => _, _ => shards.Single(s => s.Tags.Contains(_)));
 			
-			var zoneOpt = new ZoneOptimizationDescriptor(_intervals.Where(_ => _.Correction != CorrectionMode.None).Select(_=> _.Namespace), shards.Select(_ => _.Id));
+			var zoneOpt = new ZoneOptimizationDescriptor(
+				_intervals.Where(_ => _.Correction != CorrectionMode.None).Select(_=> _.Namespace),
+				shards.Select(_ => _.Id));
 
 			foreach (var p in unShardedSizeMap)
 				zoneOpt.UnShardedSize[p.Key] = p.Value;
@@ -70,6 +72,10 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 			foreach (var interval in _intervals.Where(_ => _.Correction != CorrectionMode.None))
 			{
+				var collCfg = zoneOpt.CollectionSettings[interval.Namespace];
+				collCfg.UnShardCompensation = interval.Correction == CorrectionMode.UnShard;
+				collCfg.Priority = interval.Priority;
+				
 				var allChunks = chunksByCollection[interval.Namespace];
 				foreach (var tag in interval.Zones)
 				{

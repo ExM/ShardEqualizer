@@ -23,5 +23,8 @@ namespace MongoDB.ClusterMaintenance.Config
 
 		[DataMember(Name = "correction")]
 		public CorrectionMode? Correction { get; private set; }
+		
+		[DataMember(Name = "Priority")]
+		public double? Priority { get; private set;}
 	}
 }
