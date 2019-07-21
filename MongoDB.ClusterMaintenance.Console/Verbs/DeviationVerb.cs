@@ -12,16 +12,20 @@ namespace MongoDB.ClusterMaintenance.Verbs
 	{
 		[Option('s', "scale", Required = false, Default = "", HelpText = "scale of size (K,M,G,T,P,E)")]
 		public string Scale { get; set; }
-		
+
+		[Option("format", Required = false, Default = "csv", HelpText = "format of report (csv - CSV, md - markdown")]
+		public string Format { get; set; }
+
 		public override async Task RunOperation(IKernel kernel, CancellationToken token)
 		{
 			kernel.Bind<IOperation>().To<DeviationOperation>()
-				.WithConstructorArgument(parse(Scale));
+				.WithConstructorArgument(parseScaleSuffix(Scale))
+				.WithConstructorArgument(parseReportFormat(Format));
 			
 			await kernel.Get<IOperation>().Run(token);
 		}
 
-		private ScaleSuffix parse(string scale)
+		private ScaleSuffix parseScaleSuffix(string scale)
 		{
 			switch (scale)
 			{
@@ -36,5 +40,22 @@ namespace MongoDB.ClusterMaintenance.Verbs
 					throw new FormatException($"unexpected text '{scale}' in the scale option");
 			}
 		}
+		
+		private ReportFormat parseReportFormat(string scale)
+		{
+			switch (scale)
+			{
+				case "csv": return ReportFormat.Csv;
+				case "md": return ReportFormat.Markdown;
+				default:
+					throw new FormatException($"unexpected text '{scale}' in the format option");
+			}
+		}
+	}
+
+	public enum ReportFormat
+	{
+		Csv,
+		Markdown
 	}
 }
