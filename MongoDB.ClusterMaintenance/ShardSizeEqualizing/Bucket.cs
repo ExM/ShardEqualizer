@@ -1,4 +1,3 @@
-using System;
 using MongoDB.ClusterMaintenance.Models;
 using MongoDB.Driver;
 
@@ -26,19 +25,6 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 		{
 			get => _minSize;
 			set => _minSize = value < 0 ? 0 : value;
-		}
-	}
-
-	public static class BucketExtensions
-	{
-		public static void Init(this Bucket bucket, Action<Bucket> action)
-		{
-			action(bucket);
-		}
-		
-		public static void BlockSizeReduction(this Bucket bucket)
-		{
-			bucket.MinSize = bucket.CurrentSize;
 		}
 	}
 }

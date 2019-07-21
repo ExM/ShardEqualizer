@@ -14,13 +14,13 @@ namespace MongoDB.ClusterMaintenance
 	{
 		private ZoneOptimizationSolve(ZoneOptimizationDescriptor source)
 		{
-			_allBucketList = source.AllBuckets.Select(_ => new BucketSolve(_)).ToList();
-			_bucketsByShardByCollection = _allBucketList.GroupBy(_ => _.Shard)
+			var allBucketList = source.AllBuckets.Select(_ => new BucketSolve(_)).ToList();
+			_bucketsByShardByCollection = allBucketList.GroupBy(_ => _.Shard)
 				.ToDictionary(k => k.Key,
 					v => (IReadOnlyDictionary<CollectionNamespace, BucketSolve>) v.ToDictionary(
 						_ => _.Collection, _ => _));
 			
-			_managedBucketList = _allBucketList.Where(b => source[b.Collection, b.Shard].Managed).ToList();
+			_managedBucketList = allBucketList.Where(b => source[b.Collection, b.Shard].Managed).ToList();
 		}
 
 		private void find(ZoneOptimizationDescriptor source, CancellationToken token)
@@ -202,7 +202,6 @@ namespace MongoDB.ClusterMaintenance
 		private readonly IReadOnlyList<BucketSolve> _managedBucketList;
 		
 		private readonly List<BucketConstraint> _constraintDescriptions = new List<BucketConstraint>();
-		private readonly List<BucketSolve> _allBucketList;
 		public bool IsSuccess { get; private set; }
 	}
 }

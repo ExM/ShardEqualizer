@@ -242,19 +242,17 @@ namespace MongoDB.ClusterMaintenance.Operations
 			}
 			
 			_commandPlanWriter.Comment(equalizer.RenderState());
-			_commandPlanWriter.Comment("remove old tags");
-			foreach (var tagRange in tagRanges)
-			{
-				_commandPlanWriter.RemoveTagRange(
-					interval.Namespace, tagRange.Min, tagRange.Max, tagRange.Tag);
-			}
+			_commandPlanWriter.Comment("change tags");
+
+			var buffer = new TagRangeCommandBuffer(_commandPlanWriter, interval.Namespace);
 			
-			_commandPlanWriter.Comment("set new tags");
+			foreach (var tagRange in tagRanges)
+				buffer.RemoveTagRange(tagRange.Min, tagRange.Max, tagRange.Tag);
+			
 			foreach (var zone in equalizer.Zones)
-			{
-				_commandPlanWriter.AddTagRange(
-					interval.Namespace, zone.Min, zone.Max, zone.Tag);
-			}
+				buffer.AddTagRange(zone.Min, zone.Max, zone.Tag);
+			
+			buffer.Flush();
 			
 			_commandPlanWriter.Comment("---");
 			_commandPlanWriter.Flush();

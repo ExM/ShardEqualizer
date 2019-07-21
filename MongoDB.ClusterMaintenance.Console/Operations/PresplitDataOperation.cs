@@ -60,8 +60,10 @@ namespace MongoDB.ClusterMaintenance.Operations
 						_log.Info("detect presplit mode of {0} without bounds", interval.Namespace.FullName);
 					}
 				}
+				
+				var buffer = new TagRangeCommandBuffer(_commandPlanWriter, interval.Namespace);
 
-				if (!await removeOldTagRangesIfRequired(interval))
+				if (!await removeOldTagRangesIfRequired(interval, buffer))
 				{
 					_commandPlanWriter.Comment($"zones not changed");
 					continue;
@@ -72,20 +74,22 @@ namespace MongoDB.ClusterMaintenance.Operations
 				switch (preSplit)
 				{
 					case PreSplitMode.Interval:
-						await presplitData(interval, token);
+						await presplitData(interval, buffer, token);
 						break;
 					case PreSplitMode.Chunks:
-						await distributeCollection(interval, token);
+						await distributeCollection(interval, buffer, token);
 						break;
 					
 					case PreSplitMode.Auto:
 					default:
 						throw new NotSupportedException($"unexpected PreSplitType:{preSplit}");
 				}
+				
+				buffer.Flush();
 			}
 		}
 
-		private async Task<bool> removeOldTagRangesIfRequired(Interval interval)
+		private async Task<bool> removeOldTagRangesIfRequired(Interval interval, TagRangeCommandBuffer buffer)
 		{
 			var tagRanges = await _configDb.Tags.Get(interval.Namespace, interval.Min, interval.Max);
 
@@ -100,12 +104,12 @@ namespace MongoDB.ClusterMaintenance.Operations
 			}
 
 			foreach (var tagRange in tagRanges)
-				_commandPlanWriter.RemoveTagRange(interval.Namespace, tagRange.Min, tagRange.Max, tagRange.Tag);
+				buffer.RemoveTagRange(tagRange.Min, tagRange.Max, tagRange.Tag);
 
 			return true;
 		}
 
-		private async Task presplitData(Interval interval, CancellationToken token)
+		private async Task presplitData(Interval interval, TagRangeCommandBuffer buffer, CancellationToken token)
 		{
 			var collInfo = await _configDb.Collections.Find(interval.Namespace);
 
@@ -130,11 +134,12 @@ namespace MongoDB.ClusterMaintenance.Operations
 				var zoneName = interval.Zones[zoneIndex];
 				zoneIndex++;
 				
-				_commandPlanWriter.AddTagRange(interval.Namespace, range.min, range.max, zoneName);
+				buffer.AddTagRange(range.min, range.max, zoneName);
 			}
 		}
 		
-		private async Task distributeCollection(Interval interval, CancellationToken token)
+		private async Task distributeCollection(Interval interval, TagRangeCommandBuffer buffer,
+			CancellationToken token)
 		{
 			var collInfo = await _configDb.Collections.Find(interval.Namespace);
 
@@ -165,7 +170,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 				if (part.Order == interval.Zones.Count - 1 && interval.Max.HasValue)
 					maxBound = interval.Max.Value;
 				
-				_commandPlanWriter.AddTagRange(interval.Namespace, minBound, maxBound, zoneName);
+				buffer.AddTagRange(minBound, maxBound, zoneName);
 			}
 		}
 	}
