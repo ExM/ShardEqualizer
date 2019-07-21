@@ -6,7 +6,7 @@ using MongoDB.Driver;
 
 namespace MongoDB.ClusterMaintenance.MongoCommands
 {
-	public class TagRangeCommandBuffer
+	public class TagRangeCommandBuffer: IDisposable
 	{
 		private readonly CommandPlanWriter _commandWriter;
 		private readonly CollectionNamespace _collection;
@@ -38,6 +38,12 @@ namespace MongoDB.ClusterMaintenance.MongoCommands
 			else
 				_removeCommands.Add(cmd);
 		}
+		
+		public void Clear()
+		{
+			_removeCommands.Clear();
+			_addCommands.Clear();
+		}
 
 		public void Flush()
 		{
@@ -46,9 +52,8 @@ namespace MongoDB.ClusterMaintenance.MongoCommands
 			
 			foreach(var cmd in _addCommands.OrderBy(_ => _.Min))
 				_commandWriter.AddTagRange(_collection, cmd.Min, cmd.Max, cmd.Tag);
-			
-			_removeCommands.Clear();
-			_addCommands.Clear();
+
+			Clear();
 		}
 		
 		private class Command: IEquatable<Command>
@@ -91,5 +96,9 @@ namespace MongoDB.ClusterMaintenance.MongoCommands
 			}
 		}
 
+		public void Dispose()
+		{
+			Flush();
+		}
 	}
 }

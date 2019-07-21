@@ -60,32 +60,31 @@ namespace MongoDB.ClusterMaintenance.Operations
 						_log.Info("detect presplit mode of {0} without bounds", interval.Namespace.FullName);
 					}
 				}
-				
-				var buffer = new TagRangeCommandBuffer(_commandPlanWriter, interval.Namespace);
 
-				if (!await removeOldTagRangesIfRequired(interval, buffer))
+				using (var buffer = new TagRangeCommandBuffer(_commandPlanWriter, interval.Namespace))
 				{
-					_commandPlanWriter.Comment($"zones not changed");
-					continue;
-				}
+					if (!await removeOldTagRangesIfRequired(interval, buffer))
+					{
+						_commandPlanWriter.Comment($"zones not changed");
+						continue;
+					}
 
-				_log.Info("presplit data of {0} with mode {1}", interval.Namespace.FullName, preSplit);
-				
-				switch (preSplit)
-				{
-					case PreSplitMode.Interval:
-						await presplitData(interval, buffer, token);
-						break;
-					case PreSplitMode.Chunks:
-						await distributeCollection(interval, buffer, token);
-						break;
-					
-					case PreSplitMode.Auto:
-					default:
-						throw new NotSupportedException($"unexpected PreSplitType:{preSplit}");
+					_log.Info("presplit data of {0} with mode {1}", interval.Namespace.FullName, preSplit);
+
+					switch (preSplit)
+					{
+						case PreSplitMode.Interval:
+							await presplitData(interval, buffer, token);
+							break;
+						case PreSplitMode.Chunks:
+							await distributeCollection(interval, buffer, token);
+							break;
+
+						case PreSplitMode.Auto:
+						default:
+							throw new NotSupportedException($"unexpected PreSplitType:{preSplit}");
+					}
 				}
-				
-				buffer.Flush();
 			}
 		}
 

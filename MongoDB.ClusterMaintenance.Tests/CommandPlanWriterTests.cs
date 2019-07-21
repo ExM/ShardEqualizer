@@ -36,12 +36,12 @@ namespace MongoDB.ClusterMaintenance
 			{
 				var writer = new CommandPlanWriter(sw);
 
-				var buffer = new TagRangeCommandBuffer(writer, CollectionNamespace.FromFullName("x.A"));
-				buffer.RemoveTagRange(testBound(10), testBound(20), new TagIdentity("T1"));
-				buffer.RemoveTagRange(testBound(20), testBound(30), new TagIdentity("T2"));
-				buffer.AddTagRange(testBound(10), testBound(20), new TagIdentity("T1"));
-				
-				buffer.Flush();
+				using (var buffer = new TagRangeCommandBuffer(writer, CollectionNamespace.FromFullName("x.A")))
+				{
+					buffer.RemoveTagRange(testBound(10), testBound(20), new TagIdentity("T1"));
+					buffer.RemoveTagRange(testBound(20), testBound(30), new TagIdentity("T2"));
+					buffer.AddTagRange(testBound(10), testBound(20), new TagIdentity("T1"));
+				}
 			}
 
 			var lines = sb.ToString().Split(new []{"\r\n"}, StringSplitOptions.None);
