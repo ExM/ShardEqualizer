@@ -14,7 +14,7 @@ namespace MongoDB.ClusterMaintenance.Reporting
 			sb.Append("|| ");
 			sb.Append(rowTitle);
 			sb.Append(" || ");
-			sb.AppendLine(string.Join(" | ", cells.Select(_ => _.HasValue ? SizeRenderer.Render(_.Value): "")));
+			sb.Append(string.Join(" | ", cells.Select(_ => _.HasValue ? SizeRenderer.Render(_.Value): "")));
 			sb.AppendLine(" |");
 		}
 

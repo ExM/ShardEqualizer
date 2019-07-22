@@ -77,9 +77,9 @@ namespace MongoDB.ClusterMaintenance.Reporting
 
 			AppendHeader(sb, "",
 				"", "", "", 
-				"Deviation", "Deviation", "Deviation",
-				"Unsharded", "Unsharded", "Unsharded",
-				"Sharded", "Sharded", "Sharded");
+				"Deviation", "\\", "\\",
+				"Unsharded", "\\", "\\",
+				"Sharded", "\\", "\\");
 				
 			AppendHeader(sb, "Shard name",
 				"Size", "Storage", "Index", 
