@@ -21,7 +21,7 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			IReadOnlyDictionary<ShardIdentity, CollStats> collStatsByShards,
 			IReadOnlyList<TagRange> tagRanges,
 			IDictionary<TagIdentity, long> targetSize,
-			ChunkCollection chunks, long? moveLimit)
+			ChunkCollection chunks)
 		{
 			continuityCheck(tagRanges);
 
@@ -31,21 +31,21 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			}
 			
 			Zones = tagRanges
-				.Select(r => new { tagId = r.Tag, shardId = shards.Single(s => s.Tags.Contains(r.Tag)).Id})
-				.Select(i => new Zone(i.shardId, i.tagId, sizeByShard(i.shardId), targetSize[i.tagId]))
+				.Select(r => new { tagRange = r, shardId = shards.Single(s => s.Tags.Contains(r.Tag)).Id})
+				.Select(i => new Zone(i.shardId, i.tagRange, sizeByShard(i.shardId), targetSize[i.tagRange.Tag]))
 				.ToList();
 
-			var leftFixedBound = new Bound(chunks, tagRanges.First().Min);
+			var leftFixedBound = new Bound(this, chunks, tagRanges.First().Min);
 			if (leftFixedBound.RightChunk == null)
 				throw new Exception($"First chunk not found by first bound of tags");
 			Zones.First().Left = leftFixedBound;
 			
-			var rightFixedBound = new Bound(chunks, tagRanges.Last().Max);
+			var rightFixedBound = new Bound(this, chunks, tagRanges.Last().Max);
 			if(rightFixedBound.LeftChunk == null)
 				throw new Exception($"Last chunk not found by last bound of tags");
 			Zones.Last().Right = rightFixedBound;
 
-			_movingBounds = tagRanges.Skip(1).Select(item => new Bound(chunks, item.Min)).ToList();
+			_movingBounds = tagRanges.Skip(1).Select(item => new Bound(this, chunks, item.Min)).ToList();
 
 			var zoneIndex = 0;
 			foreach (var bound in _movingBounds)
@@ -60,14 +60,6 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 			{
 				toRight += bound.LeftZone.TargetSize - bound.LeftZone.CurrentSize;
 				bound.RequireShiftSize = toRight;
-
-				if (!moveLimit.HasValue)
-					continue;
-				
-				if (bound.RequireShiftSize > 0 && moveLimit.Value < bound.RequireShiftSize)
-					bound.RequireShiftSize = moveLimit.Value;
-				if (bound.RequireShiftSize < 0 && moveLimit.Value < -bound.RequireShiftSize)
-					bound.RequireShiftSize = -moveLimit.Value;
 			}
 		}
 

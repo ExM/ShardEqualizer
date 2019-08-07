@@ -1,4 +1,8 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.Remoting.Messaging;
 using System.Threading;
@@ -7,6 +11,7 @@ using MongoDB.ClusterMaintenance.Config;
 using MongoDB.ClusterMaintenance.MongoCommands;
 using MongoDB.ClusterMaintenance.Reporting;
 using MongoDB.ClusterMaintenance.Verbs;
+using MongoDB.ClusterMaintenance.WorkFlow;
 using MongoDB.Driver;
 using NLog;
 
@@ -26,18 +31,65 @@ namespace MongoDB.ClusterMaintenance.Operations
 			_scaleSuffix = scaleSuffix;
 			_reportFormat = reportFormat;
 		}
+		
+		private IList<string> _userDatabases;
+		private IList<CollectionNamespace> _allCollectionNames;
+		private IReadOnlyList<CollStatsResult> _allCollStats;
 
+		private async Task loadUserDatabases(CancellationToken token)
+		{
+			_userDatabases = await _mongoClient.ListUserDatabases(token);
+		}
+		
+		private ObservableTask loadCollections(CancellationToken token)
+		{
+			async Task<IEnumerable<CollectionNamespace>> listCollectionNames(string dbName, CancellationToken t)
+			{
+				var db = _mongoClient.GetDatabase(dbName);
+				var collNames = await db.ListCollectionNames().ToListAsync(t);
+				return collNames.Select(_ => new CollectionNamespace(dbName, _));
+			}
+			
+			return ObservableTask.WithParallels(
+				_userDatabases, 
+				32, 
+				listCollectionNames,
+				allCollectionNames => { _allCollectionNames = allCollectionNames.SelectMany(_ => _).ToList(); },
+				token);
+		}
+		
+		private ObservableTask loadCollectionStatistics(CancellationToken token)
+		{
+			async Task<CollStatsResult> runCollStats(CollectionNamespace ns, CancellationToken t)
+			{
+				var db = _mongoClient.GetDatabase(ns.DatabaseNamespace.DatabaseName);
+				var collStats = await db.CollStats(ns.CollectionName, 1, t);
+				return collStats;
+			}
+
+			return ObservableTask.WithParallels(
+				_allCollectionNames, 
+				32, 
+				runCollStats,
+				allCollStats => { _allCollStats = allCollStats; },
+				token);
+		}
+		
 		public async Task Run(CancellationToken token)
 		{
-			var allCollectionNames = await _mongoClient.ListUserCollections(token);
-			_log.Info("Found: {0} collections", allCollectionNames.Count);
+			var opList = new WorkList()
+			{
+				{ "Load user databases", new SingleWork(loadUserDatabases, () => $"found {_userDatabases.Count} databases.")},
+				{ "Load collections", new ObservableWork(loadCollections, () => $"found {_allCollectionNames.Count} collections.")},
+				{ "Load collection statistics", new ObservableWork(loadCollectionStatistics)},
+			};
 
-			var result = await allCollectionNames.ParallelsAsync(runCollStats, 32, token);
-
+			await opList.Apply(token);
+			
 			var sizeRenderer = new SizeRenderer("F2", _scaleSuffix);
 
 			var report = createReport(sizeRenderer);
-			foreach (var collStats in result)
+			foreach (var collStats in _allCollStats)
 			{
 				report.Append(collStats);
 			}
@@ -63,13 +115,6 @@ namespace MongoDB.ClusterMaintenance.Operations
 				default:
 					throw new ArgumentException($"unexpected report format: {_reportFormat}");
 			}
-		}
-		
-		private async Task<CollStatsResult> runCollStats(CollectionNamespace ns, CancellationToken token)
-		{
-			_log.Info("collection: {0}", ns);
-			var db = _mongoClient.GetDatabase(ns.DatabaseNamespace.DatabaseName);
-			return await db.CollStats(ns.CollectionName, 1, token);
 		}
 	}
 }

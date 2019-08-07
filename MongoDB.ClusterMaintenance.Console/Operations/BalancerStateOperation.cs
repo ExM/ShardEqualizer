@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.ClusterMaintenance.Config;
 using MongoDB.ClusterMaintenance.Models;
+using MongoDB.ClusterMaintenance.WorkFlow;
 using MongoDB.Driver;
 using NLog;
 
@@ -16,50 +18,94 @@ namespace MongoDB.ClusterMaintenance.Operations
 		
 		private readonly IConfigDbRepositoryProvider _configDb;
 		private readonly IReadOnlyList<Interval> _intervals;
+		
+		private IReadOnlyCollection<Shard> _shards;
+		private int _totalUnMovedChunks = 0;
+		private readonly ConcurrentBag<UnMovedChunk> _unMovedChunks = new ConcurrentBag<UnMovedChunk>();
 
 		public BalancerStateOperation(IConfigDbRepositoryProvider configDb, IReadOnlyList<Interval> intervals)
 		{
 			_intervals = intervals;
 			_configDb = configDb;
 		}
+		
+		private async Task<string> loadShards(CancellationToken token)
+		{
+			_shards = await _configDb.Shards.GetAll();
+			return $"found {_shards.Count} shards.";
+		}
+		
+		private async Task<int> scanInterval(Interval interval, CancellationToken token)
+		{
+			var currentTags = new HashSet<TagIdentity>(interval.Zones);
+			var tagRanges = await _configDb.Tags.Get(interval.Namespace);
+			tagRanges = tagRanges.Where(_ => currentTags.Contains(_.Tag)).ToList();
+
+			var intervalCount = 0;
+
+			foreach (var tagRange in tagRanges)
+			{
+				var validShards = _shards.Where(_ => _.Tags.Contains(tagRange.Tag)).Select(_ => _.Id).ToList();
+
+				var unMovedChunks = await (await _configDb.Chunks.ByNamespace(interval.Namespace)
+						.From(tagRange.Min).To(tagRange.Max).NoJumbo().ExcludeShards(validShards).Find())
+					.ToListAsync(token);
+
+				if (unMovedChunks.Count == 0) continue;
+
+				_unMovedChunks.Add(new UnMovedChunk()
+				{
+					Namespace = interval.Namespace,
+					TagRange = tagRange.Tag,
+					Count = unMovedChunks.Count,
+					SourceShards = unMovedChunks.Select(_ => _.Shard).Distinct().Select(_ => $"'{_}'").ToList(),
+				});
+
+				intervalCount += unMovedChunks.Count;
+			}
+
+			return intervalCount;
+		}
+		
+		private ObservableTask scanIntervals(CancellationToken token)
+		{
+			return ObservableTask.WithParallels(
+				_intervals.Where(_ => _.Selected).ToList(), 
+				16, 
+				scanInterval,
+				intervalCounts => { _totalUnMovedChunks = intervalCounts.Sum(); },
+				token);
+		}
 	
 		public async Task Run(CancellationToken token)
 		{
-			var shards = await _configDb.Shards.GetAll();
-			var totalUnMovedChunks = 0;
-			
-			foreach (var interval in _intervals.Where(_ => _.Selected))
+			var opList = new WorkList()
 			{
-				_log.Info("Scan interval: {0}", interval.Namespace);
-				
-				var currentTags = new HashSet<TagIdentity>(interval.Zones);
-				var tagRanges = await _configDb.Tags.Get(interval.Namespace);
-				tagRanges = tagRanges.Where(_ => currentTags.Contains(_.Tag)).ToList();
+				{ "Load shard list", new SingleWork(loadShards)},
+				{ "Scan intervals", new ObservableWork(scanIntervals, () => _totalUnMovedChunks == 0
+					? "all chunks moved."
+					: $"found {_totalUnMovedChunks} chunks is awaiting movement.")}
+			};
 
-				foreach (var tagRange in tagRanges)
+			await opList.Apply(token);
+
+			foreach (var unMovedChunkGroup in _unMovedChunks.GroupBy(_ => _.Namespace).OrderBy(_ => _.Key.FullName))
+			{
+				Console.WriteLine("{0}:", unMovedChunkGroup.Key);
+				foreach (var  unMovedChunk in unMovedChunkGroup.OrderBy(_ => _.TagRange))
 				{
-					var validShards = new HashSet<ShardIdentity>(shards.Where(_ => _.Tags.Contains(tagRange.Tag)).Select(_ => _.Id));
-					
-					var chunks = await (await _configDb.Chunks.ByNamespace(interval.Namespace)
-						.From(tagRange.Min).To(tagRange.Max).Find()).ToListAsync(token);
-
-					var unMovedChunks = chunks.Where(_ => _.Jumbo != true && !validShards.Contains(_.Shard)).ToList();
-					if (unMovedChunks.Count != 0)
-					{
-						var sourceShards = unMovedChunks.Select(_ => _.Shard).Distinct().Select(_ => $"'{_}'");
-						_log.Info("  tag range '{0}' wait {1} chunks from {2} shards",
-							tagRange.Tag, unMovedChunks.Count, string.Join(", ", sourceShards));
-						if (unMovedChunks.Count <= 5)
-						{
-							_log.Info("  chunksIds: {0}",
-								string.Join(", ", unMovedChunks.Select(_ => _.Id)));
-						}
-						totalUnMovedChunks += unMovedChunks.Count;
-					}
+					Console.WriteLine("  tag range '{0}' wait {1} chunks from {2} shards",
+						unMovedChunk.TagRange, unMovedChunk.Count, string.Join(", ", unMovedChunk.SourceShards));
 				}
 			}
-			
-			_log.Info("Total unmoved chunks: {0}", totalUnMovedChunks);
+		}
+
+		private class UnMovedChunk
+		{
+			public CollectionNamespace Namespace { get; set; }
+			public TagIdentity TagRange { get; set; }
+			public int Count { get; set; }
+			public List<string> SourceShards { get; set; }
 		}
 	}
 }
