@@ -21,18 +21,6 @@ namespace MongoDB.ClusterMaintenance.MongoCommands
 		[BsonElement("shards"), BsonDictionaryOptions(DictionaryRepresentation.Document), BsonIgnoreIfNull]
 		public IReadOnlyDictionary<ShardIdentity, CollStats> Shards;
 		
-		[BsonElement("max"), BsonIgnoreIfNull]
-		public long? Max;
-			
-		[BsonElement("maxSize"), BsonIgnoreIfNull]
-		public long? MaxSize;
-		
-		[BsonElement("sleepCount"), BsonIgnoreIfNull]
-		public long? SleepCount;
-		
-		[BsonElement("sleepMS"), BsonIgnoreIfNull]
-		public long? SleepMS;
-		
 		//[BsonExtraElements]
 		//public BsonDocument ExtraElements;
 	}

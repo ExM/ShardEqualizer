@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
@@ -29,5 +30,17 @@ namespace MongoDB.ClusterMaintenance.Models
 		
 		[BsonElement("jumbo"), BsonIgnoreIfDefault]
 		public bool Jumbo { get; set; }
+		
+		[BsonElement("history"), BsonIgnoreIfNull] //BsonIgnoreIfNull - required for backward compatibility with MongoDB v3.6 
+		public IReadOnlyList<HistoryEntry> History { get; set; }
+		
+		public class HistoryEntry
+		{
+			[BsonElement("shard"), BsonRequired] 
+			public ShardIdentity Shard { get; set; }
+			
+			[BsonElement("validAfter"), BsonRequired] 
+			public BsonTimestamp ValidAfter { get; set; }
+		}
 	}
 }

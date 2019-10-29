@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Bson;
@@ -43,15 +44,22 @@ namespace MongoDB.ClusterMaintenance.MongoCommands
 		
 		public static async Task<CollStatsResult> CollStats(this IMongoDatabase db, string collectionName, int scale, CancellationToken token)
 		{
-			var cmd =  new BsonDocument
+			try
 			{
-				{ "collStats", collectionName },
-				{ "scale", scale},
-			};
+				var cmd =  new BsonDocument
+				{
+					{ "collStats", collectionName },
+					{ "scale", scale},
+				};
 			
-			var result = await db.RunCommandAsync<CollStatsResult>(cmd, ReadPreference.SecondaryPreferred, token);
-			result.EnsureSuccess();
-			return result;
+				var result = await db.RunCommandAsync<CollStatsResult>(cmd, ReadPreference.SecondaryPreferred, token);
+				result.EnsureSuccess();
+				return result;
+			}
+			catch (Exception ex)
+			{
+				throw new Exception($"Error while collStats command within database: {db.DatabaseNamespace.DatabaseName} collection: {collectionName}", ex);
+			}
 		}
 	}
 }

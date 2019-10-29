@@ -16,6 +16,18 @@ namespace MongoDB.ClusterMaintenance.MongoCommands
 
 		[BsonElement("count"), BsonRequired]
 		public long Count;
+		
+		[BsonElement("max"), BsonIgnoreIfNull]
+		public long? Max;
+			
+		[BsonElement("maxSize"), BsonIgnoreIfNull]
+		public long? MaxSize;
+		
+		[BsonElement("sleepCount"), BsonIgnoreIfNull]
+		public long? SleepCount;
+		
+		[BsonElement("sleepMS"), BsonIgnoreIfNull]
+		public long? SleepMS;
 
 		[BsonElement("avgObjSize"), BsonIgnoreIfNull]
 		public double? AvgObjSize;
@@ -46,5 +58,11 @@ namespace MongoDB.ClusterMaintenance.MongoCommands
 		
 		[BsonElement("$configServerState"), BsonIgnoreIfNull]
 		public BsonDocument ConfigServerState { get; private set; }
+		
+		[BsonElement("lastCommittedOpTime"), BsonIgnoreIfNull]
+		public BsonTimestamp LastCommittedOpTime { get; private set; }
+		
+		//[BsonExtraElements]
+		//public BsonDocument ExtraElements;
 	}
 }
