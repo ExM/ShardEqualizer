@@ -78,6 +78,8 @@ namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
 		public long MovedSize => _movingBounds.Sum(_ => Math.Abs(_.ShiftSize));
 
 		public long RequireMoveSize => _movingBounds.Sum(_ => Math.Abs(_.RequireShiftSize));
+		
+		public long ElapsedShiftSize => _movingBounds.Sum(_ => Math.Abs(_.ElapsedShiftSize));
 
 		public string RenderState()
 		{

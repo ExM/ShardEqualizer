@@ -384,7 +384,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 				? " break by limit"
 				: "";
 
-			return $"unmoved data size {equalizer.RequireMoveSize.ByteSize()}" + breakByLimitMessage;
+			return $"unmoved data size {equalizer.ElapsedShiftSize.ByteSize()}" + breakByLimitMessage;
 		}
 		
 		public async Task Run(CancellationToken token)
