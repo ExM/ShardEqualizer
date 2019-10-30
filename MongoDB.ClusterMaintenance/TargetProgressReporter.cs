@@ -71,8 +71,14 @@ namespace MongoDB.ClusterMaintenance
 		private void showProgress()
 		{
 			var elapsed = _sw.Elapsed;
-			var percent = (double) (_source - _current) / (_source - _target);
-			var s = percent <= 0 ? 0 : (1 - percent) / percent;
+
+			var s = 0d;
+			if (_source != _current)
+			{
+				var percent = (double) (_source - _current) / (_source - _target);
+				if(percent > 0)
+					s = (1 - percent) / percent;
+			}
 
 			var eta = TimeSpan.FromSeconds(elapsed.TotalSeconds * s);
 

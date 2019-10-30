@@ -45,9 +45,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 		{
 			async Task<IEnumerable<CollectionNamespace>> listCollectionNames(string dbName, CancellationToken t)
 			{
-				var db = _mongoClient.GetDatabase(dbName);
-				var collNames = await db.ListCollectionNames().ToListAsync(t);
-				return collNames.Select(_ => new CollectionNamespace(dbName, _));
+				return await _mongoClient.GetDatabase(dbName).ListUserCollections(t);
 			}
 			
 			return ObservableTask.WithParallels(
