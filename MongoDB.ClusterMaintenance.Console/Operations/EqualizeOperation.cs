@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,16 +26,18 @@ namespace MongoDB.ClusterMaintenance.Operations
 		private readonly IMongoClient _mongoClient;
 		private readonly CommandPlanWriter _commandPlanWriter;
 		private readonly long? _moveLimit;
+		private readonly DebugDirectory _debugDirectory;
 		private readonly bool _planOnly;
 
 		public EqualizeOperation(IConfigDbRepositoryProvider configDb, IReadOnlyList<Interval> intervals,
-			IMongoClient mongoClient, CommandPlanWriter commandPlanWriter, long? moveLimit, bool planOnly)
+			IMongoClient mongoClient, CommandPlanWriter commandPlanWriter, long? moveLimit, DebugDirectory debugDirectory, bool planOnly)
 		{
 			_configDb = configDb;
 			_intervals = intervals;
 			_mongoClient = mongoClient;
 			_commandPlanWriter = commandPlanWriter;
 			_moveLimit = moveLimit;
+			_debugDirectory = debugDirectory;
 			_planOnly = planOnly;
 		}
 
@@ -239,6 +242,9 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 		private void findSolution(CancellationToken token)
 		{
+			if (_debugDirectory.Enable)
+				File.WriteAllText(_debugDirectory.GetFileName("conditionDump", "js"), _zoneOpt.Serialize());
+
 			_solve = ZoneOptimizationSolve.Find(_zoneOpt, token);
 
 			if(!_solve.IsSuccess)
@@ -281,7 +287,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 				Console.WriteLine();
 				Console.WriteLine($"\tEqualize shards from {interval.Namespace}");
 				Console.WriteLine($"\tShard size changes:");
-				foreach (var zone in equalizer.Zones)
+				foreach (var zone in equalizer.Zones.OrderBy(_ => _.Main))
 				{
 					var pressure = zone.Pressure;
 

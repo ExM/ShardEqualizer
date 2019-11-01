@@ -140,6 +140,7 @@ namespace MongoDB.ClusterMaintenance
 					CombinedAs = bucket.VariableFunction.LinearTerms,
 					ShouldBe = ConstraintType.GreaterThanOrEqualTo,
 					Value = min - bucket.VariableFunction.ConstantTerm,
+					Tolerance = 0.25
 				});
 				_constraintDescriptions.Add(new BucketConstraint(bucket, BucketConstraint.ConstraintType.Min, (long) Math.Round(min)));
 
@@ -148,7 +149,8 @@ namespace MongoDB.ClusterMaintenance
 					VariablesAtIndices = variablesAtIndices,
 					CombinedAs = bucket.VariableFunction.LinearTerms,
 					ShouldBe = ConstraintType.LesserThanOrEqualTo,
-					Value = max - bucket.VariableFunction.ConstantTerm
+					Value = max - bucket.VariableFunction.ConstantTerm,
+					Tolerance = 0.25
 				});
 				_constraintDescriptions.Add(new BucketConstraint(bucket, BucketConstraint.ConstraintType.Max, (long) Math.Round(max)));
 			}

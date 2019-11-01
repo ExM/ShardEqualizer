@@ -2,6 +2,8 @@
 	<IncludeXmlFile path='etc/MongoDB.ClusterMaintenance/local.config' search='all' include='all' required='true'/>
 	
 	<BoundsFile path='bounds.json'/>
+
+	<!-- DebugDump path='debug'/-->
 	<!-- sample of interval configuration
 	<Interval
 		nameSpace="database1.collection1"

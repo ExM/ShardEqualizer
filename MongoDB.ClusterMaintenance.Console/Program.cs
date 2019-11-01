@@ -116,6 +116,10 @@ namespace MongoDB.ClusterMaintenance
 				throw new ArgumentException("interval list is empty");
 			
 			kernel.Bind<IReadOnlyList<Interval>>().ToConstant(intervals);
+
+			var debugDumpConfig = appSettings.TryGet<DebugDump>();
+
+			kernel.Bind<DebugDirectory>().ToSelf().WithConstructorArgument(debugDumpConfig);
 		}
 
 		private static IEnumerable<IntervalConfig> loadIntervalConfigurations(IAppSettings settings)

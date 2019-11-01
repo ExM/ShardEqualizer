@@ -20,4 +20,16 @@
       <ProjectReference Include="..\MongoDB.ClusterMaintenance\MongoDB.ClusterMaintenance.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="conditionSamples\SmartcatCluster\dump1.js">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="conditionSamples\SmartcatCluster\dump2.js">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="conditionSamples\SmartcatCluster\dump3.js">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 </Project>

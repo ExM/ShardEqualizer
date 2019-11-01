@@ -76,8 +76,15 @@ namespace MongoDB.ClusterMaintenance
 			}
 
 			var chunkColl = new ChunkCollection(chunks, (ch) => Task.FromResult<long>(10));
+			
+			var targetSize = new Dictionary<TagIdentity, long>()
+			{
+				{tagRanges[0].Tag, 200},
+				{tagRanges[1].Tag, 200},
+				{tagRanges[2].Tag, 200},
+			};
 
-			var equalizer = new ShardSizeEqualizer(shards, collStatsByShards, tagRanges, null, chunkColl);
+			var equalizer = new ShardSizeEqualizer(shards, collStatsByShards, tagRanges, targetSize, chunkColl);
 
 			var round = 0;
 			while(await equalizer.Equalize())
