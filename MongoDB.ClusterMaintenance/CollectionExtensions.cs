@@ -52,5 +52,31 @@ namespace MongoDB.ClusterMaintenance
 
 			return await Task.WhenAll(collTasks);
 		}
+		
+		public static async Task ParallelsAsync<S>(this IList<S> sourceList, Func<S, CancellationToken, Task> actionTask, int maxParallelizm, CancellationToken token)
+		{
+			var collTasks = new List<Task>(sourceList.Count);
+			var throttler = new SemaphoreSlim(maxParallelizm);
+
+			async Task runAction(S source)
+			{
+				try
+				{
+					await actionTask(source, token);
+				}
+				finally
+				{
+					throttler.Release();
+				}
+			}
+
+			foreach (var source in sourceList)
+			{
+				await throttler.WaitAsync(token);
+				collTasks.Add(runAction(source));
+			}
+
+			await Task.WhenAll(collTasks);
+		}
 	}
 }

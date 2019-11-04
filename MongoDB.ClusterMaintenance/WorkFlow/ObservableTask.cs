@@ -44,5 +44,28 @@ namespace MongoDB.ClusterMaintenance.WorkFlow
 			
 			return new ObservableTask(progress, saveResultWork());
 		}
+		
+		public static ObservableTask WithParallels<TItem>(
+			IList<TItem> items,
+			int maxParallelizm,
+			Func<TItem, CancellationToken, Task> actionTask,
+			CancellationToken token)
+		{
+			var progress = new Progress(items.Count);
+			
+			async Task singleWork(TItem item, CancellationToken t)
+			{
+				try
+				{
+					await actionTask(item, t);
+				}
+				finally
+				{
+					progress.Increment();
+				}
+			}
+			
+			return new ObservableTask(progress, items.ParallelsAsync(singleWork, maxParallelizm, token));
+		}
 	}
 }

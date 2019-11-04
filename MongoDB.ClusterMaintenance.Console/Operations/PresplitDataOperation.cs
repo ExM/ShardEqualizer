@@ -9,6 +9,7 @@ using MongoDB.Bson.IO;
 using MongoDB.ClusterMaintenance.Config;
 using MongoDB.ClusterMaintenance.Models;
 using MongoDB.ClusterMaintenance.MongoCommands;
+using MongoDB.ClusterMaintenance.WorkFlow;
 using MongoDB.Driver;
 using NLog;
 
@@ -30,45 +31,42 @@ namespace MongoDB.ClusterMaintenance.Operations
 			_commandPlanWriter = commandPlanWriter;
 			_renew = renew;
 		}
-
-		public async Task Run(CancellationToken token)
+		
+		private async Task createPresplitCommandForInterval(Interval interval, CancellationToken token)
 		{
-			foreach (var interval in _intervals.Where(_ => _.Selected))
+			
+			var preSplit = interval.PreSplit;
+
+			if (preSplit == PreSplitMode.Auto)
 			{
-				_commandPlanWriter.Comment($"presplit commands for {interval.Namespace.FullName}");
-				var preSplit = interval.PreSplit;
-
-				if (preSplit == PreSplitMode.Auto)
+				if (interval.Min.HasValue && interval.Max.HasValue)
 				{
-					if (interval.Min.HasValue && interval.Max.HasValue)
-					{
-						var totalChunks = await _configDb.Chunks
-							.ByNamespace(interval.Namespace)
-							.From(interval.Min)
-							.To(interval.Max).Count();
+					var totalChunks = await _configDb.Chunks
+						.ByNamespace(interval.Namespace)
+						.From(interval.Min)
+						.To(interval.Max).Count();
 
-						preSplit = totalChunks / interval.Zones.Count < 100
-							? PreSplitMode.Interval
-							: PreSplitMode.Chunks;
+					preSplit = totalChunks / interval.Zones.Count < 100
+						? PreSplitMode.Interval
+						: PreSplitMode.Chunks;
 						
-						_log.Info("detect presplit mode of {0} with total chunks {1}", interval.Namespace.FullName, totalChunks);
-					}
-					else
-					{
-						preSplit = PreSplitMode.Chunks;
-						
-						_log.Info("detect presplit mode of {0} without bounds", interval.Namespace.FullName);
-					}
+					_log.Info("detect presplit mode of {0} with total chunks {1}", interval.Namespace.FullName, totalChunks);
 				}
-
-				using (var buffer = new TagRangeCommandBuffer(_commandPlanWriter, interval.Namespace))
+				else
 				{
-					if (!await removeOldTagRangesIfRequired(interval, buffer))
-					{
-						_commandPlanWriter.Comment($"zones not changed");
-						continue;
-					}
+					preSplit = PreSplitMode.Chunks;
+						
+					_log.Info("detect presplit mode of {0} without bounds", interval.Namespace.FullName);
+				}
+			}
 
+			using (var buffer = new TagRangeCommandBuffer(_commandPlanWriter, interval.Namespace))
+			{
+				var comments = new List<string>();
+				comments.Add($"presplit commands for {interval.Namespace.FullName}");
+
+				if (await removeOldTagRangesIfRequired(interval, buffer))
+				{
 					_log.Info("presplit data of {0} with mode {1}", interval.Namespace.FullName, preSplit);
 
 					switch (preSplit)
@@ -85,7 +83,38 @@ namespace MongoDB.ClusterMaintenance.Operations
 							throw new NotSupportedException($"unexpected PreSplitType:{preSplit}");
 					}
 				}
+				else
+				{
+					comments.Add($"zones not changed");
+				}
+
+				lock (_commandPlanWriter)
+				{
+					foreach (var comment in comments)
+						_commandPlanWriter.Comment(comment);
+					buffer.Flush();
+					_commandPlanWriter.Comment($"---");
+				}
 			}
+		}
+		
+		private ObservableTask createPresplitCommands(CancellationToken token)
+		{
+			return ObservableTask.WithParallels(
+				_intervals.Where(_ => _.Selected).ToList(), 
+				16, 
+				createPresplitCommandForInterval,
+				token);
+		}
+
+		public async Task Run(CancellationToken token)
+		{
+			var opList = new WorkList()
+			{
+				{ "Create presplit commands", new ObservableWork(createPresplitCommands)},
+			};
+
+			await opList.Apply(token);
 		}
 
 		private async Task<bool> removeOldTagRangesIfRequired(Interval interval, TagRangeCommandBuffer buffer)
