@@ -233,7 +233,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 			
 			async Task<long> chunkSizeResolver(Chunk chunk)
 			{
-				var result = await db.Datasize(collInfo, chunk, token);
+				var result = await db.Datasize(collInfo, chunk, false, token);
 				return result.Size;
 			}
 			
@@ -328,7 +328,6 @@ namespace MongoDB.ClusterMaintenance.Operations
 				return "skipped";
 			
 			_commandPlanWriter.Comment($"Equalize shards from {ns}");
-			
 			
 			var rounds = 0;
 			var progressReporter = new TargetProgressReporter(equalizer.MovedSize, equalizer.RequireMoveSize, LongExtensions.ByteSize);

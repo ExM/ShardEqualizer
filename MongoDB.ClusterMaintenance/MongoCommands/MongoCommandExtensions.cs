@@ -9,19 +9,20 @@ namespace MongoDB.ClusterMaintenance.MongoCommands
 {
 	public static class MongoCommandExtensions
 	{
-		public static Task<DatasizeResult> Datasize(this IMongoDatabase db, ShardedCollectionInfo collInfo, Chunk chunk, CancellationToken token)
+		public static Task<DatasizeResult> Datasize(this IMongoDatabase db, ShardedCollectionInfo collInfo, Chunk chunk, bool estimate, CancellationToken token)
 		{
-			return db.Datasize(collInfo.Id, collInfo.Key, chunk.Min, chunk.Max, token);
+			return db.Datasize(collInfo.Id, collInfo.Key, chunk.Min, chunk.Max, estimate, token);
 		}
 		
-		public static async Task<DatasizeResult> Datasize(this IMongoDatabase db, CollectionNamespace ns, BsonDocument key, BsonBound min, BsonBound max, CancellationToken token)
+		public static async Task<DatasizeResult> Datasize(this IMongoDatabase db, CollectionNamespace ns, BsonDocument key, BsonBound min, BsonBound max, bool estimate, CancellationToken token)
 		{
 			var cmd = new BsonDocument
 			{
 				{ "datasize", ns.FullName },
 				{ "keyPattern", key },
 				{ "min", (BsonDocument)min },
-				{ "max", (BsonDocument)max }
+				{ "max", (BsonDocument)max },
+				{ "estimate", estimate}
 			};
 
 			var result = await db.RunCommandAsync<DatasizeResult>(cmd, ReadPreference.SecondaryPreferred, token);
