@@ -28,11 +28,14 @@ namespace MongoDB.ClusterMaintenance
 			
 			var point2 = new BsonDocument() {{"_id", Guid.Parse("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF")}};
 			
+			var point3 = new BsonDocument() {{"field", 0}};
+			
 			var cmd =  new BsonDocument
 			{
 				{ "moveChunk", "demo.testCollection" },
 				{ "find", point },
 				{ "find2", point2 },
+				{ "find3", point3 },
 				{ "to", "a" }
 			};
 

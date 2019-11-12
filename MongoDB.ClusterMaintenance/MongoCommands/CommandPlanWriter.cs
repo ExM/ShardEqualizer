@@ -44,6 +44,13 @@ namespace MongoDB.ClusterMaintenance.MongoCommands
 			_writer.WriteLine($"sh.removeTagRange( \"{collection.FullName}\", {minText}, {maxText}, \"{tag}\");");
 		}
 		
+		public void MergeChunks(CollectionNamespace ns, BsonBound min, BsonBound max)
+		{
+			var minText = ((BsonDocument)min).ToJson(_jsonWriterSettings);
+			var maxText = ((BsonDocument)max).ToJson(_jsonWriterSettings);
+			_writer.WriteLine($"db.adminCommand({{ mergeChunks: \"{ns.FullName}\", bounds: [ {minText}, {maxText} ] }});");
+		}
+		
 		public void Flush()
 		{
 			_writer.Flush();

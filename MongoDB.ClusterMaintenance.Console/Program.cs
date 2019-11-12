@@ -40,6 +40,7 @@ namespace MongoDB.ClusterMaintenance
 			var parsed = Parser.Default.ParseArguments<
 				FindNewCollectionsVerb,
 				ScanChunksVerb,
+				ScanJumboChunksVerb,
 				MergeChunksVerb,
 				PresplitDataVerb,
 				BalancerStateVerb,

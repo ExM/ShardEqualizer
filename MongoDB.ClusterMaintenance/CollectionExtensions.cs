@@ -8,6 +8,28 @@ namespace MongoDB.ClusterMaintenance
 {
 	public static class CollectionExtensions
 	{
+		public static List<T> CalcPercentiles<T>(this IEnumerable<T> values, List<double> bounds) where T: IComparable<T>
+		{
+			var orderedValues = values.OrderBy(_ => _).ToList();
+
+			var result = new List<T>(bounds.Count);
+
+			foreach (var bound in bounds)
+			{
+				if (bound <= 0)
+					result.Add(orderedValues.First());
+				else if(bound >= 1)
+					result.Add(orderedValues.Last());
+				else
+				{
+					var valueIndex = (int) Math.Ceiling(bound * (orderedValues.Count - 1));
+					result.Add(orderedValues[valueIndex]);
+				}
+			}
+
+			return result;
+		}
+		
 		public static IEnumerable<List<T>> Split<T>(this List<T> items, int partCount)
 		{
 			var partSize = items.Count / partCount;

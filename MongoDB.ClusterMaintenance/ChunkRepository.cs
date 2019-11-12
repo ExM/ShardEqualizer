@@ -73,9 +73,19 @@ namespace MongoDB.ClusterMaintenance
 				return new Filtered(_coll, _filter & Builders<Chunk>.Filter.Where(_ => _.Jumbo != true));
 			}
 			
+			public Filtered OnlyJumbo()
+			{
+				return new Filtered(_coll, _filter & Builders<Chunk>.Filter.Where(_ => _.Jumbo == true));
+			}
+			
 			public Filtered ExcludeShards(IEnumerable<ShardIdentity> shards)
 			{
 				return new Filtered(_coll, _filter & Builders<Chunk>.Filter.Nin(_ => _.Shard, shards));
+			}
+			
+			public Filtered ByShards(IEnumerable<ShardIdentity> shards)
+			{
+				return new Filtered(_coll, _filter & Builders<Chunk>.Filter.In(_ => _.Shard, shards));
 			}
 		}
 	}
