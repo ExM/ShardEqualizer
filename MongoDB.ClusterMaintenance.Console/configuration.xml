@@ -2,6 +2,12 @@
 	<IncludeXmlFile path='etc/MongoDB.ClusterMaintenance/local.config' search='all' include='all' required='true'/>
 	
 	<BoundsFile path='bounds.json'/>
+	
+	<DeviationLayouts>
+		<!-- default layout: TtSz TtSt TtIs TtSzD TtStD TtIsD UsSz UsSt UsIs ShSz ShSt ShIs -->
+		<Layout Name="base" Title="Base report" Columns="TtSz TtSt TtIs TtSzD TtStD TtIsD UsSz UsSt UsIs ShSz ShSt ShIs"/>
+		<Layout Name="balance" Title="Balance report" Columns="MnSz MnSzD FxSz FxSzD"/>
+	</DeviationLayouts>
 
 	<!-- DebugDump path='debug'/-->
 	<!-- sample of interval configuration

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -14,7 +15,7 @@ namespace MongoDB.ClusterMaintenance.Reporting
 			sb.AppendLine(rowTitle +  ";" + string.Join(";", cells.Select(_ => _.HasValue ? SizeRenderer.Render(_.Value): "")));
 		}
 
-		protected override void AppendHeader(StringBuilder sb, params string[] cells)
+		protected override void AppendHeader(StringBuilder sb, IEnumerable<string> cells)
 		{
 			sb.AppendLine(string.Join(";", cells));
 		}

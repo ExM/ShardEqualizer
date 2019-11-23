@@ -1,8 +1,10 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
 using MongoDB.ClusterMaintenance.Operations;
+using MongoDB.ClusterMaintenance.Reporting;
 using Ninject;
 
 namespace MongoDB.ClusterMaintenance.Verbs
@@ -12,15 +14,23 @@ namespace MongoDB.ClusterMaintenance.Verbs
 	{
 		[Option('s', "scale", Required = false, Default = "", HelpText = "scale of size (K,M,G,T,P,E)")]
 		public string Scale { get; set; }
+		
+		[Option("layouts", Required = false, Default = "default", HelpText = "Сomma separated name list of layouts (default)")]
+		public string Layouts { get; set; }
 
 		[Option("format", Required = false, Default = "csv", HelpText = "format of report (csv - CSV, md - markdown")]
 		public string Format { get; set; }
 
 		public override async Task RunOperation(IKernel kernel, CancellationToken token)
 		{
+			var layouts = kernel.Get<LayoutStore>()
+				.Get(Layouts.Split(new char[] {','}, StringSplitOptions.RemoveEmptyEntries).Select(_ => _.Trim()))
+				.ToList();
+			
 			kernel.Bind<IOperation>().To<DeviationOperation>()
 				.WithConstructorArgument(parseScaleSuffix(Scale))
-				.WithConstructorArgument(parseReportFormat(Format));
+				.WithConstructorArgument(parseReportFormat(Format))
+				.WithConstructorArgument(layouts);
 			
 			await kernel.Get<IOperation>().Run(token);
 		}

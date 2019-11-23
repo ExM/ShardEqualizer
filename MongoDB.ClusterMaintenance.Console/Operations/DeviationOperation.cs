@@ -22,14 +22,18 @@ namespace MongoDB.ClusterMaintenance.Operations
 		private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 		
 		private readonly IMongoClient _mongoClient;
+		private readonly IReadOnlyList<Interval> _intervals;
 		private readonly ScaleSuffix _scaleSuffix;
 		private readonly ReportFormat _reportFormat;
+		private readonly List<LayoutDescription> _layouts;
 
-		public DeviationOperation(IMongoClient mongoClient, ScaleSuffix scaleSuffix, ReportFormat reportFormat)
+		public DeviationOperation(IMongoClient mongoClient,  IReadOnlyList<Interval> intervals, ScaleSuffix scaleSuffix, ReportFormat reportFormat, List<LayoutDescription> layouts)
 		{
 			_mongoClient = mongoClient;
+			_intervals = intervals;
 			_scaleSuffix = scaleSuffix;
 			_reportFormat = reportFormat;
+			_layouts = layouts;
 		}
 		
 		private IList<string> _userDatabases;
@@ -89,15 +93,19 @@ namespace MongoDB.ClusterMaintenance.Operations
 			var report = createReport(sizeRenderer);
 			foreach (var collStats in _allCollStats)
 			{
-				report.Append(collStats);
+				var interval = _intervals.FirstOrDefault(_ => _.Namespace.FullName == collStats.Ns.FullName);
+				report.Append(collStats, interval?.Correction);
 			}
-			report.CalcBottom();
-			
-			var sb = report.Render();
-			
-			Console.WriteLine("Report as CSV:");
+
+			Console.WriteLine($"Report as {_reportFormat}:");
 			Console.WriteLine();
-			Console.WriteLine(sb);
+
+			foreach (var layout in _layouts)
+			{
+				Console.WriteLine($"{layout.Title}:");
+				Console.WriteLine(report.Render(layout.Columns));
+				Console.WriteLine();
+			}
 		}
 
 		private BaseReport createReport(SizeRenderer sizeRenderer)

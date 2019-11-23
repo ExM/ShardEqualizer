@@ -17,6 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\MongoDB.ClusterMaintenance.Console\MongoDB.ClusterMaintenance.Console.csproj" />
       <ProjectReference Include="..\MongoDB.ClusterMaintenance\MongoDB.ClusterMaintenance.csproj" />
     </ItemGroup>
 

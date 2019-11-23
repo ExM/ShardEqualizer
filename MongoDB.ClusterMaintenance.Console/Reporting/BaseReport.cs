@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using MongoDB.ClusterMaintenance.Config;
 using MongoDB.ClusterMaintenance.Models;
 using MongoDB.ClusterMaintenance.MongoCommands;
 
@@ -9,112 +10,113 @@ namespace MongoDB.ClusterMaintenance.Reporting
 	public abstract class BaseReport
 	{
 		protected readonly SizeRenderer SizeRenderer;
-	
-		public readonly Dictionary<ShardIdentity, ShardRow> Rows = new Dictionary<ShardIdentity, ShardRow>();
-			
-		public long TotalSize => TotalShardedSize + TotalUnShardedSize;
-		public long TotalStorageSize => TotalShardedStorageSize + TotalUnShardedStorageSize;
-		public long TotalIndexSize => TotalShardedIndexSize + TotalUnShardedIndexSize;
-			
-		public long TotalShardedSize;
-		public long TotalShardedStorageSize;
-		public long TotalShardedIndexSize;
-			
-		public long TotalUnShardedSize;
-		public long TotalUnShardedStorageSize;
-		public long TotalUnShardedIndexSize;
 
-		public long AverageSize;
-		public long AverageStorageSize;
-		public long AverageIndexSize;
+		private readonly Dictionary<ShardIdentity, ShardRow> _rows = new Dictionary<ShardIdentity, ShardRow>();
 
-		public BaseReport(SizeRenderer sizeRenderer)
+		protected BaseReport(SizeRenderer sizeRenderer)
 		{
 			SizeRenderer = sizeRenderer;
 		}
 
-		public void Append(CollStatsResult collStats)
+		public void Append(CollStatsResult collStats, CorrectionMode? correctionMode)
 		{
 			if (collStats.Sharded)
 			{
-				foreach(var shardCollStats in collStats.Shards)
-					ensureRow(shardCollStats.Key).AppendSharded(shardCollStats.Value);
+				foreach (var shardCollStats in collStats.Shards)
+				{
+					var row = ensureRow(shardCollStats.Key);
+
+					switch (correctionMode)
+					{
+						case CorrectionMode.None:
+							row.Fixed.Add(shardCollStats.Value);
+							break;
+						case CorrectionMode.UnShard:
+						case CorrectionMode.Self:
+							row.Adjustable.Add(shardCollStats.Value);
+							break;
+						default:
+							row.UnManaged.Add(shardCollStats.Value);
+							break;
+					}
+				}
 			}
 			else
 			{
-				var shardName = collStats.Primary;
-				ensureRow(shardName).AppendUnSharded(collStats);
+				ensureRow(collStats.Primary).UnSharded.Add(collStats);
 			}
 		}
 
 		private ShardRow ensureRow(ShardIdentity shardName)
 		{
-			if (Rows.ContainsKey(shardName))
-				return Rows[shardName];
+			if (_rows.ContainsKey(shardName))
+				return _rows[shardName];
 			var row = new ShardRow(this);
-			Rows.Add(shardName, row);
+			_rows.Add(shardName, row);
 			return row;
 		}
 
-		public void CalcBottom()
+		public StringBuilder Render(IReadOnlyList<ColumnDescription> collDescriptions)
 		{
-			TotalShardedSize = Rows.Values.Sum(_ => _.ShardedSize);
-			TotalShardedStorageSize = Rows.Values.Sum(_ => _.ShardedStorageSize);
-			TotalShardedIndexSize = Rows.Values.Sum(_ => _.ShardedIndexSize);
-				
-			TotalUnShardedSize = Rows.Values.Sum(_ => _.UnShardedSize);
-			TotalUnShardedStorageSize = Rows.Values.Sum(_ => _.UnShardedStorageSize);
-			TotalUnShardedIndexSize = Rows.Values.Sum(_ => _.UnShardedIndexSize);
+			var totalRows = _rows.Count;
+			var colls = collDescriptions.Select(cd => cd.CreateColumn(totalRows)).ToArray();
 
-			AverageSize = TotalSize / Rows.Count;
-			AverageStorageSize = TotalStorageSize / Rows.Count;
-			AverageIndexSize = TotalIndexSize / Rows.Count;
-		}
-
-		public StringBuilder Render()
-		{
-			var sb = new StringBuilder();
-
-			AppendHeader(sb, "",
-				"", "", "", 
-				"Deviation", "\\", "\\",
-				"Unsharded", "\\", "\\",
-				"Sharded", "\\", "\\");
-				
-			AppendHeader(sb, "Shard name",
-				"Size", "Storage", "Index", 
-				"Size", "Storage", "Index",
-				"Size", "Storage", "Index",
-				"Size", "Storage", "Index");
-
-			foreach (var p in Rows.OrderBy(_ => _.Key))
+			var currentRow = 0;
+			foreach (var p in _rows.OrderBy(_ => _.Key))
 			{
-				var row = p.Value;
-				
-				AppendRow(sb, (string)p.Key,
-					row.Size, row.StorageSize, row.IndexSize,
-					row.DeviationSize, row.DeviationStorageSize, row.DeviationIndexSize,
-					row.UnShardedSize, row.UnShardedStorageSize, row.UnShardedIndexSize,
-					row.ShardedSize, row.ShardedStorageSize, row.ShardedIndexSize);
+				foreach (var coll in colls)
+					coll.SetRow(currentRow, p.Value);
+
+				currentRow++;
 			}
 			
-			AppendRow(sb, "<total>",
-				TotalSize, TotalStorageSize, TotalIndexSize,
-				null, null, null,
-				TotalUnShardedSize, TotalUnShardedStorageSize, TotalUnShardedIndexSize, 
-				TotalShardedSize, TotalShardedStorageSize, TotalShardedIndexSize);
+			foreach (var coll in colls)
+				coll.CalcTotal();
+
+			var sb = new StringBuilder();
+
+			AppendHeader(sb, new [] {"Shards "}.Concat(collDescriptions.Select(_ => _.Header())));
+
+			currentRow = 0;
+			foreach (var p in _rows.OrderBy(_ => _.Key))
+			{
+				AppendRow(sb, (string) p.Key, colls.Select(r => r.GetRow(currentRow)).ToArray());
+				currentRow++;
+			}
 			
-			AppendRow(sb, "<average>",
-				AverageSize, AverageStorageSize, AverageIndexSize, 
-				null, null, null, 
-				null, null, null,
-				null, null, null);
+			AppendRow(sb, "<total>", colls.Select(r => r.Total).ToArray());
+			AppendRow(sb, "<average>", colls.Select(r => r.Average).ToArray());
 
 			return sb;
 		}
 
 		protected abstract void AppendRow(StringBuilder sb, string rowTitle, params long?[] cells);
 
-		protected abstract void AppendHeader(StringBuilder sb, params string[] cells);
+		protected abstract void AppendHeader(StringBuilder sb, IEnumerable<string> cells);
 	}
+
+	/*
+
+Header Code FullName
+
+DSize   z DataSize
+DStore  s DataStorage
+Index	i IndexSize
+TStore  t TotalStorage = dt + is
+
+rows: 
+* ByShard
+* Total
+* Average
+
+Delta 	d Delta
+
+UnShrd	u Unsharded
+UnMan	m Unmanaged
+Fixed	f Fixed
+Adj		a Adjustable
+Sharded s Sharded = um + fx + aj
+Total	t Total = us + um + fx + aj
+	  
+	 */
 }

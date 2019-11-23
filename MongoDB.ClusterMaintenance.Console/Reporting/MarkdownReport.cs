@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
@@ -18,7 +19,7 @@ namespace MongoDB.ClusterMaintenance.Reporting
 			sb.AppendLine(" |");
 		}
 
-		protected override void AppendHeader(StringBuilder sb, params string[] cells)
+		protected override void AppendHeader(StringBuilder sb, IEnumerable<string> cells)
 		{
 			sb.Append("|| ");
 			sb.Append(string.Join(" || ", cells));

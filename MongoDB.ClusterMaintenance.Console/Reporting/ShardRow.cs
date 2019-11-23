@@ -1,5 +1,5 @@
-using System.Text;
-using MongoDB.ClusterMaintenance.MongoCommands;
+using System;
+using System.Collections.Generic;
 
 namespace MongoDB.ClusterMaintenance.Reporting
 {
@@ -7,39 +7,30 @@ namespace MongoDB.ClusterMaintenance.Reporting
 	{
 		private readonly BaseReport _baseReport;
 
-		public long Size => ShardedSize + UnShardedSize;
-		public long StorageSize => ShardedStorageSize + UnShardedStorageSize;
-		public long IndexSize => ShardedIndexSize + UnShardedIndexSize;
-
-		public long ShardedSize;
-		public long ShardedStorageSize;
-		public long ShardedIndexSize;
-
-		public long UnShardedSize;
-		public long UnShardedStorageSize;
-		public long UnShardedIndexSize;
-
-		public long DeviationSize => Size - _baseReport.AverageSize;
-		public long DeviationStorageSize => StorageSize - _baseReport.AverageStorageSize;
-		public long DeviationIndexSize => IndexSize - _baseReport.AverageIndexSize;
-
 		public ShardRow(BaseReport baseReport)
 		{
 			_baseReport = baseReport;
 		}
 
-		public void AppendSharded(CollStats collStats)
-		{
-			ShardedSize += collStats.Size;
-			ShardedStorageSize += collStats.StorageSize;
-			ShardedIndexSize += collStats.TotalIndexSize;
-		}
+		public readonly SizeDetails UnSharded = new SizeDetails();
+		public readonly SizeDetails UnManaged = new SizeDetails();
+		public readonly SizeDetails Fixed = new SizeDetails();
+		public readonly SizeDetails Adjustable = new SizeDetails();
 
-		public void AppendUnSharded(CollStats collStats)
+		public IEnumerable<SizeDetails> ByDataType(DataType dataType)
 		{
-			UnShardedSize += collStats.Size;
-			UnShardedStorageSize += collStats.StorageSize;
-			UnShardedIndexSize += collStats.TotalIndexSize;
+			switch (dataType)
+			{
+				case DataType.Adjustable: return new[] { Adjustable };
+				case DataType.UnSharded: return new[] { UnSharded };
+				case DataType.UnManaged: return new[] { UnManaged };
+				case DataType.Fixed:  return new[] { Fixed };
+				case DataType.Managed:  return new[] { UnSharded, Adjustable };
+				case DataType.Sharded:  return new[] { UnManaged, Fixed, Adjustable };
+				case DataType.Total: return new[] { UnSharded, UnManaged, Fixed, Adjustable};
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
 		}
 	}
 }

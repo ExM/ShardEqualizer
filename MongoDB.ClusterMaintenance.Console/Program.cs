@@ -10,6 +10,7 @@ using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.ClusterMaintenance.Config;
+using MongoDB.ClusterMaintenance.Reporting;
 using MongoDB.ClusterMaintenance.Verbs;
 using MongoDB.Driver;
 using NConfiguration;
@@ -119,9 +120,14 @@ namespace MongoDB.ClusterMaintenance
 			kernel.Bind<IReadOnlyList<Interval>>().ToConstant(intervals);
 
 			var debugDumpConfig = appSettings.TryGet<DebugDump>();
-
 			kernel.Bind<DebugDirectory>().ToSelf().WithConstructorArgument(debugDumpConfig);
+			
+			kernel.Bind<LayoutStore>()
+				.ToMethod(ctx => new LayoutStore(appSettings.TryGet<DeviationLayoutsConfig>().Layouts))
+				.InSingletonScope();
 		}
+		
+		
 
 		private static IEnumerable<IntervalConfig> loadIntervalConfigurations(IAppSettings settings)
 		{
