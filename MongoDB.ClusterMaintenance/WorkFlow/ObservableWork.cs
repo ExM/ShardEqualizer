@@ -27,11 +27,15 @@ namespace MongoDB.ClusterMaintenance.WorkFlow
 			var cancelProgressLoop = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, token).Token;
 			
 			var progressTask = Task.Factory.StartNew(() => showProgressLoop(progress, cancelProgressLoop), TaskCreationOptions.LongRunning);
-
-			await work.Task;
-			cts.Cancel();
-			
-			await progressTask;
+			try
+			{
+				await work.Task;
+			}
+			finally
+			{
+				cts.Cancel();
+				await progressTask;
+			}
 
 			Console.WriteLine(_doneMessageRenderer == null ? "done" : _doneMessageRenderer());
 		}

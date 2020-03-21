@@ -114,7 +114,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 			{
 				var tagRanges = await _configDb.Tags.Get(interval.Namespace, interval.Min, interval.Max);
 				if(tagRanges.Count <= 1)
-					throw new Exception($"interval {interval.Namespace} contain more than one tag ranges");
+					throw new Exception($"interval {interval.Namespace} less than two tag ranges");
 				return tagRanges;
 			}
 

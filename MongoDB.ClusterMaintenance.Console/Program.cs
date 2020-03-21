@@ -69,6 +69,7 @@ namespace MongoDB.ClusterMaintenance
 			catch (Exception e)
 			{
 				_log.Fatal(e, "unexpected exception");
+				Console.Error.WriteLine();
 				Console.Error.WriteLine(e.Message);
 				return 1;
 			}
@@ -206,6 +207,7 @@ namespace MongoDB.ClusterMaintenance
 				if (!token.IsCancellationRequested)
 				{
 					_log.Fatal(e, "unexpected exception");
+					Console.Error.WriteLine();
 					Console.Error.WriteLine(e.Message);
 				}
 				
