@@ -27,7 +27,7 @@ namespace MongoDB.ClusterMaintenance
 
 			Assert.AreEqual(@"// hello world", lines[2]);
 		}
-		
+
 		[Test]
 		public void MergeTagRangeCommands()
 		{
@@ -46,9 +46,9 @@ namespace MongoDB.ClusterMaintenance
 
 			var lines = sb.ToString().Split(new []{"\r\n"}, StringSplitOptions.None);
 
-			Assert.AreEqual("sh.removeTagRange( \"x.A\", { \"x\" : 20 }, { \"x\" : 30 }, \"T2\");", lines[2]);
+			Assert.AreEqual("sh.removeTagRange( \"x.A\", { \"x\" : NumberInt(20) }, { \"x\" : NumberInt(30) }, \"T2\");", lines[2]);
 		}
-		
+
 		private BsonBound testBound(int x)
 		{
 			return (BsonBound)new BsonDocument("x", x);

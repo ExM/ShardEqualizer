@@ -1,10 +1,7 @@
 using System;
-using System.Globalization;
 using System.IO;
-using CsvHelper;
-using CsvHelper.Configuration;
 using MongoDB.Bson;
-using MongoDB.Bson.IO;
+using MongoDB.ClusterMaintenance.JsonSerialization;
 using MongoDB.ClusterMaintenance.Models;
 using MongoDB.Driver;
 
@@ -14,9 +11,6 @@ namespace MongoDB.ClusterMaintenance.MongoCommands
 	{
 		private readonly TextWriter _writer;
 
-		private static readonly JsonWriterSettings _jsonWriterSettings = new JsonWriterSettings()
-			{Indent = false, GuidRepresentation = GuidRepresentation.Unspecified};
-		
 		public CommandPlanWriter(TextWriter writer)
 		{
 			_writer = writer;
@@ -30,27 +24,27 @@ namespace MongoDB.ClusterMaintenance.MongoCommands
 			_writer.WriteLine(text);
 		}
 
-		public void AddTagRange(CollectionNamespace collection, BsonBound min, BsonBound max, TagIdentity tag) 
+		public void AddTagRange(CollectionNamespace collection, BsonBound min, BsonBound max, TagIdentity tag)
 		{
-			var minText = ((BsonDocument)min).ToJson(_jsonWriterSettings);
-			var maxText = ((BsonDocument)max).ToJson(_jsonWriterSettings);
+			var minText = ShellJsonWriter.AsJson((BsonDocument)min);
+			var maxText = ShellJsonWriter.AsJson((BsonDocument)max);
 			_writer.WriteLine($"sh.addTagRange( \"{collection.FullName}\", {minText}, {maxText}, \"{tag}\");");
 		}
-		
-		public void RemoveTagRange(CollectionNamespace collection, BsonBound min, BsonBound max, TagIdentity tag) 
+
+		public void RemoveTagRange(CollectionNamespace collection, BsonBound min, BsonBound max, TagIdentity tag)
 		{
-			var minText = ((BsonDocument)min).ToJson(_jsonWriterSettings);
-			var maxText = ((BsonDocument)max).ToJson(_jsonWriterSettings);
+			var minText = ShellJsonWriter.AsJson((BsonDocument)min);
+			var maxText = ShellJsonWriter.AsJson((BsonDocument)max);
 			_writer.WriteLine($"sh.removeTagRange( \"{collection.FullName}\", {minText}, {maxText}, \"{tag}\");");
 		}
-		
+
 		public void MergeChunks(CollectionNamespace ns, BsonBound min, BsonBound max)
 		{
-			var minText = ((BsonDocument)min).ToJson(_jsonWriterSettings);
-			var maxText = ((BsonDocument)max).ToJson(_jsonWriterSettings);
+			var minText = ShellJsonWriter.AsJson((BsonDocument)min);
+			var maxText = ShellJsonWriter.AsJson((BsonDocument)max);
 			_writer.WriteLine($"db.adminCommand({{ mergeChunks: \"{ns.FullName}\", bounds: [ {minText}, {maxText} ] }});");
 		}
-		
+
 		public void Flush()
 		{
 			_writer.Flush();
