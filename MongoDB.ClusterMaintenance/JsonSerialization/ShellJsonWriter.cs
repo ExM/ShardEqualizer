@@ -181,7 +181,7 @@ namespace MongoDB.ClusterMaintenance.JsonSerialization
 
 			WriteNameHelper(Name);
 
-			_textWriter.Write("NumberDouble({0})", stringRepresentation);
+			_textWriter.Write(stringRepresentation);
 
 			State = GetNextState();
 		}
