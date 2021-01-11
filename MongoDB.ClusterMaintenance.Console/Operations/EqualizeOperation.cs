@@ -20,7 +20,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 	public class EqualizeOperation: IOperation
 	{
 		private static readonly Logger _log = LogManager.GetCurrentClassLogger();
-			
+
 		private readonly IReadOnlyList<Interval> _intervals;
 		private readonly IConfigDbRepositoryProvider _configDb;
 		private readonly IMongoClient _mongoClient;
@@ -60,11 +60,11 @@ namespace MongoDB.ClusterMaintenance.Operations
 		{
 			_chunkSize = await _configDb.Settings.GetChunksize();
 		}
-		
+
 		private async Task loadShards(CancellationToken token)
 		{
 			_shards = await _configDb.Shards.GetAll();
-			
+
 			_shardByTag =  _intervals
 				.SelectMany(_ => _.Zones)
 				.Distinct()
@@ -75,22 +75,22 @@ namespace MongoDB.ClusterMaintenance.Operations
 		{
 			_userDatabases = await _mongoClient.ListUserDatabases(token);
 		}
-		
+
 		private ObservableTask loadCollections(CancellationToken token)
 		{
 			async Task<IEnumerable<CollectionNamespace>> listCollectionNames(string dbName, CancellationToken t)
 			{
 				return await _mongoClient.GetDatabase(dbName).ListUserCollections(t);
 			}
-			
+
 			return ObservableTask.WithParallels(
-				_userDatabases, 
-				32, 
+				_userDatabases,
+				32,
 				listCollectionNames,
 				allCollectionNames => { _allCollectionNames = allCollectionNames.SelectMany(_ => _).ToList(); },
 				token);
 		}
-		
+
 		private ObservableTask loadCollectionStatistics(CancellationToken token)
 		{
 			async Task<CollStatsResult> runCollStats(CollectionNamespace ns, CancellationToken t)
@@ -101,13 +101,13 @@ namespace MongoDB.ClusterMaintenance.Operations
 			}
 
 			return ObservableTask.WithParallels(
-				_allCollectionNames, 
-				32, 
+				_allCollectionNames,
+				32,
 				runCollStats,
 				allCollStats => { _collStatsMap = allCollStats.ToDictionary(_ => _.Ns); },
 				token);
 		}
-		
+
 		private ObservableTask loadAllTagRanges(CancellationToken token)
 		{
 			async Task<IReadOnlyList<TagRange>> loadTagRanges(Interval interval, CancellationToken t)
@@ -119,8 +119,8 @@ namespace MongoDB.ClusterMaintenance.Operations
 			}
 
 			return ObservableTask.WithParallels(
-				_intervals.Where(_ => _.Selected).Where(_ => _.Correction != CorrectionMode.None).ToList(), 
-				16, 
+				_intervals.Where(_ => _.Selected).Where(_ => _.Correction != CorrectionMode.None).ToList(),
+				16,
 				loadTagRanges,
 				allTagRanges => { _tagRangesByNs = allTagRanges.ToDictionary(_ => _.First().Namespace, _ => _); },
 				token);
@@ -134,19 +134,19 @@ namespace MongoDB.ClusterMaintenance.Operations
 			}
 
 			return ObservableTask.WithParallels(
-				_intervals.Where(_ => _.Selected).Where(_ => _.Correction != CorrectionMode.None).Select(_ => _.Namespace).ToList(), 
-				16, 
+				_intervals.Where(_ => _.Selected).Where(_ => _.Correction != CorrectionMode.None).Select(_ => _.Namespace).ToList(),
+				16,
 				loadShardedCollectionInfo,
 				allShardedCollectionInfo => { _shardedCollectionInfoByNs = allShardedCollectionInfo.ToDictionary(_ => _.Id); },
 				token);
 		}
-		
+
 		private ObservableTask loadAllCollChunks(CancellationToken token)
 		{
 			var correctionIntervals = _intervals
 				.Where(_ => _.Correction != CorrectionMode.None)
 				.ToList();
-		
+
 			async Task<Tuple<CollectionNamespace, List<Chunk>>> loadCollChunks(Interval interval, CancellationToken t)
 			{
 				var allChunks = await (await _configDb.Chunks
@@ -159,20 +159,20 @@ namespace MongoDB.ClusterMaintenance.Operations
 			}
 
 			return ObservableTask.WithParallels(
-				correctionIntervals, 
-				32, 
+				correctionIntervals,
+				32,
 				loadCollChunks,
 				chunksByNs => {  _chunksByCollection = chunksByNs.ToDictionary(_ => _.Item1, _ => _.Item2); },
 				token);
 		}
-		
+
 		private void createZoneOptimizationDescriptor(CancellationToken token)
 		{
 			var unShardedSizeMap = _collStatsMap.Values
 				.Where(_ => !_.Sharded)
 				.GroupBy(_ => _.Primary)
 				.ToDictionary(k => k.Key, g => g.Sum(_ => _.Size));
-			
+
 			_zoneOpt = new ZoneOptimizationDescriptor(
 				_intervals.Where(_ => _.Correction != CorrectionMode.None).Select(_=> _.Namespace),
 				_shards.Select(_ => _.Id));
@@ -194,20 +194,20 @@ namespace MongoDB.ClusterMaintenance.Operations
 				var collCfg = _zoneOpt.CollectionSettings[interval.Namespace];
 				collCfg.UnShardCompensation = interval.Correction == CorrectionMode.UnShard;
 				collCfg.Priority = interval.Priority;
-				
+
 				var allChunks = _chunksByCollection[interval.Namespace];
 				foreach (var tag in interval.Zones)
 				{
 					var shard = _shardByTag[tag].Id;
 
 					var bucket = _zoneOpt[interval.Namespace, shard];
-					
+
 					bucket.Managed = true;
 
 					var movedChunks = allChunks.Count(_ => _.Shard == shard && !_.Jumbo);
 					if (movedChunks <= 1)
 						movedChunks = 1;
-					
+
 					bucket.MinSize = bucket.CurrentSize - _chunkSize * (movedChunks - 1);
 				}
 			}
@@ -225,18 +225,18 @@ namespace MongoDB.ClusterMaintenance.Operations
 				Console.WriteLine($"\t\t{group.Key} on {string.Join(", ", group.Select(_ => $"{_.Shard} ({_.CurrentSize.ByteSize()})"))}");
 			}
 		}
-		
+
 		private ChunkCollection createChunkCollection(CollectionNamespace ns, CancellationToken token)
 		{
 			var collInfo = _shardedCollectionInfoByNs[ns];
 			var db = _mongoClient.GetDatabase(ns.DatabaseNamespace.DatabaseName);
-			
+
 			async Task<long> chunkSizeResolver(Chunk chunk)
 			{
 				var result = await db.Datasize(collInfo, chunk, false, token);
 				return result.Size;
 			}
-			
+
 			return new ChunkCollection(_chunksByCollection[ns], chunkSizeResolver);
 		}
 
@@ -263,7 +263,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 					Console.WriteLine("\tActive constraint:");
 					titlePrinted = true;
 				}
-				
+
 				Console.WriteLine($"\t\t{group.Key} on {string.Join(", ", group.Select(_ => $"{_.Bucket.Shard} {_.TypeAsText} {_.Bound.ByteSize()}"))}");
 			}
 
@@ -283,7 +283,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 					createChunkCollection(interval.Namespace, token));
 
 				equalizer.OnMoveChunk += _totalEqualizeReporter.ChunkMoving;
-				
+
 				Console.WriteLine();
 				Console.WriteLine($"\tEqualize shards from {interval.Namespace}");
 				Console.WriteLine($"\tShard size changes:");
@@ -307,31 +307,31 @@ namespace MongoDB.ClusterMaintenance.Operations
 					Console.Write($" {targetSymbol} {shift.ByteSize()} {targetSymbol} [{bound.RightZone.Main}]");
 				}
 				Console.WriteLine();
-				
+
 				if(!_planOnly)
 					_equalizeList.Add(
 						$"From {interval.Namespace.FullName}", new SingleWork(t => equalizeWork(interval.Namespace, equalizer, t)));
 			}
-			
+
 			Console.WriteLine();
 			Console.WriteLine($"\tTotal update pressure:");
 
 			foreach (var pair in _totalEqualizeReporter.TotalPressureByShard)
 				Console.WriteLine($"\t\t[{pair.Key}] {pair.Value.ByteSize()}");
-			
+
 			_totalEqualizeReporter.Start();
 		}
-		
+
 		private async Task<string> equalizeWork(CollectionNamespace ns, ShardSizeEqualizer equalizer, CancellationToken token)
 		{
 			if (_totalEqualizeReporter.OutOfLimit)
 				return "skipped";
-			
+
 			_commandPlanWriter.Comment($"Equalize shards from {ns}");
-			
+
 			var rounds = 0;
 			var progressReporter = new TargetProgressReporter(equalizer.MovedSize, equalizer.RequireMoveSize, LongExtensions.ByteSize);
-			
+
 			while(await equalizer.Equalize())
 			{
 				rounds++;
@@ -345,15 +345,15 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 				if (_totalEqualizeReporter.OutOfLimit)
 					break;
-				
+
 				if(token.IsCancellationRequested)
 					break;
 			}
 
 			await progressReporter.Stop();
-			
+
 			token.ThrowIfCancellationRequested();
-			
+
 			if (rounds == 0)
 			{
 				_commandPlanWriter.Comment("no correction");
@@ -361,13 +361,13 @@ namespace MongoDB.ClusterMaintenance.Operations
 				_commandPlanWriter.Flush();
 				return "no correction";
 			}
-			
+
 			foreach (var zone in equalizer.Zones)
 			{
 				_log.Info("Zone: {0} InitialSize: {1} CurrentSize: {2} TargetSize: {3}",
 					zone.Tag, zone.InitialSize.ByteSize(), zone.CurrentSize.ByteSize(), zone.TargetSize.ByteSize());
 			}
-			
+
 			_commandPlanWriter.Comment(equalizer.RenderState());
 			_commandPlanWriter.Comment("change tags");
 
@@ -382,14 +382,14 @@ namespace MongoDB.ClusterMaintenance.Operations
 
 			_commandPlanWriter.Comment("---");
 			_commandPlanWriter.Flush();
-			
+
 			var breakByLimitMessage = _totalEqualizeReporter.OutOfLimit
 				? " break by limit"
 				: "";
 
 			return $"unmoved data size {equalizer.ElapsedShiftSize.ByteSize()}" + breakByLimitMessage;
 		}
-		
+
 		public async Task Run(CancellationToken token)
 		{
 			var opList = new WorkList()
@@ -408,24 +408,24 @@ namespace MongoDB.ClusterMaintenance.Operations
 			};
 
 			await opList.Apply(token);
-			
+
 			_commandPlanWriter.Comment($"\tMoved chunks: {_totalEqualizeReporter.MovedChunks}");
 			_commandPlanWriter.Comment($"\tCurrent update pressure:");
 			foreach (var pair in _totalEqualizeReporter.CurrentPressureByShard)
 				_commandPlanWriter.Comment($"\t\t[{pair.Key}] {pair.Value.ByteSize()}");
 		}
-		
+
 		private class TotalEqualizeReporter
 		{
 			private readonly long? _moveLimit;
 			private Stopwatch _sw;
 			private readonly Dictionary<ShardIdentity, long> _totalPressureByShard = new Dictionary<ShardIdentity, long>();
-			
+
 			private long _totalPressure;
 			private long _currentPressure;
 			private Dictionary<ShardIdentity, long> _limitByShard;
 			private Dictionary<ShardIdentity, long> _currentPressureByShard;
-			
+
 			public int MovedChunks { get; private set; }
 
 			public bool OutOfLimit { get; private set; }
@@ -441,7 +441,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 				_currentPressureByShard = _totalPressureByShard.ToDictionary(_ => _.Key, _ => (long)0);
 				_totalPressure = _limitByShard.Sum(_ => _.Value);
 				_currentPressure = 0;
-				
+
 				_sw = Stopwatch.StartNew();
 			}
 
@@ -467,12 +467,12 @@ namespace MongoDB.ClusterMaintenance.Operations
 			public IReadOnlyDictionary<ShardIdentity, long> TotalPressureByShard => _totalPressureByShard;
 
 			public IReadOnlyDictionary<ShardIdentity, long> CurrentPressureByShard => _currentPressureByShard;
-			
+
 			public string RenderState()
 			{
 				if (_totalPressure == 0)
 					return "";
-			
+
 				var elapsed = _sw.Elapsed;
 				var percent = (double) _currentPressure / _totalPressure;
 				var s = percent <= 0 ? 0 : (1 - percent) / percent;

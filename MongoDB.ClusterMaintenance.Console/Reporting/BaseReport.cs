@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -69,7 +70,7 @@ namespace MongoDB.ClusterMaintenance.Reporting
 
 				currentRow++;
 			}
-			
+
 			foreach (var coll in colls)
 				coll.CalcTotal();
 
@@ -83,7 +84,7 @@ namespace MongoDB.ClusterMaintenance.Reporting
 				AppendRow(sb, (string) p.Key, colls.Select(r => r.GetRow(currentRow)).ToArray());
 				currentRow++;
 			}
-			
+
 			AppendRow(sb, "<total>", colls.Select(r => r.Total).ToArray());
 			AppendRow(sb, "<average>", colls.Select(r => r.Average).ToArray());
 
@@ -104,7 +105,7 @@ DStore  s DataStorage
 Index	i IndexSize
 TStore  t TotalStorage = dt + is
 
-rows: 
+rows:
 * ByShard
 * Total
 * Average
@@ -117,6 +118,6 @@ Fixed	f Fixed
 Adj		a Adjustable
 Sharded s Sharded = um + fx + aj
 Total	t Total = us + um + fx + aj
-	  
+
 	 */
 }
