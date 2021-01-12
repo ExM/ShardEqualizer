@@ -1,8 +1,40 @@
 {
   "profiles": {
-    "MongoDB.ClusterMaintenance.Console": {
+    "help": {
       "commandName": "Project",
-      "commandLineArgs": "scan -u reader -p LkcjY3f21W -h mdb-uniform.sc-eu.local -d smartcat -c AsyncTasks.ExportDocumentTasks.Results.chunks --sizes 1K,10K,500K,1M,60M,65M"
+      "commandLineArgs": "help"
+    },
+    "version": {
+      "commandName": "Project",
+      "commandLineArgs": "version"
+    },
+    "findNewCollections": {
+      "commandName": "Project",
+      "commandLineArgs": "findNewCollections"
+    },
+    "deviation": {
+      "commandName": "Project",
+      "commandLineArgs": "deviation -sG --format=md --layouts=\"base,balance\""
+    },
+    "scanJumbo": {
+      "commandName": "Project",
+      "commandLineArgs": "scanJumbo"
+    },
+    "equalize planOnly": {
+      "commandName": "Project",
+      "commandLineArgs": "equalize --planOnly"
+    },
+    "merge": {
+      "commandName": "Project",
+      "commandLineArgs": "merge"
+    },
+    "presplit": {
+      "commandName": "Project",
+      "commandLineArgs": "presplit"
+    },
+    "balancer": {
+      "commandName": "Project",
+      "commandLineArgs": "balancer"
     }
   }
 }
