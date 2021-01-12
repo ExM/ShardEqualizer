@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MongoDB.ClusterMaintenance\MongoDB.ClusterMaintenance.csproj" />
+    <ProjectReference Include="..\ShardEqualizer\ShardEqualizer.csproj" />
   </ItemGroup>
 
 </Project>

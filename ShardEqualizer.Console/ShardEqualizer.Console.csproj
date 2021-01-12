@@ -20,10 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MongoDB.ClusterMaintenance\MongoDB.ClusterMaintenance.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Update="configuration.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -33,6 +29,10 @@
     <None Update="bounds.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ShardEqualizer\ShardEqualizer.csproj" />
   </ItemGroup>
 
 </Project>

@@ -19,8 +19,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\MongoDB.ClusterMaintenance.Console\MongoDB.ClusterMaintenance.Console.csproj" />
-      <ProjectReference Include="..\MongoDB.ClusterMaintenance\MongoDB.ClusterMaintenance.csproj" />
+      <ProjectReference Include="..\ShardEqualizer.Console\ShardEqualizer.Console.csproj" />
+      <ProjectReference Include="..\ShardEqualizer\ShardEqualizer.csproj" />
     </ItemGroup>
 
     <ItemGroup>

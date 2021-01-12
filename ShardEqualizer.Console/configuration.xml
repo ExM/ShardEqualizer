@@ -1,5 +1,5 @@
 <Configuration>
-	<IncludeXmlFile path='etc/MongoDB.ClusterMaintenance/local.config' search='all' include='all' required='true'/>
+	<IncludeXmlFile path='etc/ShardEqualizer/local.config' search='all' include='all' required='true'/>
 	
 	<BoundsFile path='bounds.json'/>
 	

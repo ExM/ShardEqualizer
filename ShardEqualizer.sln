@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27703.2026
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MongoDB.ClusterMaintenance.Console", "MongoDB.ClusterMaintenance.Console\MongoDB.ClusterMaintenance.Console.csproj", "{29B5102C-B12E-4BD9-9628-8A4E3D1E364F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ShardEqualizer.Console", "ShardEqualizer.Console\ShardEqualizer.Console.csproj", "{29B5102C-B12E-4BD9-9628-8A4E3D1E364F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoDB.ClusterMaintenance", "MongoDB.ClusterMaintenance\MongoDB.ClusterMaintenance.csproj", "{AB230AF1-8247-450F-BD17-AD2513AC99FF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShardEqualizer", "ShardEqualizer\ShardEqualizer.csproj", "{AB230AF1-8247-450F-BD17-AD2513AC99FF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoDB.ClusterMaintenance.Tests", "MongoDB.ClusterMaintenance.Tests\MongoDB.ClusterMaintenance.Tests.csproj", "{82AB4112-B6FA-4459-B646-4A10395BBDE0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShardEqualizer.Tests", "ShardEqualizer.Tests\ShardEqualizer.Tests.csproj", "{82AB4112-B6FA-4459-B646-4A10395BBDE0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoDB.ClusterMaintenance.ConsoleDemo", "MongoDB.ClusterMaintenance.ConsoleDemo\MongoDB.ClusterMaintenance.ConsoleDemo.csproj", "{312B82DC-8E1C-4C43-B743-F4520899820D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShardEqualizer.ConsoleDemo", "ShardEqualizer.ConsoleDemo\ShardEqualizer.ConsoleDemo.csproj", "{312B82DC-8E1C-4C43-B743-F4520899820D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
