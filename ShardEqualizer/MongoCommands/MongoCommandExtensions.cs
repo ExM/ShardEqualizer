@@ -2,10 +2,10 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Bson;
-using MongoDB.ClusterMaintenance.Models;
 using MongoDB.Driver;
+using ShardEqualizer.Models;
 
-namespace MongoDB.ClusterMaintenance.MongoCommands
+namespace ShardEqualizer.MongoCommands
 {
 	public static class MongoCommandExtensions
 	{

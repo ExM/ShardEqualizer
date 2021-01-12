@@ -2,10 +2,10 @@
 using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
-using MongoDB.ClusterMaintenance.Operations;
 using Ninject;
+using ShardEqualizer.Operations;
 
-namespace MongoDB.ClusterMaintenance.Verbs
+namespace ShardEqualizer.Verbs
 {
 	[Verb("scan", HelpText = "Scan chunks")]
 	public class ScanChunksVerb : BaseVerbose

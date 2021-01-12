@@ -1,14 +1,13 @@
 using System;
 using System.IO;
-using System.Linq;
 using System.Text;
 using MongoDB.Bson;
-using MongoDB.ClusterMaintenance.Models;
-using MongoDB.ClusterMaintenance.MongoCommands;
 using MongoDB.Driver;
 using NUnit.Framework;
+using ShardEqualizer.Models;
+using ShardEqualizer.MongoCommands;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	[TestFixture]
 	public class CommandPlanWriterTests

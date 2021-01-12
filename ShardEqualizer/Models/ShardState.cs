@@ -1,4 +1,4 @@
-namespace MongoDB.ClusterMaintenance.Models
+namespace ShardEqualizer.Models
 {
 	public enum ShardState
 	{

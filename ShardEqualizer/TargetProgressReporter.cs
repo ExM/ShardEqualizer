@@ -4,10 +4,9 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
-using MongoDB.ClusterMaintenance.UI;
-using NLog;
+using ShardEqualizer.UI;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	public class TargetProgressReporter
 	{

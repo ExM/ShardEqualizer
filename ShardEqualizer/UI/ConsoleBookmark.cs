@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace MongoDB.ClusterMaintenance.UI
+namespace ShardEqualizer.UI
 {
 	public class ConsoleBookmark
 	{

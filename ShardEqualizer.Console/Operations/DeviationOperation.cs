@@ -1,20 +1,16 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
-using MongoDB.ClusterMaintenance.Config;
-using MongoDB.ClusterMaintenance.MongoCommands;
-using MongoDB.ClusterMaintenance.Reporting;
-using MongoDB.ClusterMaintenance.Verbs;
-using MongoDB.ClusterMaintenance.WorkFlow;
 using MongoDB.Driver;
 using NLog;
+using ShardEqualizer.MongoCommands;
+using ShardEqualizer.Reporting;
+using ShardEqualizer.Verbs;
+using ShardEqualizer.WorkFlow;
 
-namespace MongoDB.ClusterMaintenance.Operations
+namespace ShardEqualizer.Operations
 {
 	public class DeviationOperation: IOperation
 	{

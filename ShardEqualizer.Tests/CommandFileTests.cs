@@ -1,20 +1,15 @@
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
-using CsvHelper;
-using CsvHelper.Configuration;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
-using MongoDB.ClusterMaintenance.JsonSerialization;
-using MongoDB.ClusterMaintenance.Models;
-using MongoDB.ClusterMaintenance.MongoCommands;
-using MongoDB.Driver;
 using NUnit.Framework;
+using ShardEqualizer.JsonSerialization;
+using ShardEqualizer.MongoCommands;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	[TestFixture]
 	public class CommandFileTests

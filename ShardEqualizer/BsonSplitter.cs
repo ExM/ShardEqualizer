@@ -5,9 +5,9 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using MongoDB.Bson;
-using MongoDB.ClusterMaintenance.Models;
+using ShardEqualizer.Models;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	public static class BsonSplitter
 	{
@@ -15,7 +15,7 @@ namespace MongoDB.ClusterMaintenance
 		{
 			return SplitFirstValue((BsonDocument) min, (BsonDocument) max, zonesCount).Select(_=> (BsonBound)_).ToList();
 		}
-		
+
 		public static IList<BsonDocument> SplitFirstValue(BsonDocument min, BsonDocument max, int zonesCount)
 		{
 			if(!min.Elements.Select(_ => _.Name).SequenceEqual(max.Elements.Select(_ => _.Name), StringComparer.Ordinal))
@@ -30,7 +30,7 @@ namespace MongoDB.ClusterMaintenance
 				return bound;
 			}).ToList();
 		}
-		
+
 		public static IList<BsonValue> Split(BsonValue min, BsonValue max, int zonesCount)
 		{
 			if(min >= max)
@@ -41,19 +41,19 @@ namespace MongoDB.ClusterMaintenance
 				return Split(min.AsByteArray, max.AsByteArray, zonesCount)
 					.Select(_ => (BsonValue)new BsonBinaryData(_, BsonBinarySubType.UuidLegacy, GuidRepresentation.CSharpLegacy)).ToList();
 			}
-			
+
 			if (IsUuidStandard(min) && IsUuidStandard(max))
 			{
 				return Split(min.AsByteArray, max.AsByteArray, zonesCount)
 					.Select(_ => (BsonValue)new BsonBinaryData(_, BsonBinarySubType.UuidStandard, GuidRepresentation.Standard)).ToList();
 			}
-			
+
 			if (min.IsObjectId && max.IsObjectId)
 			{
 				return Split(min.AsObjectId.ToByteArray(), max.AsObjectId.ToByteArray(), zonesCount)
 					.Select(_ => (BsonValue)new BsonObjectId(new ObjectId(_))).ToList();
 			}
-			
+
 			throw new NotImplementedException($"unexpected BsonValue type {min.BsonType} and {max.BsonType}");
 		}
 
@@ -66,13 +66,13 @@ namespace MongoDB.ClusterMaintenance
 
 			var minHex = "00" + ByteArrayToString(minBytes);
 			var maxHex = "00" + ByteArrayToString(maxBytes);
-			
+
 			var min = BigInteger.Parse(minHex, NumberStyles.HexNumber);
 			var max = BigInteger.Parse(maxHex, NumberStyles.HexNumber);
-			
+
 			if(zonesCount <= 1)
 				throw new InvalidOperationException("zones count must be great than 1");
-			
+
 			if(min >= max)
 				throw new InvalidOperationException($"min value {min} must be less max value {max}");
 
@@ -88,7 +88,7 @@ namespace MongoDB.ClusterMaintenance
 				yield return HexStringToByteArray(boundHex);
 			}
 		}
-		
+
 		public static string ByteArrayToString(byte[] ba)
 		{
 			StringBuilder hex = new StringBuilder(ba.Length * 2);
@@ -111,7 +111,7 @@ namespace MongoDB.ClusterMaintenance
 				data[index] = byte.Parse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
 			}
 
-			return data; 
+			return data;
 		}
 
 		private static bool IsUuidLegacy(BsonValue value)
@@ -121,7 +121,7 @@ namespace MongoDB.ClusterMaintenance
 			var binData = (BsonBinaryData) value;
 			return binData.SubType == BsonBinarySubType.UuidLegacy && binData.Bytes.Length == 16;
 		}
-		
+
 		private static bool IsUuidStandard(BsonValue value)
 		{
 			if (value.BsonType != BsonType.Binary)

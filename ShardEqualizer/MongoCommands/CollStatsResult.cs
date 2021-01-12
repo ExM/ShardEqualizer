@@ -1,11 +1,9 @@
 using System.Collections.Generic;
-using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.Options;
-using MongoDB.ClusterMaintenance.Models;
-using MongoDB.Driver;
+using ShardEqualizer.Models;
 
-namespace MongoDB.ClusterMaintenance.MongoCommands
+namespace ShardEqualizer.MongoCommands
 {
 	public class CollStatsResult: CollStats
 	{

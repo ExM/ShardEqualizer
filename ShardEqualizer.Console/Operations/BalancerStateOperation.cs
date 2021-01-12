@@ -4,13 +4,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MongoDB.ClusterMaintenance.Config;
-using MongoDB.ClusterMaintenance.Models;
-using MongoDB.ClusterMaintenance.WorkFlow;
 using MongoDB.Driver;
 using NLog;
+using ShardEqualizer.Models;
+using ShardEqualizer.WorkFlow;
 
-namespace MongoDB.ClusterMaintenance.Operations
+namespace ShardEqualizer.Operations
 {
 	public class BalancerStateOperation: IOperation
 	{

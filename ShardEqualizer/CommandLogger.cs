@@ -3,7 +3,7 @@ using MongoDB.Driver.Core.Configuration;
 using MongoDB.Driver.Core.Events;
 using NLog;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	public sealed class CommandLogger
 	{

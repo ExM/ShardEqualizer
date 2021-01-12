@@ -1,12 +1,11 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using MongoDB.ClusterMaintenance.Config;
-using MongoDB.ClusterMaintenance.Models;
-using MongoDB.ClusterMaintenance.MongoCommands;
+using ShardEqualizer.Config;
+using ShardEqualizer.Models;
+using ShardEqualizer.MongoCommands;
 
-namespace MongoDB.ClusterMaintenance.Reporting
+namespace ShardEqualizer.Reporting
 {
 	public abstract class BaseReport
 	{

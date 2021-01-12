@@ -1,8 +1,8 @@
 using System;
 using System.IO;
-using MongoDB.ClusterMaintenance.Config;
+using ShardEqualizer.Config;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	public class DebugDirectory
 	{

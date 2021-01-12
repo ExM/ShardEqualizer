@@ -2,13 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Accord.Math;
 using Accord.Math.Optimization;
-using MongoDB.ClusterMaintenance.Models;
-using MongoDB.ClusterMaintenance.ShardSizeEqualizing;
 using MongoDB.Driver;
+using ShardEqualizer.Models;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer.ShardSizeEqualizing
 {
 	public class ZoneOptimizationSolve
 	{

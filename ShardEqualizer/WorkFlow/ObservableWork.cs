@@ -1,9 +1,9 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using MongoDB.ClusterMaintenance.UI;
+using ShardEqualizer.UI;
 
-namespace MongoDB.ClusterMaintenance.WorkFlow
+namespace ShardEqualizer.WorkFlow
 {
 	public class ObservableWork: IWork
 	{

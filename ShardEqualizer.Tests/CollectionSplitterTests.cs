@@ -1,12 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using MongoDB.Bson;
-using MongoDB.Bson.IO;
 using NUnit.Framework;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	[TestFixture]
 	public class CollectionSplitterTests

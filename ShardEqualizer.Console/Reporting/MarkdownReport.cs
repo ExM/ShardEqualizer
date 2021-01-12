@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace MongoDB.ClusterMaintenance.Reporting
+namespace ShardEqualizer.Reporting
 {
 	public class MarkdownReport: BaseReport
 	{

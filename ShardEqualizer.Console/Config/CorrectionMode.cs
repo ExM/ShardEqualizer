@@ -1,4 +1,4 @@
-namespace MongoDB.ClusterMaintenance.Config
+namespace ShardEqualizer.Config
 {
 	public enum CorrectionMode
 	{

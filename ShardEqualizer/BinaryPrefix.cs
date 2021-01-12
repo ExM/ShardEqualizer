@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	public static class BinaryPrefix
 	{

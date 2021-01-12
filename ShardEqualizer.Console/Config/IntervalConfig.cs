@@ -1,10 +1,6 @@
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Serialization;
-using MongoDB.ClusterMaintenance.Models;
-using MongoDB.Driver;
 
-namespace MongoDB.ClusterMaintenance.Config
+namespace ShardEqualizer.Config
 {
 	[DataContract(Name = "interval")]
 	public class IntervalConfig

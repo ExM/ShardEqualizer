@@ -8,7 +8,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 
-namespace MongoDB.ClusterMaintenance.JsonSerialization
+namespace ShardEqualizer.JsonSerialization
 {
 	public class ShellJsonWriter : BsonWriter
 	{

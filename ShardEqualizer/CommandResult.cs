@@ -2,7 +2,7 @@ using System;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	public class CommandResult
 	{

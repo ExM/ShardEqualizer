@@ -4,7 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.Options;
 using MongoDB.Driver;
 
-namespace MongoDB.ClusterMaintenance.MongoCommands
+namespace ShardEqualizer.MongoCommands
 {
 	public class CollStats: CommandResult
 	{

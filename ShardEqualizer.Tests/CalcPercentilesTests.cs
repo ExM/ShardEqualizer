@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	[TestFixture]
 	public class CalcPercentilesTests

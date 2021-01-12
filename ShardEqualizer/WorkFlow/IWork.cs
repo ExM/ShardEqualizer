@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace MongoDB.ClusterMaintenance.WorkFlow
+namespace ShardEqualizer.WorkFlow
 {
 	public interface IWork
 	{

@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using MongoDB.ClusterMaintenance.Models;
 using MongoDB.Driver;
+using ShardEqualizer.Models;
 
-namespace MongoDB.ClusterMaintenance.MongoCommands
+namespace ShardEqualizer.MongoCommands
 {
 	public class TagRangeCommandBuffer: IDisposable
 	{

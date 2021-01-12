@@ -1,18 +1,9 @@
-﻿using CommandLine;
-using MongoDB.Driver;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
-using MongoDB.ClusterMaintenance.Config;
-using NConfiguration;
-using NConfiguration.Joining;
-using NConfiguration.Xml;
+using CommandLine;
 using Ninject;
-using NLog;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	public abstract class BaseVerbose
 	{

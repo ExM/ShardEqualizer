@@ -3,11 +3,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
-using MongoDB.ClusterMaintenance.Operations;
-using MongoDB.ClusterMaintenance.Reporting;
 using Ninject;
+using ShardEqualizer.Operations;
+using ShardEqualizer.Reporting;
 
-namespace MongoDB.ClusterMaintenance.Verbs
+namespace ShardEqualizer.Verbs
 {
 	[Verb("deviation", HelpText = "Calculation of collection size deviation")]
 	public class DeviationVerb: BaseVerbose
@@ -39,13 +39,13 @@ namespace MongoDB.ClusterMaintenance.Verbs
 		{
 			switch (scale)
 			{
-				case "": return ClusterMaintenance.ScaleSuffix.None;
-				case "K": return ClusterMaintenance.ScaleSuffix.Kilo;
-				case "M": return ClusterMaintenance.ScaleSuffix.Mega;
-				case "G": return ClusterMaintenance.ScaleSuffix.Giga;
-				case "T": return ClusterMaintenance.ScaleSuffix.Tera;
-				case "P": return ClusterMaintenance.ScaleSuffix.Peta;
-				case "E": return ClusterMaintenance.ScaleSuffix.Exa;
+				case "": return ScaleSuffix.None;
+				case "K": return ScaleSuffix.Kilo;
+				case "M": return ScaleSuffix.Mega;
+				case "G": return ScaleSuffix.Giga;
+				case "T": return ScaleSuffix.Tera;
+				case "P": return ScaleSuffix.Peta;
+				case "E": return ScaleSuffix.Exa;
 				default:
 					throw new FormatException($"unexpected text '{scale}' in the scale option");
 			}

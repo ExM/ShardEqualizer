@@ -1,8 +1,6 @@
-using MongoDB.Bson.Serialization;
-using MongoDB.ClusterMaintenance.Serialization;
 using MongoDB.Driver;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	public class ConfigDbRepositoryProvider : IConfigDbRepositoryProvider
 	{

@@ -1,13 +1,12 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using MongoDB.Bson;
-using MongoDB.ClusterMaintenance.Models;
-using MongoDB.ClusterMaintenance.MongoCommands;
-using MongoDB.ClusterMaintenance.ShardSizeEqualizing;
-using MongoDB.Driver;
 using NUnit.Framework;
+using ShardEqualizer.Models;
+using ShardEqualizer.MongoCommands;
+using ShardEqualizer.ShardSizeEqualizing;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	[TestFixture]
 	public class ShardSizeEqualizerTests

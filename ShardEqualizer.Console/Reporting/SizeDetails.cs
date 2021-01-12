@@ -1,8 +1,7 @@
 using System;
-using System.Text;
-using MongoDB.ClusterMaintenance.MongoCommands;
+using ShardEqualizer.MongoCommands;
 
-namespace MongoDB.ClusterMaintenance.Reporting
+namespace ShardEqualizer.Reporting
 {
 	public class SizeDetails
 	{

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <RootNamespace>MongoDB.ClusterMaintenance</RootNamespace>
+    <RootNamespace>ShardEqualizer</RootNamespace>
     <LangVersion>8</LangVersion>
     <OutputType>Exe</OutputType>
   </PropertyGroup>

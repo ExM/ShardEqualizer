@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using MongoDB.ClusterMaintenance.Models;
 using MongoDB.Driver;
+using ShardEqualizer.Models;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	public class CollectionRepository
 	{

@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NLog;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	public class ProgressReporter
 	{

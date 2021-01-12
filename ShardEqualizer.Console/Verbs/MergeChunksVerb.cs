@@ -1,14 +1,10 @@
-﻿using System;
-using System.IO;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
-using MongoDB.ClusterMaintenance.MongoCommands;
-using MongoDB.ClusterMaintenance.Operations;
 using Ninject;
-using NLog;
+using ShardEqualizer.Operations;
 
-namespace MongoDB.ClusterMaintenance.Verbs
+namespace ShardEqualizer.Verbs
 {
 	[Verb("merge", HelpText = "Merge empty or small chunks")]
 	public class MergeChunksVerb: BaseCommandFileVerb

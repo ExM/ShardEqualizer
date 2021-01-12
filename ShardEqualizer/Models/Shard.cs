@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace MongoDB.ClusterMaintenance.Models
+namespace ShardEqualizer.Models
 {
 	public class Shard
 	{

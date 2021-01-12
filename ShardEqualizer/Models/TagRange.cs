@@ -1,8 +1,7 @@
-using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 
-namespace MongoDB.ClusterMaintenance.Models
+namespace ShardEqualizer.Models
 {
 	public class TagRange
 	{

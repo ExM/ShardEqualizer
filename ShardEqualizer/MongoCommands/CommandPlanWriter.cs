@@ -1,11 +1,11 @@
 using System;
 using System.IO;
 using MongoDB.Bson;
-using MongoDB.ClusterMaintenance.JsonSerialization;
-using MongoDB.ClusterMaintenance.Models;
 using MongoDB.Driver;
+using ShardEqualizer.JsonSerialization;
+using ShardEqualizer.Models;
 
-namespace MongoDB.ClusterMaintenance.MongoCommands
+namespace ShardEqualizer.MongoCommands
 {
 	public class CommandPlanWriter
 	{

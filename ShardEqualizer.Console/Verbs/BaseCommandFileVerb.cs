@@ -3,12 +3,11 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
-using MongoDB.ClusterMaintenance.MongoCommands;
-using MongoDB.ClusterMaintenance.Operations;
 using Ninject;
 using NLog;
+using ShardEqualizer.MongoCommands;
 
-namespace MongoDB.ClusterMaintenance.Verbs
+namespace ShardEqualizer.Verbs
 {
 	public class BaseCommandFileVerb: BaseVerbose
 	{

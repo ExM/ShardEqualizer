@@ -1,7 +1,7 @@
-using MongoDB.ClusterMaintenance.Reporting;
 using NUnit.Framework;
+using ShardEqualizer.Reporting;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	[TestFixture]
 	public class ColumnDescriptionTests

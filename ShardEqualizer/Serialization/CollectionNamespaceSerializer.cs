@@ -2,7 +2,7 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 
-namespace MongoDB.ClusterMaintenance.Serialization
+namespace ShardEqualizer.Serialization
 {
 	public sealed class CollectionNamespaceSerializer : ClassSerializerBase<CollectionNamespace>
 	{

@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using System.Text;
-using MongoDB.ClusterMaintenance.Config;
-using MongoDB.ClusterMaintenance.Models;
-using MongoDB.ClusterMaintenance.MongoCommands;
-using MongoDB.ClusterMaintenance.Reporting;
 using NUnit.Framework;
+using ShardEqualizer.Config;
+using ShardEqualizer.Models;
+using ShardEqualizer.MongoCommands;
+using ShardEqualizer.Reporting;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	[TestFixture]
 	public class SizeGroupTests

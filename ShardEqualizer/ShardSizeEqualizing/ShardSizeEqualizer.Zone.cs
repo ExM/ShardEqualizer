@@ -1,9 +1,6 @@
-using System;
-using System.Linq;
-using MongoDB.Bson;
-using MongoDB.ClusterMaintenance.Models;
+using ShardEqualizer.Models;
 
-namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
+namespace ShardEqualizer.ShardSizeEqualizing
 {
 	public partial class ShardSizeEqualizer
 	{

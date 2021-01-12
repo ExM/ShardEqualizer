@@ -1,4 +1,4 @@
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	public enum ScaleSuffix
 	{

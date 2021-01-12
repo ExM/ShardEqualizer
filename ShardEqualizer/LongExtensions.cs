@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	public static class LongExtensions
 	{

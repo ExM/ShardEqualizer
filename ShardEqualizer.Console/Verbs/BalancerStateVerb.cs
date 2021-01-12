@@ -1,10 +1,10 @@
 using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
-using MongoDB.ClusterMaintenance.Operations;
 using Ninject;
+using ShardEqualizer.Operations;
 
-namespace MongoDB.ClusterMaintenance.Verbs
+namespace ShardEqualizer.Verbs
 {
 	[Verb("balanser", HelpText = "Show state of shards balancer and the end of the movement of shards")]
 	public class BalancerStateVerb: BaseVerbose

@@ -1,11 +1,10 @@
-﻿using System.Collections.Generic;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
-using MongoDB.ClusterMaintenance.Operations;
 using Ninject;
+using ShardEqualizer.Operations;
 
-namespace MongoDB.ClusterMaintenance.Verbs
+namespace ShardEqualizer.Verbs
 {
 	[Verb("scanJumbo", HelpText = "Scan jumbo chunks")]
 	public class ScanJumboChunksVerb : BaseVerbose

@@ -1,10 +1,10 @@
 using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
-using MongoDB.ClusterMaintenance.Operations;
 using Ninject;
+using ShardEqualizer.Operations;
 
-namespace MongoDB.ClusterMaintenance.Verbs
+namespace ShardEqualizer.Verbs
 {
 	[Verb("findNewCollections", HelpText = "Scan new sharded collections and create default configuration")]
 	public class FindNewCollectionsVerb: BaseVerbose

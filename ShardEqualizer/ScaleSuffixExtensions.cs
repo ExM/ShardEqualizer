@@ -1,6 +1,6 @@
 using System;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	public static class ScaleSuffixExtensions
 	{

@@ -1,10 +1,10 @@
 using System;
 using System.IO;
 using System.Linq;
-using MongoDB.Driver;
 using NUnit.Framework;
+using ShardEqualizer.ShardSizeEqualizing;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	[TestFixture]
 	public class UnstableSolveTests

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace MongoDB.ClusterMaintenance.Reporting
+namespace ShardEqualizer.Reporting
 {
 	public class ShardRow
 	{

@@ -1,6 +1,6 @@
 using System.Linq;
 
-namespace MongoDB.ClusterMaintenance.Reporting
+namespace ShardEqualizer.Reporting
 {
 	public class Column
 	{

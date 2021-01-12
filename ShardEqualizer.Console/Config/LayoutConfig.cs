@@ -1,6 +1,6 @@
 using System.Runtime.Serialization;
 
-namespace MongoDB.ClusterMaintenance.Config
+namespace ShardEqualizer.Config
 {
 	public class LayoutConfig
 	{

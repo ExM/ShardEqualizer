@@ -1,4 +1,4 @@
-namespace MongoDB.ClusterMaintenance.Reporting
+namespace ShardEqualizer.Reporting
 {
 	public enum DataType
 	{

@@ -1,10 +1,10 @@
 using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
-using MongoDB.ClusterMaintenance.Operations;
 using Ninject;
+using ShardEqualizer.Operations;
 
-namespace MongoDB.ClusterMaintenance.Verbs
+namespace ShardEqualizer.Verbs
 {
 	[Verb("equalize", HelpText = "alignment size shards by moving bound of zones")]
 	public class EqualizeVerb: BaseCommandFileVerb

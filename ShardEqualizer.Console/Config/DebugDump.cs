@@ -1,6 +1,6 @@
 using System.Runtime.Serialization;
 
-namespace MongoDB.ClusterMaintenance.Config
+namespace ShardEqualizer.Config
 {
 	[DataContract(Name = "DebugDump")]
 	public class DebugDump

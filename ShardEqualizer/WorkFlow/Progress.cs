@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 
-namespace MongoDB.ClusterMaintenance.WorkFlow
+namespace ShardEqualizer.WorkFlow
 {
 	public class Progress
 	{

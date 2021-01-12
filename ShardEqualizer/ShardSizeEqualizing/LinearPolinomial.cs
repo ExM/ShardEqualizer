@@ -2,7 +2,7 @@ using System;
 using Accord.Math;
 using Accord.Math.Optimization;
 
-namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
+namespace ShardEqualizer.ShardSizeEqualizing
 {
 	public class LinearPolinomial
 	{

@@ -1,8 +1,7 @@
-using System;
-using MongoDB.ClusterMaintenance.Serialization;
 using Ninject.Modules;
+using ShardEqualizer.Serialization;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	public class Module: NinjectModule
 	{

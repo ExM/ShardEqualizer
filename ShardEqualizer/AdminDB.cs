@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	public class AdminDB : IAdminDB
 	{

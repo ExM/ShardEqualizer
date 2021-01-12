@@ -1,9 +1,6 @@
-using System.Text;
-using MongoDB.Bson;
-using MongoDB.Bson.IO;
 using NUnit.Framework;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	[TestFixture]
 	public class SizeRendererTests

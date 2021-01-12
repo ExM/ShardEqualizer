@@ -6,20 +6,18 @@ using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
-using MongoDB.ClusterMaintenance.Config;
-using MongoDB.ClusterMaintenance.Models;
-using MongoDB.ClusterMaintenance.MongoCommands;
-using MongoDB.ClusterMaintenance.WorkFlow;
 using MongoDB.Driver;
 using NLog;
-using NLog.Fluent;
+using ShardEqualizer.Models;
+using ShardEqualizer.MongoCommands;
+using ShardEqualizer.WorkFlow;
 
-namespace MongoDB.ClusterMaintenance.Operations
+namespace ShardEqualizer.Operations
 {
 	public class FindNewCollectionsOperation: IOperation
 	{
 		private static readonly Logger _log = LogManager.GetCurrentClassLogger();
-		
+
 		private readonly IConfigDbRepositoryProvider _configDb;
 		private readonly IMongoClient _mongoClient;
 		private readonly IReadOnlyList<Interval> _intervals;
@@ -38,25 +36,25 @@ namespace MongoDB.ClusterMaintenance.Operations
 			_configDb = configDb;
 			_mongoClient = mongoClient;
 		}
-		
+
 		private async Task<string> loadShards(CancellationToken token)
 		{
 			_shards = await _configDb.Shards.GetAll();
-			
+
 			_allShardNames = _shards
 				.Select(_ => _.Id.ToString())
 				.OrderBy(_ => _)
 				.ToList();
-			
+
 			_defaultZones = string.Join(",", _allShardNames);
-			
+
 			return $"found {_shards.Count} shards.";
 		}
-		
+
 		private async Task<string> loadShardedCollections(CancellationToken token)
 		{
 			_shardedCollections = (await _configDb.Collections.FindAll()).ToDictionary(_ => _.Id);
-			
+
 			return $"found {_shardedCollections.Count} collections.";
 		}
 
@@ -68,7 +66,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 				{
 					if(shardedCollection.Dropped)
 						Console.WriteLine("\tcollection '{0}' dropped", ns);
-					
+
 					_shardedCollections.Remove(ns);
 				}
 				else
@@ -83,7 +81,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 					_shardedCollections.Remove(ns);
 			}
 		}
-		
+
 		private ObservableTask loadCollectionStatistics(CancellationToken token)
 		{
 			async Task<NewShardedCollection> runCollStats(ShardedCollectionInfo shardedCollection, CancellationToken t)
@@ -98,15 +96,15 @@ namespace MongoDB.ClusterMaintenance.Operations
 					Stats = collStats
 				};
 			}
-		
+
 			return ObservableTask.WithParallels(
-				_shardedCollections.Values.ToList(), 
-				32, 
+				_shardedCollections.Values.ToList(),
+				32,
 				runCollStats,
 				newShardedCollection => { _newShardedCollection = newShardedCollection; },
 				token);
 		}
-	
+
 		public async Task Run(CancellationToken token)
 		{
 			var opList = new WorkList()
@@ -118,7 +116,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 			};
 
 			await opList.Apply(token);
-			
+
 			if (_newShardedCollection.Count == 0)
 			{
 				Console.WriteLine("new sharded collections not found");
@@ -147,7 +145,7 @@ namespace MongoDB.ClusterMaintenance.Operations
 				sb.AppendLine($"\t<Interval nameSpace=\"{newShardedCollection.Info.Id}\" bounds=\"\"");
 				sb.AppendLine($"\t\tpreSplit=\"chunks\"\tcorrection=\"unShard\"\tzones=\"{_defaultZones}\" />");
 			}
-			
+
 			Console.WriteLine("New intervals:");
 			Console.WriteLine(sb);
 		}

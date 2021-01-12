@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using MongoDB.ClusterMaintenance.Models;
 using MongoDB.Driver;
+using ShardEqualizer.Models;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	public class ShardRepository
 	{

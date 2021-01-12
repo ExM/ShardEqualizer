@@ -5,14 +5,13 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using MongoDB.ClusterMaintenance.Config;
-using MongoDB.ClusterMaintenance.Models;
-using MongoDB.ClusterMaintenance.MongoCommands;
-using MongoDB.ClusterMaintenance.WorkFlow;
 using MongoDB.Driver;
 using NLog;
+using ShardEqualizer.Models;
+using ShardEqualizer.MongoCommands;
+using ShardEqualizer.WorkFlow;
 
-namespace MongoDB.ClusterMaintenance.Operations
+namespace ShardEqualizer.Operations
 {
 	public class ScanChunksOperation : IOperation
 	{

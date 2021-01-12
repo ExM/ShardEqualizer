@@ -5,17 +5,15 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml;
-using MongoDB.Bson;
-using MongoDB.ClusterMaintenance.Config;
-using MongoDB.ClusterMaintenance.Models;
-using MongoDB.ClusterMaintenance.MongoCommands;
-using MongoDB.ClusterMaintenance.ShardSizeEqualizing;
-using MongoDB.ClusterMaintenance.WorkFlow;
 using MongoDB.Driver;
 using NLog;
+using ShardEqualizer.Config;
+using ShardEqualizer.Models;
+using ShardEqualizer.MongoCommands;
+using ShardEqualizer.ShardSizeEqualizing;
+using ShardEqualizer.WorkFlow;
 
-namespace MongoDB.ClusterMaintenance.Operations
+namespace ShardEqualizer.Operations
 {
 	public class EqualizeOperation: IOperation
 	{

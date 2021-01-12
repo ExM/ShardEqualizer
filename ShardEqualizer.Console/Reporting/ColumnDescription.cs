@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 
-namespace MongoDB.ClusterMaintenance.Reporting
+namespace ShardEqualizer.Reporting
 {
 	public class ColumnDescription
 	{

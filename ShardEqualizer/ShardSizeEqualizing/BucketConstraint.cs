@@ -1,10 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using Accord.Math.Optimization;
-
-namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
+namespace ShardEqualizer.ShardSizeEqualizing
 {
 	public class BucketConstraint
 	{

@@ -1,13 +1,11 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using MongoDB.ClusterMaintenance.Models;
-using MongoDB.ClusterMaintenance.ShardSizeEqualizing;
 using MongoDB.Driver;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using ShardEqualizer.Models;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer.ShardSizeEqualizing
 {
 	public class ZoneOptimizationDescriptor: IUnShardedSizeDescriptor, ICollectionSettingsDescriptor
 	{

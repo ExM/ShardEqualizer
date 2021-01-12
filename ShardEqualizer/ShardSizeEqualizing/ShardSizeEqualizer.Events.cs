@@ -1,6 +1,6 @@
 using System;
 
-namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
+namespace ShardEqualizer.ShardSizeEqualizing
 {
 	public partial class ShardSizeEqualizer
 	{

@@ -1,27 +1,27 @@
-﻿using CommandLine;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CommandLine;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
-using MongoDB.ClusterMaintenance.Config;
-using MongoDB.ClusterMaintenance.Reporting;
-using MongoDB.ClusterMaintenance.Verbs;
 using MongoDB.Driver;
 using NConfiguration;
-using NConfiguration.Joining;
-using NConfiguration.Xml;
 using NConfiguration.Combination;
+using NConfiguration.Joining;
 using NConfiguration.Variables;
-using NLog;
+using NConfiguration.Xml;
 using Ninject;
+using NLog;
+using ShardEqualizer.Config;
+using ShardEqualizer.Reporting;
+using ShardEqualizer.Verbs;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	internal static class Program
 	{

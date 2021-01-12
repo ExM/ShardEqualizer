@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 
-namespace MongoDB.ClusterMaintenance.Config
+namespace ShardEqualizer.Config
 {
 	[DataContract(Name = "Connection")]
 	public class Connection

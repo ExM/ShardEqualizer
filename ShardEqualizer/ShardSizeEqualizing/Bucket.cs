@@ -1,7 +1,7 @@
-using MongoDB.ClusterMaintenance.Models;
 using MongoDB.Driver;
+using ShardEqualizer.Models;
 
-namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
+namespace ShardEqualizer.ShardSizeEqualizing
 {
 	public class Bucket
 	{

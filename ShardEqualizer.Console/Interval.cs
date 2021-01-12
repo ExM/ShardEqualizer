@@ -1,15 +1,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using MongoDB.Bson;
-using MongoDB.ClusterMaintenance.Config;
-using MongoDB.ClusterMaintenance.Models;
 using MongoDB.Driver;
+using ShardEqualizer.Config;
+using ShardEqualizer.Models;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	public class Interval
 	{
-		
+
 
 		public Interval(CollectionNamespace ns, IReadOnlyList<TagIdentity> zones, PreSplitMode preSplit,
 			CorrectionMode correction, BsonBound min, BsonBound max, double priority)
@@ -22,7 +22,7 @@ namespace MongoDB.ClusterMaintenance
 			Min = min;
 			Max = max;
 		}
-		
+
 		public Interval(IntervalConfig config, BsonDocument bounds)
 		{
 			Selected = true;
@@ -31,7 +31,7 @@ namespace MongoDB.ClusterMaintenance
 			PreSplit = config.PreSplit ?? PreSplitMode.Auto;
 			Correction = config.Correction ?? CorrectionMode.UnShard;
 			Priority = config.Priority ?? 1;
-			
+
 			if (!string.IsNullOrWhiteSpace(config.Bounds))
 			{
 				var b = bounds[config.Bounds];

@@ -2,10 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MongoDB.ClusterMaintenance.WorkFlow;
 using MongoDB.Driver;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	public static class MongoClientExtensions
 	{

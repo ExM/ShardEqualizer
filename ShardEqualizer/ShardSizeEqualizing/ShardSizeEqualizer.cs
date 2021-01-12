@@ -1,15 +1,14 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MongoDB.Bson;
-using MongoDB.ClusterMaintenance.Models;
-using MongoDB.ClusterMaintenance.MongoCommands;
 using NLog;
+using ShardEqualizer.Models;
+using ShardEqualizer.MongoCommands;
 
-namespace MongoDB.ClusterMaintenance.ShardSizeEqualizing
+namespace ShardEqualizer.ShardSizeEqualizing
 {
 	public partial class ShardSizeEqualizer
 	{

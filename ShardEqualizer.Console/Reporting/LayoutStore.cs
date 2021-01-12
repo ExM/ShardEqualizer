@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using MongoDB.ClusterMaintenance.Config;
+using ShardEqualizer.Config;
 
-namespace MongoDB.ClusterMaintenance.Reporting
+namespace ShardEqualizer.Reporting
 {
 	public class LayoutStore
 	{

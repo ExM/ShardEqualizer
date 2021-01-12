@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MongoDB.ClusterMaintenance.MongoCommands;
-using MongoDB.ClusterMaintenance.UI;
-using MongoDB.ClusterMaintenance.WorkFlow;
+using ShardEqualizer.WorkFlow;
 
-namespace MongoDB.ClusterMaintenance.ConsoleDemo
+namespace ShardEqualizer
 {
 	internal class Program
 	{
@@ -53,7 +50,7 @@ namespace MongoDB.ClusterMaintenance.ConsoleDemo
 				Console.WriteLine(ex);
 				return -1;
 			}
-			
+
 			return 0;
 		}
 
@@ -61,13 +58,13 @@ namespace MongoDB.ClusterMaintenance.ConsoleDemo
 		{
 			await Task.Delay(TimeSpan.FromSeconds(2), token);
 		}
-		
+
 		private static ObservableTask observableWork(CancellationToken token)
 		{
 			var innerTasks = Enumerable.Range(0, 500).ToList();
-			
+
 			var rnd = new Random();
-			
+
 			var progress = new Progress(innerTasks.Count);
 
 			async Task<int> listCollectionNames(int input, CancellationToken t)
@@ -82,12 +79,12 @@ namespace MongoDB.ClusterMaintenance.ConsoleDemo
 					progress.Increment();
 				}
 			}
-			
+
 			async Task work()
 			{
 				await innerTasks.ParallelsAsync(listCollectionNames, 10, token);
 			}
-			
+
 			return new ObservableTask(progress, work());
 		}
 	}

@@ -1,13 +1,11 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using Accord.Math.Optimization;
-using MongoDB.ClusterMaintenance.Models;
-using MongoDB.ClusterMaintenance.ShardSizeEqualizing;
 using MongoDB.Driver;
 using NUnit.Framework;
+using ShardEqualizer.Models;
+using ShardEqualizer.ShardSizeEqualizing;
 
-namespace MongoDB.ClusterMaintenance
+namespace ShardEqualizer
 {
 	[TestFixture]
 	public class ZoneOptimizationByGoldfarbIdnaniTests
