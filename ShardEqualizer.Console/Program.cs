@@ -27,7 +27,7 @@ namespace ShardEqualizer
 	{
 		private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 
-		static int Main(string[] args)
+		static async Task<int> Main(string[] args)
 		{
 			var cts = new CancellationTokenSource();
 
@@ -59,7 +59,9 @@ namespace ShardEqualizer
 				kernel.Load<Module>();
 				BindConfiguration(verbose, kernel);
 
-				var result = ProcessVerbAndReturnExitCode(t => verbose.RunOperation(kernel, t), cts.Token).Result;
+				await kernel.Get<ClusterIdValidator>().Validate();
+
+				var result = await ProcessVerbAndReturnExitCode(t => verbose.RunOperation(kernel, t), cts.Token);
 
 				foreach(var item in kernel.GetAll<IDisposable>())
 					item.Dispose();
@@ -92,28 +94,12 @@ namespace ShardEqualizer
 		{
 			var appSettings = loadConfiguration(verbose.ConfigFile);
 
-			var connectionConfig = appSettings.Get<Connection>();
-			kernel.Bind<IMongoClient>().ToMethod(_ => createClient(connectionConfig)).InSingletonScope();
+			var clusterConfig = loadClusterConfig(appSettings, verbose.ClusterName);
 
-			var intervalConfigs = loadIntervalConfigurations(appSettings);
+			kernel.Bind<ClusterConfig>().ToConstant(clusterConfig);
+
+			var intervalConfigs = loadIntervalConfigurations(clusterConfig, appSettings);
 			var intervals = intervalConfigs.Select(_ => new Interval(_)).ToList().AsReadOnly();
-
-			if (verbose.Database != null)
-				foreach (var interval in intervals)
-				{
-					if (!interval.Namespace.DatabaseNamespace.DatabaseName.Equals(verbose.Database, StringComparison.Ordinal))
-						interval.Selected = false;
-				}
-
-			if(verbose.Collection != null)
-				foreach (var interval in intervals)
-				{
-					if (!interval.Namespace.CollectionName.Equals(verbose.Collection, StringComparison.Ordinal))
-						interval.Selected = false;
-				}
-
-			if (intervals.Count == 0)
-				throw new ArgumentException("interval list is empty");
 
 			kernel.Bind<IReadOnlyList<Interval>>().ToConstant(intervals);
 
@@ -125,53 +111,25 @@ namespace ShardEqualizer
 				.InSingletonScope();
 		}
 
-
-
-		private static IEnumerable<IntervalConfig> loadIntervalConfigurations(IAppSettings settings)
+		private static ClusterConfig loadClusterConfig(IAppSettings settings, string clusterNameInCommandLine)
 		{
-			var nsMap = new Dictionary<string, IntervalConfig>(StringComparer.Ordinal);
+			var selectedCluster = clusterNameInCommandLine ?? settings.TryGet<ClustersConfig>()?.Default;
+			if (string.IsNullOrWhiteSpace(selectedCluster))
+				throw new Exception("can't select cluster name in configuration (Clusters/Default) or command line");
 
-			foreach (var g in settings.LoadSections<IntervalConfig>().GroupBy(_ => _.Namespace, StringComparer.Ordinal))
-			{
-				using (var cfgItem = g.GetEnumerator())
-				{
-					cfgItem.MoveNext();
-					var sumItem = cfgItem.Current;
-					while (cfgItem.MoveNext())
-						sumItem = settings.Combine(sumItem, cfgItem.Current);
-
-					nsMap.Add(g.Key, sumItem);
-				}
-			}
-
-			if (!nsMap.TryGetValue("default", out var defaultItem))
-				return nsMap.Values;
-
-			nsMap.Remove("default");
-			return nsMap.Values.Select(_ => settings.Combine(defaultItem, _));
+			return settings.Subsection(AppSettingExtensions.GetSectionName<ClustersConfig>())
+				.Get<ClusterConfig>(selectedCluster);
 		}
 
-		private static IMongoClient createClient(Connection connectionConfig)
+		private static IEnumerable<IntervalConfig> loadIntervalConfigurations(ClusterConfig clusterConfig, ICombiner combiner)
 		{
-			_log.Info("Connecting to {0}", string.Join(",", connectionConfig.Servers));
-
-			var urlBuilder = new MongoUrlBuilder()
+			foreach (var g in clusterConfig.Intervals.GroupBy(_ => _.Namespace, StringComparer.Ordinal))
 			{
-				Servers = connectionConfig.Servers.Select(MongoServerAddress.Parse),
-			};
+				var intervalConfig = g.Aggregate(combiner.Combine);
+				intervalConfig.Zones ??= clusterConfig.Zones;
 
-			if(connectionConfig.IsRequireAuth)
-			{
-				urlBuilder.AuthenticationSource = "admin";
-				urlBuilder.Username = connectionConfig.User;
-				urlBuilder.Password = connectionConfig.Password;
+				yield return intervalConfig;
 			}
-
-			var settings = MongoClientSettings.FromUrl(urlBuilder.ToMongoUrl());
-			settings.ClusterConfigurator += CommandLogger.Subscriber;
-			settings.ReadPreference = ReadPreference.Secondary;
-			settings.MinConnectionPoolSize = 32;
-			return new MongoClient(settings);
 		}
 
 		private static async Task<int> ProcessVerbAndReturnExitCode(Func<CancellationToken, Task> action, CancellationToken token)
