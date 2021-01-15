@@ -1,94 +1,93 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Driver;
-using NLog;
 using ShardEqualizer.Models;
-using ShardEqualizer.WorkFlow;
 
 namespace ShardEqualizer.Operations
 {
 	public class BalancerStateOperation: IOperation
 	{
-		private static readonly Logger _log = LogManager.GetCurrentClassLogger();
-
-		private readonly IConfigDbRepositoryProvider _configDb;
+		private readonly ShardListService _shardListService;
+		private readonly TagRangeService _tagRangeService;
+		private readonly ChunkRepository _chunkRepo;
 		private readonly IReadOnlyList<Interval> _intervals;
+		private readonly ProgressRenderer _progressRenderer;
 
-		private IReadOnlyCollection<Shard> _shards;
-		private int _totalUnMovedChunks = 0;
-		private readonly ConcurrentBag<UnMovedChunk> _unMovedChunks = new ConcurrentBag<UnMovedChunk>();
-
-		public BalancerStateOperation(IConfigDbRepositoryProvider configDb, IReadOnlyList<Interval> intervals)
+		public BalancerStateOperation(
+			ShardListService shardListService,
+			TagRangeService tagRangeService,
+			ChunkRepository chunkRepo,
+			IReadOnlyList<Interval> intervals,
+			ProgressRenderer progressRenderer)
 		{
+			_shardListService = shardListService;
+			_tagRangeService = tagRangeService;
+			_chunkRepo = chunkRepo;
 			_intervals = intervals;
-			_configDb = configDb;
+			_progressRenderer = progressRenderer;
 		}
 
-		private async Task<string> loadShards(CancellationToken token)
-		{
-			_shards = await _configDb.Shards.GetAll();
-			return $"found {_shards.Count} shards.";
-		}
-
-		private async Task<int> scanInterval(Interval interval, CancellationToken token)
+		private async Task<IList<UnMovedChunk>> scanInterval(Interval interval, IReadOnlyCollection<Shard> shards,
+			IReadOnlyDictionary<CollectionNamespace, IReadOnlyList<TagRange>> tagRangesByNs, ProgressReporter reporter,
+			CancellationToken token)
 		{
 			var currentTags = new HashSet<TagIdentity>(interval.Zones);
-			var tagRanges = await _configDb.Tags.Get(interval.Namespace);
+			var tagRanges = tagRangesByNs[interval.Namespace];
 			tagRanges = tagRanges.Where(_ => currentTags.Contains(_.Tag)).ToList();
 
-			var intervalCount = 0;
+			var result = new List<UnMovedChunk>();
 
 			foreach (var tagRange in tagRanges)
 			{
-				var validShards = _shards.Where(_ => _.Tags.Contains(tagRange.Tag)).Select(_ => _.Id).ToList();
+				var validShards = shards.Where(_ => _.Tags.Contains(tagRange.Tag)).Select(_ => _.Id).ToList();
 
-				var unMovedChunks = await (await _configDb.Chunks.ByNamespace(interval.Namespace)
-						.From(tagRange.Min).To(tagRange.Max).NoJumbo().ExcludeShards(validShards).Find())
+				var unMovedChunks = await (await _chunkRepo.ByNamespace(interval.Namespace)
+						.From(tagRange.Min).To(tagRange.Max).NoJumbo().ExcludeShards(validShards).Find(token))
 					.ToListAsync(token);
 
 				if (unMovedChunks.Count == 0) continue;
 
-				_unMovedChunks.Add(new UnMovedChunk()
+				result.Add(new UnMovedChunk()
 				{
 					Namespace = interval.Namespace,
 					TagRange = tagRange.Tag,
 					Count = unMovedChunks.Count,
 					SourceShards = unMovedChunks.Select(_ => _.Shard).Distinct().Select(_ => $"'{_}'").ToList(),
 				});
-
-				intervalCount += unMovedChunks.Count;
 			}
 
-			return intervalCount;
+			reporter.Increment();
+			return result;
 		}
 
-		private ObservableTask scanIntervals(CancellationToken token)
+		private async Task<IList<UnMovedChunk>> scanIntervals(CancellationToken token)
 		{
-			return ObservableTask.WithParallels(
-				_intervals.ToList(),
-				16,
-				scanInterval,
-				intervalCounts => { _totalUnMovedChunks = intervalCounts.Sum(); },
-				token);
+			var shards = await _shardListService.Get(token);
+			var tagRangesByNs = await _tagRangeService.Get(_intervals.Select(_ => _.Namespace), token);
+
+			await using var reporter = _progressRenderer.Start("Scan intervals", _intervals.Count);
+
+			var unMovedChunksList = await _intervals.ParallelsAsync((interval, t) => scanInterval(interval, shards, tagRangesByNs, reporter, t), 32, token);
+
+			var result = unMovedChunksList.SelectMany(_ => _).ToList();
+
+			var totalUnMovedChunks = result.Sum(_ => _.Count);
+
+			reporter.SetCompleteMessage(totalUnMovedChunks == 0
+				? "all chunks moved."
+				: $"found {totalUnMovedChunks} chunks is awaiting movement.");
+
+			return result;
 		}
 
 		public async Task Run(CancellationToken token)
 		{
-			var opList = new WorkList()
-			{
-				{ "Load shard list", new SingleWork(loadShards)},
-				{ "Scan intervals", new ObservableWork(scanIntervals, () => _totalUnMovedChunks == 0
-					? "all chunks moved."
-					: $"found {_totalUnMovedChunks} chunks is awaiting movement.")}
-			};
+			var unMovedChunks = await scanIntervals(token);
 
-			await opList.Apply(token);
-
-			foreach (var unMovedChunkGroup in _unMovedChunks.GroupBy(_ => _.Namespace).OrderBy(_ => _.Key.FullName))
+			foreach (var unMovedChunkGroup in unMovedChunks.GroupBy(_ => _.Namespace).OrderBy(_ => _.Key.FullName))
 			{
 				Console.WriteLine("{0}:", unMovedChunkGroup.Key);
 				foreach (var  unMovedChunk in unMovedChunkGroup.OrderBy(_ => _.TagRange))

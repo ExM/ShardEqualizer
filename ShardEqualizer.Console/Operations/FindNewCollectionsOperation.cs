@@ -10,16 +10,15 @@ using MongoDB.Driver;
 using NLog;
 using ShardEqualizer.Models;
 using ShardEqualizer.MongoCommands;
-using ShardEqualizer.WorkFlow;
+using ShardEqualizer.ShortModels;
 
 namespace ShardEqualizer.Operations
 {
 	public class FindNewCollectionsOperation: IOperation
 	{
-		private static readonly Logger _log = LogManager.GetCurrentClassLogger();
-
-		private readonly IConfigDbRepositoryProvider _configDb;
-		private readonly IMongoClient _mongoClient;
+		private readonly ShardListService _shardListService;
+		private readonly ShardedCollectionService _shardedCollectionService;
+		private readonly CollectionStatisticService _collectionStatisticService;
 		private readonly IReadOnlyList<Interval> _intervals;
 		private readonly JsonWriterSettings _jsonWriterSettings = new JsonWriterSettings()
 			{Indent = false, GuidRepresentation = GuidRepresentation.Unspecified, OutputMode = JsonOutputMode.Shell};
@@ -30,35 +29,19 @@ namespace ShardEqualizer.Operations
 		private Dictionary<CollectionNamespace, ShardedCollectionInfo> _shardedCollections;
 		private IReadOnlyList<NewShardedCollection> _newShardedCollection;
 
-		public FindNewCollectionsOperation(IConfigDbRepositoryProvider configDb, IMongoClient mongoClient, IReadOnlyList<Interval> intervals)
+		public FindNewCollectionsOperation(
+			ShardListService shardListService,
+			ShardedCollectionService shardedCollectionService,
+			CollectionStatisticService collectionStatisticService,
+			IReadOnlyList<Interval> intervals)
 		{
+			_shardListService = shardListService;
+			_shardedCollectionService = shardedCollectionService;
+			_collectionStatisticService = collectionStatisticService;
 			_intervals = intervals;
-			_configDb = configDb;
-			_mongoClient = mongoClient;
 		}
 
-		private async Task<string> loadShards(CancellationToken token)
-		{
-			_shards = await _configDb.Shards.GetAll();
-
-			_allShardNames = _shards
-				.Select(_ => _.Id.ToString())
-				.OrderBy(_ => _)
-				.ToList();
-
-			_defaultZones = string.Join(",", _allShardNames);
-
-			return $"found {_shards.Count} shards.";
-		}
-
-		private async Task<string> loadShardedCollections(CancellationToken token)
-		{
-			_shardedCollections = (await _configDb.Collections.FindAll()).ToDictionary(_ => _.Id);
-
-			return $"found {_shardedCollections.Count} collections.";
-		}
-
-		private void analizeIntervals(CancellationToken token)
+		private void analyseIntervals()
 		{
 			foreach (var ns in _intervals.Select(_ => _.Namespace))
 			{
@@ -82,40 +65,30 @@ namespace ShardEqualizer.Operations
 			}
 		}
 
-		private ObservableTask loadCollectionStatistics(CancellationToken token)
-		{
-			async Task<NewShardedCollection> runCollStats(ShardedCollectionInfo shardedCollection, CancellationToken t)
-			{
-				var ns = shardedCollection.Id;
-				var db = _mongoClient.GetDatabase(ns.DatabaseNamespace.DatabaseName);
-				var collStats = await db.CollStats(ns.CollectionName, 1, t);
-
-				return new NewShardedCollection()
-				{
-					Info = shardedCollection,
-					Stats = collStats
-				};
-			}
-
-			return ObservableTask.WithParallels(
-				_shardedCollections.Values.ToList(),
-				32,
-				runCollStats,
-				newShardedCollection => { _newShardedCollection = newShardedCollection; },
-				token);
-		}
-
 		public async Task Run(CancellationToken token)
 		{
-			var opList = new WorkList()
-			{
-				{ "Load shard list", new SingleWork(loadShards)},
-				{ "Load sharded collections", new SingleWork(loadShardedCollections)},
-				{ "Analyse of loaded data", analizeIntervals},
-				{ "Load collection statistics", new ObservableWork(loadCollectionStatistics)},
-			};
+			_shards = await _shardListService.Get(token);
+			_shardedCollections = new Dictionary<CollectionNamespace, ShardedCollectionInfo>(
+				await _shardedCollectionService.Get(token));
 
-			await opList.Apply(token);
+			_allShardNames = _shards
+				.Select(_ => _.Id.ToString())
+				.OrderBy(_ => _)
+				.ToList(); //UNDONE find single tag by shard
+
+			_defaultZones = string.Join(",", _allShardNames);
+
+			analyseIntervals();
+
+			var collStats = await _collectionStatisticService.Get(_shardedCollections.Keys, token);
+
+			_newShardedCollection = _shardedCollections.Keys
+				.Select(_ => new NewShardedCollection()
+				{
+					Info = _shardedCollections[_],
+					Stats = collStats[_]
+				})
+				.ToList();
 
 			if (_newShardedCollection.Count == 0)
 			{
@@ -153,7 +126,7 @@ namespace ShardEqualizer.Operations
 		public class NewShardedCollection
 		{
 			public ShardedCollectionInfo Info { get; set; }
-			public CollStatsResult Stats { get; set; }
+			public CollectionStatistics Stats { get; set; }
 		}
 	}
 }

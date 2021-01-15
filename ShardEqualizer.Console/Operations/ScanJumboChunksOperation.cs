@@ -8,96 +8,89 @@ using MongoDB.Driver;
 using NLog;
 using ShardEqualizer.Models;
 using ShardEqualizer.MongoCommands;
-using ShardEqualizer.WorkFlow;
 
 namespace ShardEqualizer.Operations
 {
 	public class ScanJumboChunksOperation : IOperation
 	{
-		private readonly IConfigDbRepositoryProvider _configDb;
 		private readonly IMongoClient _mongoClient;
+		private readonly ProgressRenderer _progressRenderer;
 		private readonly IReadOnlyList<Interval> _intervals;
-		private Dictionary<CollectionNamespace, ShardedCollectionInfo> _collectionsInfo;
+		private readonly ShardedCollectionService _shardedCollectionService;
+		private readonly ChunkRepository _chunkRepo;
 		private List<Chunk> _jumboChunks;
 		private ConcurrentBag<ChunkDataSize> _chunkDataSizes = new ConcurrentBag<ChunkDataSize>();
 		private int _dataSizeCommandErrors = 0;
 
-		public ScanJumboChunksOperation(IReadOnlyList<Interval> intervals, IConfigDbRepositoryProvider configDb, IMongoClient mongoClient)
+		public ScanJumboChunksOperation(
+			IReadOnlyList<Interval> intervals,
+			ShardedCollectionService shardedCollectionService,
+			ChunkRepository chunkRepo,
+			IMongoClient mongoClient,
+			ProgressRenderer progressRenderer)
 		{
-			_configDb = configDb;
 			_mongoClient = mongoClient;
+			_progressRenderer = progressRenderer;
 
 			if (intervals.Count == 0)
 				throw new ArgumentException("interval list is empty");
 
 			_intervals = intervals;
+			_shardedCollectionService = shardedCollectionService;
+			_chunkRepo = chunkRepo;
 		}
 
-		private ObservableTask loadCollectionsInfo(CancellationToken token)
+		private async Task findJumboChunks(CancellationToken token)
 		{
-			async Task<ShardedCollectionInfo> loadCollectionInfo(Interval interval, CancellationToken t)
+			await using var reporter = _progressRenderer.Start($"Find jumbo chunks", _intervals.Count);
 			{
-				var collInfo = await _configDb.Collections.Find(interval.Namespace);
-				if (collInfo == null)
-					throw new InvalidOperationException($"collection {interval.Namespace.FullName} not sharded");
-				return collInfo;
-			}
-
-			return ObservableTask.WithParallels(
-				_intervals,
-				8,
-				loadCollectionInfo,
-				allCollectionsInfo => { _collectionsInfo = allCollectionsInfo.ToDictionary(_ => _.Id); },
-				token);
-		}
-
-		private ObservableTask findJumboChunks(CancellationToken token)
-		{
-			async Task<List<Chunk>> loadCollChunks(Interval interval, CancellationToken t)
-			{
-				var allChunks = await (await _configDb.Chunks
-					.ByNamespace(interval.Namespace)
-					.From(interval.Min)
-					.To(interval.Max)
-					.OnlyJumbo()
-					.Find()).ToListAsync(t);
-				return allChunks;
-			}
-
-			return ObservableTask.WithParallels(
-				_intervals,
-				8,
-				loadCollChunks,
-				chunks => {  _jumboChunks = chunks.SelectMany(_ => _).ToList(); },
-				token);
-		}
-
-		private ObservableTask scanJumboChunks(CancellationToken token)
-		{
-			async Task scanChunk(Chunk chunk, CancellationToken t)
-			{
-				var ns = chunk.Namespace;
-				var db = _mongoClient.GetDatabase(ns.DatabaseNamespace.DatabaseName);
-				var collInfo = _collectionsInfo[ns];
-
-				var result = await db.Datasize(collInfo, chunk, true, token);
-
-				if (!result.IsSuccess)
+				async Task<List<Chunk>> loadCollChunks(Interval interval, CancellationToken t)
 				{
-					Interlocked.Increment(ref _dataSizeCommandErrors);
-					_log.Warn("chunk {0} - datasize command fail {1}", chunk.Id, result.ErrorMessage);
+					var allChunks = await (await _chunkRepo
+						.ByNamespace(interval.Namespace)
+						.From(interval.Min)
+						.To(interval.Max)
+						.OnlyJumbo()
+						.Find(t)).ToListAsync(t);
+					reporter.Increment();
+					return allChunks;
 				}
-				else
-				{
-					_chunkDataSizes.Add(new ChunkDataSize(ns, chunk.Shard, result.Size, result.NumObjects));
-				}
-			}
 
-			return ObservableTask.WithParallels(
-				_jumboChunks,
-				32,
-				scanChunk,
-				token);
+				var results = await _intervals.ParallelsAsync(loadCollChunks, 16, token);
+				_jumboChunks = results.SelectMany(_ => _).ToList();
+				reporter.SetCompleteMessage($"found {_jumboChunks.Count} chunks.");
+			}
+		}
+
+		private async Task  scanJumboChunks(
+			IReadOnlyDictionary<CollectionNamespace, ShardedCollectionInfo> collectionsInfo,
+			CancellationToken token)
+		{
+			await using var reporter = _progressRenderer.Start($"Scan jumbo chunks", _jumboChunks.Count);
+			{
+				async Task scanChunk(Chunk chunk, CancellationToken t)
+				{
+					var ns = chunk.Namespace;
+					var db = _mongoClient.GetDatabase(ns.DatabaseNamespace.DatabaseName);
+					var collInfo = collectionsInfo[ns];
+
+					var result = await db.Datasize(collInfo, chunk, true, t);
+
+					if (!result.IsSuccess)
+					{
+						Interlocked.Increment(ref _dataSizeCommandErrors);
+						_log.Warn("chunk {0} - datasize command fail {1}", chunk.Id, result.ErrorMessage);
+					}
+					else
+					{
+						_chunkDataSizes.Add(new ChunkDataSize(ns, chunk.Shard, result.Size, result.NumObjects));
+					}
+
+					reporter.Increment();
+				}
+
+				await _jumboChunks.ParallelsAsync(scanChunk, 32, token);
+			}
 		}
 
 		private static readonly List<double> _percentiles = new List<double>()
@@ -141,14 +134,10 @@ namespace ShardEqualizer.Operations
 
 		public async Task Run(CancellationToken token)
 		{
-			var opList = new WorkList()
-			{
-				{ "Load collections info", new ObservableWork(loadCollectionsInfo)},
-				{ "Find jumbo chunks", new ObservableWork(findJumboChunks, () => $"found {_jumboChunks.Count} chunks.")},
-				{ "Scan jumbo chunks", new ObservableWork(scanJumboChunks)}
-			};
+			var collectionsInfo = await _shardedCollectionService.Get(token);
 
-			await opList.Apply(token);
+			await findJumboChunks(token);
+			await scanJumboChunks(collectionsInfo, token);
 
 			renderResults();
 		}

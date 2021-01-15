@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using MongoDB.Bson;
 using NLog;
 using ShardEqualizer.Models;
+using ShardEqualizer.ShortModels;
 using ShardEqualizer.MongoCommands;
 
 namespace ShardEqualizer.ShardSizeEqualizing
@@ -17,7 +18,7 @@ namespace ShardEqualizer.ShardSizeEqualizing
 		private readonly IReadOnlyList<Bound> _movingBounds;
 
 		public ShardSizeEqualizer(IReadOnlyCollection<Shard> shards,
-			IReadOnlyDictionary<ShardIdentity, CollStats> collStatsByShards,
+			IReadOnlyDictionary<ShardIdentity, ShardCollectionStatistics> collStatsByShards,
 			IReadOnlyList<TagRange> tagRanges,
 			IDictionary<TagIdentity, long> targetSize,
 			ChunkCollection chunks)
@@ -126,13 +127,30 @@ namespace ShardEqualizer.ShardSizeEqualizing
 			return sb.ToString();
 		}
 
-		public async Task<bool> Equalize()
+		public async Task<MoveResult> Equalize()
 		{
 			foreach (var bound in _movingBounds.OrderByDescending(b => b.ElapsedShiftSize))
-				if (await bound.TryMove())
-					return true;
+			{
+				var moveResult = await bound.TryMove();
+				if (moveResult.IsSuccess)
+					return moveResult;
+			}
 
-			return false;
+			return MoveResult.Unsuccessful;
+		}
+
+		public class MoveResult
+		{
+			public static readonly MoveResult Unsuccessful = new MoveResult(0);
+
+			public MoveResult(long movedChunkSize)
+			{
+				IsSuccess = movedChunkSize != 0;
+				MovedChunkSize = movedChunkSize;
+			}
+
+			public bool IsSuccess { get; }
+			public long MovedChunkSize { get; }
 		}
 
 		private static void continuityCheck(IReadOnlyCollection<TagRange> tagRanges)
@@ -145,6 +163,73 @@ namespace ShardEqualizer.ShardSizeEqualizing
 					throw new ArgumentException($"found discontinuity from {range.Min.ToJson()} to {nextBound}");
 
 				nextBound = range.Max;
+			}
+		}
+
+		public void SetQuotes(Dictionary<ShardIdentity, long?> updateQuotes)
+		{
+			foreach (var zone in Zones)
+			{
+				var quoteN = updateQuotes[zone.Main];
+				if(quoteN == null)
+					continue;
+
+				var quote = quoteN.Value;
+
+				long leftPressure = 0;
+				long rightPressure = 0;
+
+				if (zone.Left != null && zone.Left.RequireShiftSize < 0)
+					leftPressure = -zone.Left.RequireShiftSize;
+
+				if (zone.Right != null && zone.Right.RequireShiftSize > 0)
+					rightPressure = zone.Right.RequireShiftSize;
+
+				if (quote == 0)
+				{
+					if (leftPressure > 0)
+						zone.Left.RequireShiftSize = 0;
+
+					if (rightPressure > 0)
+						zone.Right.RequireShiftSize = 0;
+
+					continue;
+				}
+
+				if (leftPressure + rightPressure < quote)
+				{
+					updateQuotes[zone.Main] -= leftPressure + rightPressure;
+				}
+				else
+				{
+					if (leftPressure < rightPressure)
+					{
+						if (rightPressure > quote)
+						{
+							zone.Right.RequireShiftSize = quote;
+						}
+						else
+						{
+							if(leftPressure > 0)
+								zone.Left.RequireShiftSize = - (quote - rightPressure);
+						}
+					}
+					else
+					{ // rightPressure <= leftPressure
+
+						if (leftPressure > quote)
+						{
+							zone.Left.RequireShiftSize = -quote;
+						}
+						else
+						{
+							if(rightPressure > 0)
+								zone.Right.RequireShiftSize = quote - leftPressure;
+						}
+					}
+
+					updateQuotes[zone.Main] = 0;
+				}
 			}
 		}
 	}

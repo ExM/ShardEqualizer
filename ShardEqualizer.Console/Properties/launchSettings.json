@@ -24,6 +24,14 @@
       "commandName": "Project",
       "commandLineArgs": "equalize --planOnly"
     },
+    "equalize": {
+      "commandName": "Project",
+      "commandLineArgs": "equalize --moveLimit=200"
+    },
+    "equalize offline": {
+      "commandName": "Project",
+      "commandLineArgs": "equalize --offline --moveLimit=200"
+    },
     "merge": {
       "commandName": "Project",
       "commandLineArgs": "merge"
@@ -31,6 +39,10 @@
     "presplit": {
       "commandName": "Project",
       "commandLineArgs": "presplit"
+    },
+    "presplit renew": {
+      "commandName": "Project",
+      "commandLineArgs": "presplit --renew"
     },
     "balancer": {
       "commandName": "Project",

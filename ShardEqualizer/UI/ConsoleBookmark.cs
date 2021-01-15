@@ -4,12 +4,18 @@ using System.Linq;
 
 namespace ShardEqualizer.UI
 {
-	public class ConsoleBookmark
+	public interface IConsoleBookmark
+	{
+		void Clear();
+		void Render(string line);
+	}
+
+	public class ConsoleBookmark: IConsoleBookmark
 	{
 		private readonly int _startTop;
 		private readonly int _startLeft;
 		private readonly List<int> _renderedLines = new List<int>();
-		
+
 		public ConsoleBookmark()
 		{
 			_startTop = Console.CursorTop;
@@ -40,14 +46,9 @@ namespace ShardEqualizer.UI
 			Clear();
 
 			foreach (var line in lines)
-			{
-				if(_renderedLines.Count != 0)
-					Console.WriteLine();
-				Console.Write(line);
-				_renderedLines.Add(line.Length);
-			}
+				Render(line);
 		}
-		
+
 		public void Render(string line)
 		{
 			if(_renderedLines.Count != 0)

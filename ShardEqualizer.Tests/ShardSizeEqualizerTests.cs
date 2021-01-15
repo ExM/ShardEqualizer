@@ -5,6 +5,7 @@ using NUnit.Framework;
 using ShardEqualizer.Models;
 using ShardEqualizer.MongoCommands;
 using ShardEqualizer.ShardSizeEqualizing;
+using ShardEqualizer.ShortModels;
 
 namespace ShardEqualizer
 {
@@ -22,12 +23,12 @@ namespace ShardEqualizer
 				new Shard("sD", "tD"),
 			};
 
-			var collStatsByShards = new Dictionary<ShardIdentity, CollStats>()
+			var collStatsByShards = new Dictionary<ShardIdentity, ShardCollectionStatistics>()
 			{
-				{shards[0].Id, new CollStats() {Size = 150}},
-				{shards[1].Id, new CollStats() {Size = 150}},
-				{shards[2].Id, new CollStats() {Size = 350}},
-				{shards[3].Id, new CollStats() {Size = 100}},
+				{shards[0].Id, new ShardCollectionStatistics() {Size = 150}},
+				{shards[1].Id, new ShardCollectionStatistics() {Size = 150}},
+				{shards[2].Id, new ShardCollectionStatistics() {Size = 350}},
+				{shards[3].Id, new ShardCollectionStatistics() {Size = 100}},
 			};
 
 			var tagRanges = new List<TagRange>()
@@ -38,14 +39,12 @@ namespace ShardEqualizer
 			};
 
 			var testNS = tagRanges[0].Namespace;
-			var chunks = new List<Chunk>();
+			var chunks = new List<ChunkInfo>();
 
 			for (var i = 0; i < 10; i++)
 			{
-				chunks.Add(new Chunk()
+				chunks.Add(new ChunkInfo()
 				{
-					Id = $"{testNS.FullName}-{i*10}",
-					Namespace = testNS,
 					Min = testBound(i * 10),
 					Max = testBound((i + 1) * 10),
 					Shard = new ShardIdentity("sA")
@@ -53,10 +52,8 @@ namespace ShardEqualizer
 			}
 			for (var i = 10; i < 20; i++)
 			{
-				chunks.Add(new Chunk()
+				chunks.Add(new ChunkInfo()
 				{
-					Id = $"{testNS.FullName}-{i*10}",
-					Namespace = testNS,
 					Min = testBound(i * 10),
 					Max = testBound((i + 1) * 10),
 					Shard = new ShardIdentity("sB")
@@ -64,10 +61,8 @@ namespace ShardEqualizer
 			}
 			for (var i = 20; i < 50; i++)
 			{
-				chunks.Add(new Chunk()
+				chunks.Add(new ChunkInfo()
 				{
-					Id = $"{testNS.FullName}-{i*10}",
-					Namespace = testNS,
 					Min = testBound(i * 10),
 					Max = testBound((i + 1) * 10),
 					Shard = new ShardIdentity("sC")
@@ -75,7 +70,7 @@ namespace ShardEqualizer
 			}
 
 			var chunkColl = new ChunkCollection(chunks, (ch) => Task.FromResult<long>(10));
-			
+
 			var targetSize = new Dictionary<TagIdentity, long>()
 			{
 				{tagRanges[0].Tag, 200},
@@ -86,11 +81,11 @@ namespace ShardEqualizer
 			var equalizer = new ShardSizeEqualizer(shards, collStatsByShards, tagRanges, targetSize, chunkColl);
 
 			var round = 0;
-			while(await equalizer.Equalize())
+			while(!(await equalizer.Equalize()).IsSuccess)
 			{
 				if (equalizer.CurrentSizeDeviation < 3)
 					break;
-				
+
 				round++;
 			}
 		}
