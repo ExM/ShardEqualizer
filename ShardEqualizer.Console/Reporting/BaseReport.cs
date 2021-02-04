@@ -1,9 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using ShardEqualizer.Config;
 using ShardEqualizer.Models;
-using ShardEqualizer.MongoCommands;
 using ShardEqualizer.ShortModels;
 
 namespace ShardEqualizer.Reporting
@@ -19,7 +17,7 @@ namespace ShardEqualizer.Reporting
 			SizeRenderer = sizeRenderer;
 		}
 
-		public void Append(CollectionStatistics collStats, CorrectionMode? correctionMode)
+		public void Append(CollectionStatistics collStats, bool? correctionMode)
 		{
 			if (collStats.Sharded)
 			{
@@ -29,11 +27,10 @@ namespace ShardEqualizer.Reporting
 
 					switch (correctionMode)
 					{
-						case CorrectionMode.None:
+						case false:
 							row.Fixed.Add(shardCollStats.Value);
 							break;
-						case CorrectionMode.UnShard:
-						case CorrectionMode.Self:
+						case true:
 							row.Adjustable.Add(shardCollStats.Value);
 							break;
 						default:

@@ -5,9 +5,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Driver;
 using NLog;
-using ShardEqualizer.Config;
+using ShardEqualizer.ChunkCaching;
 using ShardEqualizer.Models;
 using ShardEqualizer.MongoCommands;
+using ShardEqualizer.ShortModels;
 
 namespace ShardEqualizer.Operations
 {
@@ -19,16 +20,17 @@ namespace ShardEqualizer.Operations
 		private readonly bool _renew;
 		private readonly ShardedCollectionService _shardedCollectionService;
 		private readonly TagRangeService _tagRangeService;
-		private readonly ChunkRepository _chunkRepo;
+		private readonly ChunkService _chunkService;
 
 		private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 		private IReadOnlyDictionary<CollectionNamespace, ShardedCollectionInfo> _shardedCollectionByNs;
 		private IReadOnlyDictionary<CollectionNamespace, IReadOnlyList<TagRange>> _tagRangesByNs;
+		private IReadOnlyDictionary<CollectionNamespace, ChunksCache> _allChunksByNs;
 
 		public PresplitDataOperation(
 			ShardedCollectionService shardedCollectionService,
 			TagRangeService tagRangeService,
-			ChunkRepository chunkRepo, //UNDONE use ChunkService
+			ChunkService chunkService,
 			IReadOnlyList<Interval> intervals,
 			ProgressRenderer progressRenderer,
 			CommandPlanWriter commandPlanWriter,
@@ -36,7 +38,7 @@ namespace ShardEqualizer.Operations
 		{
 			_shardedCollectionService = shardedCollectionService;
 			_tagRangeService = tagRangeService;
-			_chunkRepo = chunkRepo;
+			_chunkService = chunkService;
 			_intervals = intervals;
 			_progressRenderer = progressRenderer;
 			_commandPlanWriter = commandPlanWriter;
@@ -47,85 +49,31 @@ namespace ShardEqualizer.Operations
 
 			_intervals = intervals;
 		}
-
-		private async Task createPresplitCommandForInterval(Interval interval,
-			ProgressReporter reporter,
-			CancellationToken token)
-		{
-			var preSplit = interval.PreSplit;
-
-			if (preSplit == PreSplitMode.Auto)
-			{
-				if (interval.Min.HasValue && interval.Max.HasValue)
-				{
-					var totalChunks = await _chunkRepo
-						.ByNamespace(interval.Namespace)
-						.From(interval.Min)
-						.To(interval.Max).Count(token);
-
-					preSplit = totalChunks / interval.Zones.Count < 100
-						? PreSplitMode.Interval
-						: PreSplitMode.Chunks;
-
-					_log.Info("detect presplit mode of {0} with total chunks {1}", interval.Namespace.FullName, totalChunks);
-				}
-				else
-				{
-					preSplit = PreSplitMode.Chunks;
-
-					_log.Info("detect presplit mode of {0} without bounds", interval.Namespace.FullName);
-				}
-			}
-
-			using (var buffer = new TagRangeCommandBuffer(_commandPlanWriter, interval.Namespace))
-			{
-				var comments = new List<string>();
-				comments.Add($"presplit commands for {interval.Namespace.FullName}");
-
-				if (removeOldTagRangesIfRequired(interval, buffer))
-				{
-					_log.Info("presplit data of {0} with mode {1}", interval.Namespace.FullName, preSplit);
-
-					switch (preSplit)
-					{
-						case PreSplitMode.Interval:
-							presplitData(interval, buffer);
-							break;
-						case PreSplitMode.Chunks:
-							await distributeCollection(interval, buffer, token);
-							break;
-
-						case PreSplitMode.Auto:
-						default:
-							throw new NotSupportedException($"unexpected PreSplitType:{preSplit}");
-					}
-				}
-				else
-				{
-					comments.Add($"zones not changed");
-				}
-
-				lock (_commandPlanWriter)
-				{
-					foreach (var comment in comments)
-						_commandPlanWriter.Comment(comment);
-					buffer.Flush();
-					_commandPlanWriter.Comment($"---");
-				}
-			}
-
-			reporter.Increment();
-		}
-
 		public async Task Run(CancellationToken token)
 		{
 			_shardedCollectionByNs = await _shardedCollectionService.Get(token);
-
 			_tagRangesByNs =  await _tagRangeService.Get(_intervals.Select(_ => _.Namespace), token);
+			_allChunksByNs = await _chunkService.Get(_intervals.Select(_ => _.Namespace), token);
 
-			await using var reporter = _progressRenderer.Start("Create presplit commands", _intervals.Count);
+			_progressRenderer.WriteLine("Create presplit commands");
 
-			await _intervals.ParallelsAsync((interval, t) => createPresplitCommandForInterval(interval, reporter, t), 32, token);
+			foreach (var interval in _intervals)
+				createPresplitCommandForInterval(interval);
+		}
+
+		private void createPresplitCommandForInterval(Interval interval)
+		{
+			using (var buffer = new TagRangeCommandBuffer(_commandPlanWriter, interval.Namespace))
+			{
+				_commandPlanWriter.Comment($"presplit commands for {interval.Namespace.FullName}");
+
+				if (removeOldTagRangesIfRequired(interval, buffer))
+					presplitInterval(interval, buffer);
+				else
+					_commandPlanWriter.Comment($"zones not changed");
+			}
+
+			_commandPlanWriter.Comment($"---");
 		}
 
 		private bool removeOldTagRangesIfRequired(Interval interval, TagRangeCommandBuffer buffer)
@@ -148,16 +96,39 @@ namespace ShardEqualizer.Operations
 			return true;
 		}
 
-		private void presplitData(Interval interval, TagRangeCommandBuffer buffer)
+		private void presplitInterval(Interval interval, TagRangeCommandBuffer buffer)
 		{
 			var collInfo = _shardedCollectionByNs[interval.Namespace];
 
-			if (collInfo == null)
+			if (collInfo == null || collInfo.Dropped)
 				throw new InvalidOperationException($"collection {interval.Namespace.FullName} not sharded");
 
-			if(interval.Min == null || interval.Max == null)
-				throw new InvalidOperationException($"collection {interval.Namespace.FullName} - bounds not found in configuration");
+			if (!interval.Adjustable)
+			{
+				if(interval.Min == null || interval.Max == null)
+					throw new InvalidOperationException($"collection {interval.Namespace.FullName} - bounds not found in configuration");
 
+				presplitByBounds(interval, buffer);
+				return;
+			}
+
+			var chunks = _allChunksByNs[interval.Namespace].FromInterval(interval.Min, interval.Max);
+
+			if (chunks.Length < interval.Zones.Count)
+			{
+				if(interval.Min == null || interval.Max == null)
+					throw new InvalidOperationException($"collection {interval.Namespace.FullName} does not contain enough chunks " +
+					                                    $"or specify the boundaries of the interval in the configuration");
+
+				presplitByBounds(interval, buffer);
+				return;
+			}
+
+			presplitByChunks(interval, chunks, buffer);
+		}
+
+		private void presplitByBounds(Interval interval, TagRangeCommandBuffer buffer)
+		{
 			var internalBounds = BsonSplitter.SplitFirstValue(interval.Min.Value, interval.Max.Value, interval.Zones.Count)
 				.ToList();
 
@@ -177,24 +148,8 @@ namespace ShardEqualizer.Operations
 			}
 		}
 
-		private async Task distributeCollection(Interval interval, TagRangeCommandBuffer buffer,
-			CancellationToken token)
+		private void presplitByChunks(Interval interval, IList<ChunkInfo> chunks, TagRangeCommandBuffer buffer)
 		{
-			var collInfo = _shardedCollectionByNs[interval.Namespace];
-
-			if (collInfo == null)
-				throw new InvalidOperationException($"collection {interval.Namespace.FullName} not sharded");
-
-			var filtered = _chunkRepo
-				.ByNamespace(interval.Namespace)
-				.From(interval.Min)
-				.To(interval.Max);
-
-			var chunks = await (await filtered.Find(token)).ToListAsync(token);
-
-			if(chunks.Count < interval.Zones.Count)
-				throw new InvalidOperationException($"collection {interval.Namespace.FullName} does not contain enough chunks");
-
 			var parts = chunks.Split(interval.Zones.Count).Select((items, order) => new {Items = items, Order = order}).ToList();
 			foreach (var part in parts)
 			{

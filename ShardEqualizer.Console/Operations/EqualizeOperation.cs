@@ -1,15 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Driver;
 using NLog;
-using ShardEqualizer.Config;
 using ShardEqualizer.Models;
 using ShardEqualizer.MongoCommands;
 using ShardEqualizer.Reporting;
@@ -33,7 +29,6 @@ namespace ShardEqualizer.Operations
 		private readonly ProgressRenderer _progressRenderer;
 		private readonly CommandPlanWriter _commandPlanWriter;
 		private readonly long? _moveLimit;
-		private readonly DebugDirectory _debugDirectory;
 		private readonly bool _planOnly;
 
 		public EqualizeOperation(
@@ -48,7 +43,6 @@ namespace ShardEqualizer.Operations
 			ProgressRenderer progressRenderer,
 			CommandPlanWriter commandPlanWriter,
 			long? moveLimit,
-			DebugDirectory debugDirectory,
 			bool planOnly)
 		{
 			_shardListService = shardListService;
@@ -61,16 +55,13 @@ namespace ShardEqualizer.Operations
 			_progressRenderer = progressRenderer;
 			_commandPlanWriter = commandPlanWriter;
 			_moveLimit = moveLimit;
-			_debugDirectory = debugDirectory;
 			_planOnly = planOnly;
 
 			if (intervals.Count == 0)
 				throw new ArgumentException("interval list is empty");
 
 			_intervals = intervals;
-			_adjustableIntervals = _intervals
-				.Where(_ => _.Correction != CorrectionMode.None)
-				.ToList();
+			_adjustableIntervals = _intervals.Where(_ => _.Adjustable).ToList();
 		}
 
 		private IReadOnlyCollection<Shard> _shards;
@@ -110,8 +101,8 @@ namespace ShardEqualizer.Operations
 			foreach (var interval in _adjustableIntervals)
 			{
 				var collCfg = _zoneOpt.CollectionSettings[interval.Namespace];
-				collCfg.UnShardCompensation = interval.Correction == CorrectionMode.UnShard;
-				collCfg.Priority = interval.Priority;
+				collCfg.Adjustable = interval.Adjustable;
+				collCfg.Priority = 1;
 
 				var allChunks = _chunksByCollection[interval.Namespace];
 				foreach (var tag in interval.Zones)
@@ -153,8 +144,7 @@ namespace ShardEqualizer.Operations
 		{
 			_progressRenderer.WriteLine($"Find solution");
 
-			if (_debugDirectory.Enable)
-				File.WriteAllText(_debugDirectory.GetFileName("conditionDump", "js"), _zoneOpt.Serialize());
+			//File.WriteAllText("conditionDump.js", _zoneOpt.Serialize());
 
 			var solve = ZoneOptimizationSolve.Find(_zoneOpt, token);
 

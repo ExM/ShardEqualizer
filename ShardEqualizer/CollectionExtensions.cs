@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MongoDB.Driver;
 using ShardEqualizer.Models;
 
 namespace ShardEqualizer
@@ -32,7 +31,7 @@ namespace ShardEqualizer
 			return result;
 		}
 
-		public static IEnumerable<List<T>> Split<T>(this List<T> items, int partCount)
+		public static IEnumerable<List<T>> Split<T>(this IList<T> items, int partCount)
 		{
 			var partSize = items.Count / partCount;
 			var extra = items.Count % partCount;
