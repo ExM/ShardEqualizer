@@ -12,6 +12,7 @@ namespace ShardEqualizer.ShardSizeEqualizing
 			Shard = shard;
 			Collection = collection;
 			CurrentSize = 0;
+			TargetSize = 0;
 			Managed = false;
 			_minSize = 0;
 		}
@@ -19,6 +20,7 @@ namespace ShardEqualizer.ShardSizeEqualizing
 		public ShardIdentity Shard { get; }
 		public CollectionNamespace Collection { get; }
 		public long CurrentSize { get; set; }
+		public long TargetSize { get; set; }
 		public bool Managed { get; set; }
 
 		public long MinSize

@@ -36,6 +36,9 @@
       <None Update="conditionSamples\SmartcatCluster\conditionDump_20200928_0750.js">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+      <None Update="NLog.config">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>
