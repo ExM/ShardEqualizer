@@ -1,5 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
+using Accord.Math;
+using Accord.Math.Optimization;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using NLog;
 using NUnit.Framework;
 using ShardEqualizer.ShardSizeEqualizing;
@@ -71,6 +75,58 @@ namespace ShardEqualizer
 			Assert.AreEqual(be, cf, 0.00001);
 		}
 
+
+		//2*x^2 +2* y^2 +2*x*y -20040*x -20040*y +66933600
+		[Test]
+		public void FailAugmentedLagrangian_Demo2()
+		{
+			var targetFunction = new QuadraticObjectiveFunction(
+				new double[2, 2] {{4, 2}, {2, 4}},
+				new double[2] {-20040, -20040});// {ConstantTerm = 66933600};
+
+			Console.WriteLine("QuadraticTerms: {0}",  targetFunction.QuadraticTerms.ToCSharp());
+			Console.WriteLine("LinearTerms: {0}",  targetFunction.LinearTerms.ToCSharp());
+			Console.WriteLine("ConstantTerm: {0}",  targetFunction.ConstantTerm);
+
+			var solver = new AugmentedLagrangian(targetFunction, new List<IConstraint>()) { Solution = new double[] {10, 10000} };
+
+			Console.WriteLine($"Objective start value: {solver.Function(solver.Solution)}");
+			Console.WriteLine($"Objective gradient: {solver.Gradient(solver.Solution).ToCSharp()}");
+
+			var solveResult = solver.Minimize();
+
+			Console.WriteLine($"Objective end value: {solver.Function(solver.Solution)}");
+
+			Console.WriteLine($"Solution: {solver.Solution.ToCSharp()}");
+
+			Assert.IsTrue(solveResult);
+			Assert.IsTrue(solveResult);
+		}
+
+		[Test]
+		public void FailAugmentedLagrangian_Demo()
+		{
+			var solver = new SquareSolver<string>();
+
+			solver.InitVariable("a", 10);
+			solver.InitVariable("b", 10000);
+			solver.InitVariable("c", 10);
+
+			solver.SetEqualConstraint(Vector<string>.Unit(new []{"a", "b", "c"}), 10020);
+
+			var avg = (double) 10020 / 3;
+
+			solver.SetObjective(Vector<string>.Unit(new []{"a"}), avg);
+			solver.SetObjective(Vector<string>.Unit(new []{"b"}), avg);
+			solver.SetObjective(Vector<string>.Unit(new []{"c"}), avg);
+
+			var state = solver.Find(CancellationToken.None);
+
+			Assert.IsTrue(state);
+
+			Assert.That(solver.GetSolution("a"), Is.GreaterThan(10));
+		}
+
 		[Test]
 		public void EqualizeShardWithActiveConstraints()
 		{
@@ -125,6 +181,7 @@ namespace ShardEqualizer
 
 			Assert.AreEqual(be, ad, 0.00001);
 			Assert.Less(cf, be);
+			CollectionAssert.AreEquivalent(new [] {"0 <= [a]", "0 <= [b]", "[f] <= 5"}, solver.ActiveConstraints);
 		}
 
 		[TestCase(10, 5)]

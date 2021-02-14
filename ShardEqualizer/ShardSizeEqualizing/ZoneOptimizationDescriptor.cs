@@ -51,6 +51,8 @@ namespace ShardEqualizer.ShardSizeEqualizing
 
 		public IUnShardedSizeDescriptor UnShardedSize => this;
 
+		public IDictionary<ShardIdentity, long> UnShardedSize2 => _unShardedSizes;
+
 		public ICollectionSettingsDescriptor CollectionSettings => this;
 
 		public IReadOnlyList<Bucket> AllManagedBuckets => _bucketList.Where(_ => _.Managed).ToList();

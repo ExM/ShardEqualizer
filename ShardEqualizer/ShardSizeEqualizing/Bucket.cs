@@ -1,9 +1,10 @@
+using System;
 using MongoDB.Driver;
 using ShardEqualizer.Models;
 
 namespace ShardEqualizer.ShardSizeEqualizing
 {
-	public class Bucket
+	public class Bucket : IEquatable<Bucket>
 	{
 		private long _minSize;
 
@@ -27,6 +28,34 @@ namespace ShardEqualizer.ShardSizeEqualizing
 		{
 			get => _minSize;
 			set => _minSize = value < 0 ? 0 : value;
+		}
+
+		public bool Equals(Bucket other)
+		{
+			if (ReferenceEquals(null, other)) return false;
+			if (ReferenceEquals(this, other)) return true;
+			return Shard.Equals(other.Shard) && Equals(Collection, other.Collection);
+		}
+
+		public override bool Equals(object obj)
+		{
+			if (ReferenceEquals(null, obj)) return false;
+			if (ReferenceEquals(this, obj)) return true;
+			if (obj.GetType() != this.GetType()) return false;
+			return Equals((Bucket) obj);
+		}
+
+		public override int GetHashCode()
+		{
+			unchecked
+			{
+				return (Shard.GetHashCode() * 397) ^ (Collection != null ? Collection.GetHashCode() : 0);
+			}
+		}
+
+		public override string ToString()
+		{
+			return $"{Shard}:{Collection}";
 		}
 	}
 }

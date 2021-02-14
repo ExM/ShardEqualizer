@@ -14,7 +14,7 @@ namespace ShardEqualizer.ShardSizeEqualizing
 
 		private readonly IDictionary<T, Variable> _nameMap = new Dictionary<T, Variable>();
 
-		private readonly List<LinearPolynomial2<T>> _positiveConstraints = new List<LinearPolynomial2<T>>();
+		private readonly List<PositiveConstraint> _positiveConstraints = new List<PositiveConstraint>();
 
 		private readonly List<LinearPolynomial2<T>> _objectives = new List<LinearPolynomial2<T>>();
 
@@ -29,17 +29,17 @@ namespace ShardEqualizer.ShardSizeEqualizing
 
 		public void SetMax(T variable, double max)
 		{
-			SetPositiveConstraint(new LinearPolynomial2<T>() {[variable] = -1, Constant = max});
+			SetPositiveConstraint(new LinearPolynomial2<T>() {[variable] = -1, Constant = max}, $"[{variable}] <= {max}");
 		}
 
 		public void SetMin(T variable, double min)
 		{
-			SetPositiveConstraint(new LinearPolynomial2<T>() {[variable] = 1, Constant = -min});
+			SetPositiveConstraint(new LinearPolynomial2<T>() {[variable] = 1, Constant = -min}, $"{min} <= [{variable}]");
 		}
 
-		public void SetPositiveConstraint(LinearPolynomial2<T> func)
+		public void SetPositiveConstraint(LinearPolynomial2<T> func, string desc)
 		{
-			_positiveConstraints.Add(func);
+			_positiveConstraints.Add(new PositiveConstraint(func, desc));
 		}
 
 		public void SetEqualConstraint(Vector<T> linearTerms, double requiredValue)
@@ -103,12 +103,11 @@ namespace ShardEqualizer.ShardSizeEqualizing
 
 			foreach (var func in _objectives)
 				appendSquare(targetFunction, func, indexMap);
-				//targetFunction += square(func, indexMap);
 
 			var constraints = new List<LinearConstraint>();
 
-			foreach (var func in _positiveConstraints)
-				constraints.Add(positiveConstraint(func, indexMap));
+			foreach (var c in _positiveConstraints)
+				constraints.Add(positiveConstraint(c.Function, indexMap));
 
 			var initArray = new double[indexMap.Count];
 
@@ -122,13 +121,17 @@ namespace ShardEqualizer.ShardSizeEqualizing
 			//var solver = new GoldfarbIdnani(targetFunction, constraints) {Token = token};
 			var solver = new AugmentedLagrangian(targetFunction, constraints) {Token = token, Solution = initArray};
 
+			//var solver = new GradientDescent()
+			//	{ NumberOfVariables = indexMap.Count, Function = targetFunction.Function, Gradient = targetFunction.Gradient, Solution = initArray};
+
 			_log.Trace($"Objective start value: {solver.Function(solver.Solution)}");
+			_log.Trace($"Objective gradient: {solver.Gradient(solver.Solution).ToCSharp()}");
 
 			var solveResult = solver.Minimize();
-			var solveStatus = solver.Status;
+			//var solveStatus = solver.Status;
 
 			_log.Trace("Objective end value: {0}", solver.Value);
-			_log.Trace("Solve status: {0}", solveStatus);
+			//_log.Trace("Solve status: {0}", solveStatus);
 
 			if (!solveResult)
 				return false;
@@ -145,8 +148,15 @@ namespace ShardEqualizer.ShardSizeEqualizing
 			foreach (var v in _nameMap.Values.Where(_ => _.Closed))
 				v.Solution = v.Function.Function(solutionVector);
 
+			ActiveConstraints = _positiveConstraints
+				.Where(c => c.Function.Function(solutionVector) <= 0.25)
+				.Select(c => c.Description)
+				.ToList();
+
 			return true;
 		}
+
+		public IList<string> ActiveConstraints { get; private set; } = new List<string>();
 
 		private LinearConstraint positiveConstraint(LinearPolynomial2<T> func, Dictionary<T, int> indexMap)
 		{
@@ -182,8 +192,11 @@ namespace ShardEqualizer.ShardSizeEqualizing
 
 		private void checkConstraintsByInit(Vector<T> init)
 		{
-			if (_positiveConstraints.Any(func => func.Function(init) < 0))
-				throw new Exception("constraint fail");
+			foreach (var c in _positiveConstraints)
+			{
+				if(c.Function.Function(init) < 0)
+					throw new Exception("constraint fail");
+			}
 		}
 
 		private Vector<T> buildInit()
@@ -206,16 +219,22 @@ namespace ShardEqualizer.ShardSizeEqualizing
 
 		private void substituteConstraintFunctions()
 		{
-			foreach (var func in _positiveConstraints)
+			foreach (var c in _positiveConstraints)
 			{
-				substituteClosedVariables(func);
-				if (func.LinearTerms.Any() || func.Constant >= 0)
+				substituteClosedVariables(c.Function);
+				if (c.Function.LinearTerms.Any())
 					continue;
 
-				throw new Exception("constraint leads to no solution ");
+				if (c.Function.Constant >= 0)
+				{
+					_log.Trace("constraint {0} not used", c.Description);
+					continue;
+				}
+
+				throw new Exception($"constraint {c.Description} leads to no solution ");
 			}
 
-			_positiveConstraints.RemoveAll(_ => !_.LinearTerms.Any());
+			_positiveConstraints.RemoveAll(_ => !_.Function.LinearTerms.Any());
 		}
 
 		public double GetSolution(T variable)
@@ -242,6 +261,18 @@ namespace ShardEqualizer.ShardSizeEqualizing
 				Init = init;
 				Name = name;
 			}
+		}
+
+		private class PositiveConstraint
+		{
+			public PositiveConstraint(LinearPolynomial2<T> function, string description)
+			{
+				Function = function;
+				Description = description;
+			}
+
+			public LinearPolynomial2<T> Function { get; }
+			public string Description { get; }
 		}
 	}
 }

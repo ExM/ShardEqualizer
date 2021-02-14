@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using MongoDB.Driver;
 using NUnit.Framework;
 using ShardEqualizer.Models;
@@ -47,6 +48,47 @@ namespace ShardEqualizer
 			zoneOpt[_cE, _sD].Init(b => { b.CurrentSize =   30; b.Managed = false;});
 
 			var solve = ZoneOptimizationSolve.Find(zoneOpt);
+
+			Assert.IsTrue(solve.IsSuccess);
+		}
+
+		[Test]
+		public void SizeSolverDemo_new()
+		{
+			var zoneOpt = new ZoneOptimizationDescriptor(
+				new []{_cA, _cB, _cC, _cD, _cE},
+				new []{_sA, _sB, _sC, _sD});
+
+			//zoneOpt.UnShardedSize[_sA] = 100;
+			//zoneOpt.UnShardedSize[_sB] = 20;
+			//zoneOpt.UnShardedSize[_sD] = 30;
+
+			zoneOpt[_cA, _sA].Init(b => { b.CurrentSize =  600; b.Managed = true;});
+			zoneOpt[_cA, _sB].Init(b => { b.CurrentSize = 2000; b.Managed = true;});
+			zoneOpt[_cA, _sC].Init(b => { b.CurrentSize = 2000; b.Managed = true;});
+			zoneOpt[_cA, _sD].Init(b => { b.CurrentSize = 1230; b.Managed = true;});
+
+			zoneOpt[_cB, _sA].Init(b => { b.CurrentSize =  100; b.Managed = true;});
+			zoneOpt[_cB, _sB].Init(b => { b.CurrentSize = 4520; b.Managed = true;});
+			zoneOpt[_cB, _sC].Init(b => { b.CurrentSize =   30; b.Managed = true;});
+			zoneOpt[_cB, _sD].Init(b => { b.CurrentSize = 2330; b.Managed = true;});
+
+			zoneOpt[_cC, _sA].Init(b => { b.CurrentSize =  100; b.Managed = true;});
+			zoneOpt[_cC, _sB].Init(b => { b.CurrentSize =  100; b.Managed = true;});
+			zoneOpt[_cC, _sC].Init(b => { b.CurrentSize =    0; b.Managed = true;});
+			zoneOpt[_cC, _sD].Init(b => { b.CurrentSize =   30; b.Managed = true;});
+
+			zoneOpt[_cD, _sA].Init(b => { b.CurrentSize =  100; b.Managed = true;});
+			zoneOpt[_cD, _sB].Init(b => { b.CurrentSize =  200; b.Managed = true;});
+			zoneOpt[_cD, _sC].Init(b => { b.CurrentSize =  500; b.Managed = true;});
+			zoneOpt[_cD, _sD].Init(b => { b.CurrentSize =  300; b.Managed = true;});
+
+			zoneOpt[_cE, _sA].Init(b => { b.CurrentSize =   10; b.Managed = true;});
+			zoneOpt[_cE, _sB].Init(b => { b.CurrentSize =   20; b.Managed = true;});
+			zoneOpt[_cE, _sC].Init(b => { b.CurrentSize =   20; b.Managed = true;});
+			zoneOpt[_cE, _sD].Init(b => { b.CurrentSize =   30; b.Managed = false;});
+
+			var solve = OptimalDataPartition.Find(zoneOpt, CancellationToken.None);
 
 			Assert.IsTrue(solve.IsSuccess);
 		}
@@ -393,6 +435,113 @@ namespace ShardEqualizer
 			Assert.That(solve[_cA, _sB].TargetSize, Is.EqualTo(2000));
 			Assert.That(solve[_cB, _sA].TargetSize, Is.EqualTo(2000));
 			Assert.That(solve[_cB, _sB].TargetSize, Is.EqualTo(2000));
+		}
+
+		[Test]
+		public void Trivial_new()
+		{
+			var zoneOpt = new ZoneOptimizationDescriptor(
+				new []{_cA, _cB},
+				new []{_sA, _sB});
+
+			zoneOpt.UnShardedSize[_sA] = 0;
+			zoneOpt.UnShardedSize[_sB] = 0;
+
+			zoneOpt[_cA, _sA].Init(b =>
+			{
+				b.CurrentSize = 2500;
+				b.Managed = true;
+			});
+			zoneOpt[_cA, _sB].Init(b =>
+			{
+				b.CurrentSize = 1500;
+				b.Managed = true;
+			});
+			zoneOpt[_cB, _sA].Init(b =>
+			{
+				b.CurrentSize = 1000;
+				b.Managed = true;
+			});
+			zoneOpt[_cB, _sB].Init(b =>
+			{
+				b.CurrentSize = 3000;
+				b.Managed = true;
+			});
+
+			var solve = OptimalDataPartition.Find(zoneOpt, CancellationToken.None);
+
+			Assert.IsTrue(solve.IsSuccess);
+			Assert.Multiple(() =>
+			{
+				Assert.That(zoneOpt[_cA, _sA].TargetSize, Is.EqualTo(2000));
+				Assert.That(zoneOpt[_cA, _sB].TargetSize, Is.EqualTo(2000));
+				Assert.That(zoneOpt[_cB, _sA].TargetSize, Is.EqualTo(2000));
+				Assert.That(zoneOpt[_cB, _sB].TargetSize, Is.EqualTo(2000));
+			});
+		}
+
+		[Test]
+		public void Trivial_unManaged()
+		{
+			var zoneOpt = new ZoneOptimizationDescriptor(
+				new []{_cA, _cB},
+				new []{_sA, _sB});
+
+			zoneOpt[_cA, _sA].Init(b => { b.CurrentSize =  500; b.Managed = false;});
+			zoneOpt[_cA, _sB].Init(b => { b.CurrentSize = 1000; b.Managed = true;});
+
+			zoneOpt[_cB, _sA].Init(b => { b.CurrentSize = 1000; b.Managed = true;});
+			zoneOpt[_cB, _sB].Init(b => { b.CurrentSize = 1000; b.Managed = true;});
+
+			var solve = OptimalDataPartition.Find(zoneOpt, CancellationToken.None);
+
+			Assert.IsTrue(solve.IsSuccess);
+
+			Assert.Multiple(() =>
+			{
+				Assert.That(zoneOpt[_cA, _sA].TargetSize, Is.EqualTo(0));
+				Assert.That(zoneOpt[_cA, _sB].TargetSize, Is.EqualTo(1000));
+				Assert.That(zoneOpt[_cB, _sA].TargetSize, Is.EqualTo(1250));
+				Assert.That(zoneOpt[_cB, _sB].TargetSize, Is.EqualTo(750));
+			});
+		}
+
+		[Test]
+		public void unManaged()
+		{
+			var zoneOpt = new ZoneOptimizationDescriptor(
+				new []{_cA, _cB},
+				new []{_sA, _sB, _sC});
+
+			zoneOpt[_cA, _sA].Init(b => { b.CurrentSize =  10; b.Managed = false;});
+			zoneOpt[_cA, _sB].Init(b => { b.CurrentSize =  10; b.Managed = true;});
+			zoneOpt[_cA, _sC].Init(b => { b.CurrentSize =  10; b.Managed = true;});
+
+			zoneOpt[_cB, _sA].Init(b => { b.CurrentSize =  10; b.Managed = true;});
+			zoneOpt[_cB, _sB].Init(b => { b.CurrentSize = 1000; b.Managed = true;});
+			zoneOpt[_cB, _sC].Init(b => { b.CurrentSize =  10; b.Managed = true;});
+
+			var solve = OptimalDataPartition.Find(zoneOpt, CancellationToken.None);
+
+			Assert.IsTrue(solve.IsSuccess);
+		}
+
+		[Test]
+		public void FailAugmentedLagrangian_Demo()
+		{
+			var zoneOpt = new ZoneOptimizationDescriptor(
+				new []{_cA},
+				new []{_sA, _sB, _sC});
+
+			zoneOpt[_cA, _sA].Init(b => { b.CurrentSize =  10; b.Managed = true;});
+			zoneOpt[_cA, _sB].Init(b => { b.CurrentSize =  10000; b.Managed = true;});
+			zoneOpt[_cA, _sC].Init(b => { b.CurrentSize =  10; b.Managed = true;});
+
+			var solve = OptimalDataPartition.Find(zoneOpt, CancellationToken.None);
+
+			Assert.IsTrue(solve.IsSuccess);
+
+			Assert.That(zoneOpt[_cA, _sA].TargetSize, Is.GreaterThan(10));
 		}
 
 		private static readonly ShardIdentity _sA = new ShardIdentity("shA");

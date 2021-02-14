@@ -128,6 +128,11 @@ namespace ShardEqualizer.ShardSizeEqualizing
 		{
 		}
 
+		private Vector(Dictionary<T, double> values)
+		{
+			_values = values;
+		}
+
 		public Vector(Vector<T> src)
 		{
 			_values = new Dictionary<T, double>(src._values);
@@ -137,6 +142,11 @@ namespace ShardEqualizer.ShardSizeEqualizing
 		{
 			return _values.Keys.Union(input._values.Keys)
 				.Sum(key => this[key] * input[key]);
+		}
+
+		public static Vector<T> Unit(IEnumerable<T> keys)
+		{
+			return new Vector<T>(keys.ToDictionary(_ => _, _ => 1d));
 		}
 
 		public double this[T key]
