@@ -124,7 +124,9 @@ namespace ShardEqualizer.ShardSizeEqualizing
 			//var solver = new GradientDescent()
 			//	{ NumberOfVariables = indexMap.Count, Function = targetFunction.Function, Gradient = targetFunction.Gradient, Solution = initArray};
 
-			_log.Trace($"Objective start value: {solver.Function(solver.Solution)}");
+			var startValue = solver.Function(solver.Solution);
+
+			_log.Trace($"Objective start value: {startValue}");
 			_log.Trace($"Objective gradient: {solver.Gradient(solver.Solution).ToCSharp()}");
 
 			var solveResult = solver.Minimize();
@@ -135,6 +137,9 @@ namespace ShardEqualizer.ShardSizeEqualizing
 
 			if (!solveResult)
 				return false;
+
+			if (solver.Value >= startValue)
+				throw new Exception("solution not changed");
 
 			var solutionVector = new Vector<T>();
 

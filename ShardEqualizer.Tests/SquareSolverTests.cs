@@ -80,15 +80,17 @@ namespace ShardEqualizer
 		[Test]
 		public void FailAugmentedLagrangian_Demo2()
 		{
+			var avg = 10000 / 3;
+
 			var targetFunction = new QuadraticObjectiveFunction(
 				new double[2, 2] {{4, 2}, {2, 4}},
-				new double[2] {-20040, -20040});// {ConstantTerm = 66933600};
+				new double[2] {-20040, -20040}) {ConstantTerm = 66933600};
 
 			Console.WriteLine("QuadraticTerms: {0}",  targetFunction.QuadraticTerms.ToCSharp());
 			Console.WriteLine("LinearTerms: {0}",  targetFunction.LinearTerms.ToCSharp());
 			Console.WriteLine("ConstantTerm: {0}",  targetFunction.ConstantTerm);
 
-			var solver = new AugmentedLagrangian(targetFunction, new List<IConstraint>()) { Solution = new double[] {10, 10000} };
+			var solver = new AugmentedLagrangian(targetFunction, new List<IConstraint>()) { Solution = new double[] {10000, 10} };
 
 			Console.WriteLine($"Objective start value: {solver.Function(solver.Solution)}");
 			Console.WriteLine($"Objective gradient: {solver.Gradient(solver.Solution).ToCSharp()}");
@@ -100,7 +102,7 @@ namespace ShardEqualizer
 			Console.WriteLine($"Solution: {solver.Solution.ToCSharp()}");
 
 			Assert.IsTrue(solveResult);
-			Assert.IsTrue(solveResult);
+			Assert.Less(solver.Solution[0], 5000);
 		}
 
 		[Test]

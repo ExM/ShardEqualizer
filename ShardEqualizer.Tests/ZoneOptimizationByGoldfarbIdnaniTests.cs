@@ -59,11 +59,11 @@ namespace ShardEqualizer
 				new []{_cA, _cB, _cC, _cD, _cE},
 				new []{_sA, _sB, _sC, _sD});
 
-			//zoneOpt.UnShardedSize[_sA] = 100;
-			//zoneOpt.UnShardedSize[_sB] = 20;
-			//zoneOpt.UnShardedSize[_sD] = 30;
+			zoneOpt.UnShardedSize[_sA] = 100;
+			zoneOpt.UnShardedSize[_sB] = 20;
+			zoneOpt.UnShardedSize[_sD] = 30;
 
-			zoneOpt[_cA, _sA].Init(b => { b.CurrentSize =  600; b.Managed = true;});
+			zoneOpt[_cA, _sA].Init(b => { b.CurrentSize =  600; b.Managed = false;});
 			zoneOpt[_cA, _sB].Init(b => { b.CurrentSize = 2000; b.Managed = true;});
 			zoneOpt[_cA, _sC].Init(b => { b.CurrentSize = 2000; b.Managed = true;});
 			zoneOpt[_cA, _sD].Init(b => { b.CurrentSize = 1230; b.Managed = true;});
