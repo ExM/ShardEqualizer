@@ -40,6 +40,10 @@ namespace ShardEqualizer.ShardSizeEqualizing
 			set =>  _unShardedSizes[shard] = value;
 		}
 
+		public IReadOnlyDictionary<ShardIdentity, long> TargetShards => _bucketsByShardByCollection.ToDictionary(
+			_ => _.Key,
+			_ => _.Value.Values.Select(b => b.TargetSize).Sum() + _unShardedSizes[_.Key]);
+
 		CollectionSettings ICollectionSettingsDescriptor.this[CollectionNamespace coll] => _collectionSettings[coll];
 
 		public double ShardEqualsPriority { get; set; }

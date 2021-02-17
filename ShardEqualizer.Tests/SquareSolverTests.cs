@@ -49,9 +49,9 @@ namespace ShardEqualizer
 			solver.SetEqualConstraint(new Vector<string>(){ ["a"] = 1, ["b"] = 1, ["c"] = 1}, 3);
 			solver.SetEqualConstraint(new Vector<string>(){ ["d"] = 1, ["e"] = 1, ["f"] = 1}, 30);
 
-			solver.SetObjective(new Vector<string>(){ ["a"] = 1, ["d"] = 1}, 2);
-			solver.SetObjective(new Vector<string>(){ ["b"] = 1, ["e"] = 1}, 2);
-			solver.SetObjective(new Vector<string>(){ ["c"] = 1, ["f"] = 1}, 2);
+			solver.SetObjective(new Vector<string>(){ ["a"] = 1, ["d"] = 1}, 11);
+			solver.SetObjective(new Vector<string>(){ ["b"] = 1, ["e"] = 1}, 11);
+			solver.SetObjective(new Vector<string>(){ ["c"] = 1, ["f"] = 1}, 11);
 
 			var state = solver.Find(CancellationToken.None);
 
@@ -75,38 +75,8 @@ namespace ShardEqualizer
 			Assert.AreEqual(be, cf, 0.00001);
 		}
 
-
-		//2*x^2 +2* y^2 +2*x*y -20040*x -20040*y +66933600
 		[Test]
-		public void FailAugmentedLagrangian_Demo2()
-		{
-			var avg = 10000 / 3;
-
-			var targetFunction = new QuadraticObjectiveFunction(
-				new double[2, 2] {{4, 2}, {2, 4}},
-				new double[2] {-20040, -20040}) {ConstantTerm = 66933600};
-
-			Console.WriteLine("QuadraticTerms: {0}",  targetFunction.QuadraticTerms.ToCSharp());
-			Console.WriteLine("LinearTerms: {0}",  targetFunction.LinearTerms.ToCSharp());
-			Console.WriteLine("ConstantTerm: {0}",  targetFunction.ConstantTerm);
-
-			var solver = new AugmentedLagrangian(targetFunction, new List<IConstraint>()) { Solution = new double[] {10000, 10} };
-
-			Console.WriteLine($"Objective start value: {solver.Function(solver.Solution)}");
-			Console.WriteLine($"Objective gradient: {solver.Gradient(solver.Solution).ToCSharp()}");
-
-			var solveResult = solver.Minimize();
-
-			Console.WriteLine($"Objective end value: {solver.Function(solver.Solution)}");
-
-			Console.WriteLine($"Solution: {solver.Solution.ToCSharp()}");
-
-			Assert.IsTrue(solveResult);
-			Assert.Less(solver.Solution[0], 5000);
-		}
-
-		[Test]
-		public void FailAugmentedLagrangian_Demo()
+		public void CheckBacktrackingArmijo()
 		{
 			var solver = new SquareSolver<string>();
 
@@ -159,9 +129,9 @@ namespace ShardEqualizer
 			solver.SetEqualConstraint(new Vector<string>(){ ["a"] = 1, ["b"] = 1, ["c"] = 1}, 3);
 			solver.SetEqualConstraint(new Vector<string>(){ ["d"] = 1, ["e"] = 1, ["f"] = 1}, 30);
 
-			solver.SetObjective(new Vector<string>(){ ["a"] = 1, ["d"] = 1}, 2);
-			solver.SetObjective(new Vector<string>(){ ["b"] = 1, ["e"] = 1}, 2);
-			solver.SetObjective(new Vector<string>(){ ["c"] = 1, ["f"] = 1}, 2);
+			solver.SetObjective(new Vector<string>(){ ["a"] = 1, ["d"] = 1}, 11);
+			solver.SetObjective(new Vector<string>(){ ["b"] = 1, ["e"] = 1}, 11);
+			solver.SetObjective(new Vector<string>(){ ["c"] = 1, ["f"] = 1}, 11);
 
 			var state = solver.Find(CancellationToken.None);
 

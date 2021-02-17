@@ -9,51 +9,10 @@ using ShardEqualizer.ShardSizeEqualizing;
 namespace ShardEqualizer
 {
 	[TestFixture]
-	public class ZoneOptimizationByGoldfarbIdnaniTests
+	public class OptimalDataPartitionTests
 	{
 		[Test]
 		public void SizeSolverDemo()
-		{
-			var zoneOpt = new ZoneOptimizationDescriptor(
-				new []{_cA, _cB, _cC, _cD, _cE},
-				new []{_sA, _sB, _sC, _sD});
-
-			zoneOpt.UnShardedSize[_sA] = 100;
-			zoneOpt.UnShardedSize[_sB] = 20;
-			zoneOpt.UnShardedSize[_sD] = 30;
-
-			zoneOpt[_cA, _sA].Init(b => { b.CurrentSize =  600; b.Managed = false;});
-			zoneOpt[_cA, _sB].Init(b => { b.CurrentSize = 2000; b.Managed = true;});
-			zoneOpt[_cA, _sC].Init(b => { b.CurrentSize = 2000; b.Managed = true;});
-			zoneOpt[_cA, _sD].Init(b => { b.CurrentSize = 1230; b.Managed = true;});
-
-			zoneOpt[_cB, _sA].Init(b => { b.CurrentSize =  100; b.Managed = true;});
-			zoneOpt[_cB, _sB].Init(b => { b.CurrentSize = 4520; b.Managed = true;});
-			zoneOpt[_cB, _sC].Init(b => { b.CurrentSize =   30; b.Managed = true;});
-			zoneOpt[_cB, _sD].Init(b => { b.CurrentSize = 2330; b.Managed = true;});
-
-			zoneOpt[_cC, _sA].Init(b => { b.CurrentSize =  100; b.Managed = true;});
-			zoneOpt[_cC, _sB].Init(b => { b.CurrentSize =  100; b.Managed = true;});
-			zoneOpt[_cC, _sC].Init(b => { b.CurrentSize =    0; b.Managed = true;});
-			zoneOpt[_cC, _sD].Init(b => { b.CurrentSize =   30; b.Managed = true;});
-
-			zoneOpt[_cD, _sA].Init(b => { b.CurrentSize =  100; b.Managed = true;});
-			zoneOpt[_cD, _sB].Init(b => { b.CurrentSize =  200; b.Managed = true;});
-			zoneOpt[_cD, _sC].Init(b => { b.CurrentSize =  500; b.Managed = true;});
-			zoneOpt[_cD, _sD].Init(b => { b.CurrentSize =  300; b.Managed = true;});
-
-			zoneOpt[_cE, _sA].Init(b => { b.CurrentSize =   10; b.Managed = true;});
-			zoneOpt[_cE, _sB].Init(b => { b.CurrentSize =   20; b.Managed = true;});
-			zoneOpt[_cE, _sC].Init(b => { b.CurrentSize =   20; b.Managed = true;});
-			zoneOpt[_cE, _sD].Init(b => { b.CurrentSize =   30; b.Managed = false;});
-
-			var solve = ZoneOptimizationSolve.Find(zoneOpt);
-
-			Assert.IsTrue(solve.IsSuccess);
-		}
-
-		[Test]
-		public void SizeSolverDemo_new()
 		{
 			var zoneOpt = new ZoneOptimizationDescriptor(
 				new []{_cA, _cB, _cC, _cD, _cE},
@@ -114,14 +73,14 @@ namespace ShardEqualizer
 
 			zoneOpt.ShardEqualsPriority = 100;
 
-			var solve = ZoneOptimizationSolve.Find(zoneOpt);
+			var solve = OptimalDataPartition.Find(zoneOpt, CancellationToken.None);
 
 			Assert.IsTrue(solve.IsSuccess);
 
-			Assert.That(solve[_cB, _sB].TargetSize, Is.EqualTo(4000));
-			Assert.That(solve[_cC, _sA].TargetSize, Is.EqualTo(750));
-			Assert.That(solve[_cC, _sB].TargetSize, Is.EqualTo(250));
-			Assert.That(solve[_cC, _sC].TargetSize, Is.EqualTo(500));
+			Assert.That(zoneOpt[_cB, _sB].TargetSize, Is.EqualTo(4000));
+			Assert.That(zoneOpt[_cC, _sA].TargetSize, Is.EqualTo(750));
+			Assert.That(zoneOpt[_cC, _sB].TargetSize, Is.EqualTo(250));
+			Assert.That(zoneOpt[_cC, _sC].TargetSize, Is.EqualTo(500));
 
 			Assert.That(solve.ActiveConstraints.Count, Is.EqualTo(6));
 		}
@@ -147,15 +106,15 @@ namespace ShardEqualizer
 
 			zoneOpt.ShardEqualsPriority = 100;
 
-			var solve = ZoneOptimizationSolve.Find(zoneOpt);
+			var solve = OptimalDataPartition.Find(zoneOpt, CancellationToken.None);
 
 			Assert.IsTrue(solve.IsSuccess);
 
-			Assert.That(solve[_cB, _sA].TargetSize, Is.EqualTo(4265));
-			Assert.That(solve[_cB, _sB].TargetSize, Is.EqualTo(2367));
-			Assert.That(solve[_cC, _sA].TargetSize, Is.EqualTo(535));
-			Assert.That(solve[_cC, _sB].TargetSize, Is.EqualTo(482));
-			Assert.That(solve[_cC, _sC].TargetSize, Is.EqualTo(482));
+			Assert.That(zoneOpt[_cB, _sA].TargetSize, Is.EqualTo(4265));
+			Assert.That(zoneOpt[_cB, _sB].TargetSize, Is.EqualTo(2367));
+			Assert.That(zoneOpt[_cC, _sA].TargetSize, Is.EqualTo(535));
+			Assert.That(zoneOpt[_cC, _sB].TargetSize, Is.EqualTo(482));
+			Assert.That(zoneOpt[_cC, _sC].TargetSize, Is.EqualTo(482));
 
 			Assert.That(solve.ActiveConstraints, Is.Empty);
 		}
@@ -181,14 +140,14 @@ namespace ShardEqualizer
 
 			zoneOpt.ShardEqualsPriority = 1;
 
-			var solve = ZoneOptimizationSolve.Find(zoneOpt);
+			var solve = OptimalDataPartition.Find(zoneOpt, CancellationToken.None);
 
 			Assert.IsTrue(solve.IsSuccess);
 
-			Assert.That(solve[_cB, _sB].TargetSize, Is.EqualTo(2784));
-			Assert.That(solve[_cC, _sA].TargetSize, Is.EqualTo(500));
-			Assert.That(solve[_cC, _sB].TargetSize, Is.EqualTo(500));
-			Assert.That(solve[_cC, _sC].TargetSize, Is.EqualTo(500));
+			Assert.That(zoneOpt[_cB, _sB].TargetSize, Is.EqualTo(2784));
+			Assert.That(zoneOpt[_cC, _sA].TargetSize, Is.EqualTo(500));
+			Assert.That(zoneOpt[_cC, _sB].TargetSize, Is.EqualTo(500));
+			Assert.That(zoneOpt[_cC, _sC].TargetSize, Is.EqualTo(500));
 		}
 
 		[Test]
@@ -212,23 +171,24 @@ namespace ShardEqualizer
 
 			zoneOpt.ShardEqualsPriority = 1;
 
-			var solve = ZoneOptimizationSolve.Find(zoneOpt);
+			var solve = OptimalDataPartition.Find(zoneOpt, CancellationToken.None);
 
 			Assert.IsTrue(solve.IsSuccess);
 
 			Assert.That(solve.ActiveConstraints.Count, Is.EqualTo(3));
 
+			/*
 			var activeConstraint = solve.ActiveConstraints.Single(_ => _.Bucket.Collection == _cB && _.Bucket.Shard == _sA);
 
 			Assert.That(activeConstraint.Bound, Is.EqualTo(3000));
 			Assert.That(activeConstraint.Bucket.Collection, Is.EqualTo(_cB));
 			Assert.That(activeConstraint.Bucket.Shard, Is.EqualTo(_sA));
 			Assert.That(activeConstraint.Type, Is.EqualTo(BucketConstraint.ConstraintType.Min));
-
-			Assert.That(solve[_cA, _sB].TargetSize, Is.EqualTo(1807));
-			Assert.That(solve[_cB, _sB].TargetSize, Is.EqualTo(3000));
-			Assert.That(solve[_cC, _sA].TargetSize, Is.EqualTo(406));
-			Assert.That(solve[_cC, _sB].TargetSize, Is.EqualTo(389));
+			*/
+			Assert.That(zoneOpt[_cA, _sB].TargetSize, Is.EqualTo(1807));
+			Assert.That(zoneOpt[_cB, _sB].TargetSize, Is.EqualTo(3000));
+			Assert.That(zoneOpt[_cC, _sA].TargetSize, Is.EqualTo(406));
+			Assert.That(zoneOpt[_cC, _sB].TargetSize, Is.EqualTo(389));
 		}
 
 		[Test]
@@ -256,18 +216,18 @@ namespace ShardEqualizer
 
 			zoneOpt.ShardEqualsPriority = 10;
 
-			var solve = ZoneOptimizationSolve.Find(zoneOpt);
+			var solve = OptimalDataPartition.Find(zoneOpt, CancellationToken.None);
 
 			Assert.IsTrue(solve.IsSuccess);
 
-			var targetShards = solve.TargetShards;
+			var targetShards = zoneOpt.TargetShards;
 
-			Assert.That(solve[_cA, _sB].TargetSize, Is.EqualTo(2000));
+			Assert.That(zoneOpt[_cA, _sB].TargetSize, Is.EqualTo(2000));
 
-			Assert.That(solve[_cB, _sA].TargetSize, Is.EqualTo(4036));
-			Assert.That(solve[_cB, _sB].TargetSize, Is.EqualTo(2482));
+			Assert.That(zoneOpt[_cB, _sA].TargetSize, Is.EqualTo(4036));
+			Assert.That(zoneOpt[_cB, _sB].TargetSize, Is.EqualTo(2482));
 
-			Assert.That(solve[_cC, _sA].TargetSize, Is.EqualTo(529));
+			Assert.That(zoneOpt[_cC, _sA].TargetSize, Is.EqualTo(529));
 
 			Assert.That(targetShards.Values, Is.EquivalentTo(new []{4565, 4968, 4968}));
 		}
@@ -298,21 +258,21 @@ namespace ShardEqualizer
 
 			zoneOpt.ShardEqualsPriority = 10;
 
-			var solve = ZoneOptimizationSolve.Find(zoneOpt);
+			var solve = OptimalDataPartition.Find(zoneOpt, CancellationToken.None);
 
 			Assert.IsTrue(solve.IsSuccess);
-			var expectedTargets = solve.AllManagedBuckets.Select(_ => _.TargetSize).ToList();
+			var expectedTargets = zoneOpt.AllManagedBuckets.Select(_ => _.TargetSize).ToList();
 
 			foreach (var b in zoneOpt.AllManagedBuckets)
 			{
-				b.CurrentSize = b.CurrentSize + (long)Math.Round(pathPercent * (solve[b.Collection, b.Shard].TargetSize - b.CurrentSize));
+				b.CurrentSize = b.CurrentSize + (long)Math.Round(pathPercent * (zoneOpt[b.Collection, b.Shard].TargetSize - b.CurrentSize));
 			}
 
-			var solve2 = ZoneOptimizationSolve.Find(zoneOpt);
+			var solve2 = OptimalDataPartition.Find(zoneOpt, CancellationToken.None);
 
 			Assert.IsTrue(solve2.IsSuccess);
 
-			var actualTargets = solve2.AllManagedBuckets.Select(_ => _.TargetSize);
+			var actualTargets = zoneOpt.AllManagedBuckets.Select(_ => _.TargetSize);
 
 			foreach (var pair in actualTargets.Zip(expectedTargets, (actual, expected) => new {actual, expected}))
 			{
@@ -348,13 +308,13 @@ namespace ShardEqualizer
 
 			zoneOpt.ShardEqualsPriority = shardEqualsPriority;
 
-			var solve = ZoneOptimizationSolve.Find(zoneOpt);
+			var solve = OptimalDataPartition.Find(zoneOpt);
 
 			Assert.IsTrue(solve.IsSuccess);
 
-			var targetShards = solve.TargetShards;
+			var targetShards = zoneOpt.TargetShards;
 
-			Assert.That(solve[_cC, _sA].TargetSize, Is.EqualTo(bucketCA));
+			Assert.That(zoneOpt[_cC, _sA].TargetSize, Is.EqualTo(bucketCA));
 			Assert.That(targetShards.Values, Is.EquivalentTo(expectedShards));
 		}
 
@@ -384,15 +344,15 @@ namespace ShardEqualizer
 
 			zoneOpt.CollectionSettings[ _cB].Priority = collectionEqualsPriority;
 
-			var solve = ZoneOptimizationSolve.Find(zoneOpt);
+			var solve = OptimalDataPartition.Find(zoneOpt);
 
 			Assert.IsTrue(solve.IsSuccess);
 
 			Assert.That(new []
 			{
-				solve[_cB, _sA].TargetSize,
-				solve[_cB, _sB].TargetSize,
-				solve[_cB, _sC].TargetSize
+				zoneOpt[_cB, _sA].TargetSize,
+				zoneOpt[_cB, _sB].TargetSize,
+				zoneOpt[_cB, _sC].TargetSize
 			}, Is.EquivalentTo(expectedShards));
 		}
 
@@ -406,35 +366,132 @@ namespace ShardEqualizer
 			zoneOpt.UnShardedSize[_sA] = 0;
 			zoneOpt.UnShardedSize[_sB] = 0;
 
+			zoneOpt[_cA, _sA].OnSize(1000).OnManaged();
+			zoneOpt[_cA, _sB].OnSize(3000).OnManaged();
+			zoneOpt[_cB, _sA].OnSize(3000).OnManaged();
+			zoneOpt[_cB, _sB].OnSize(1000).OnManaged();
+
+			var solve = OptimalDataPartition.Find(zoneOpt);
+
+			Assert.IsTrue(solve.IsSuccess);
+			Assert.Multiple(() =>
+			{
+				Assert.That(zoneOpt[_cA, _sA].TargetSize, Is.EqualTo(2000));
+				Assert.That(zoneOpt[_cA, _sB].TargetSize, Is.EqualTo(2000));
+				Assert.That(zoneOpt[_cB, _sA].TargetSize, Is.EqualTo(2000));
+				Assert.That(zoneOpt[_cB, _sB].TargetSize, Is.EqualTo(2000));
+			});
+		}
+
+		[Test]
+		public void Trivial_new()
+		{
+			var zoneOpt = new ZoneOptimizationDescriptor(
+				new []{_cA, _cB},
+				new []{_sA, _sB});
+
+			zoneOpt.UnShardedSize[_sA] = 0;
+			zoneOpt.UnShardedSize[_sB] = 0;
+
 			zoneOpt[_cA, _sA].Init(b =>
 			{
-				 b.CurrentSize = 1000;
-				 b.Managed = true;
+				b.CurrentSize = 2500;
+				b.Managed = true;
 			});
 			zoneOpt[_cA, _sB].Init(b =>
 			{
-				b.CurrentSize = 3000;
+				b.CurrentSize = 1500;
 				b.Managed = true;
 			});
 			zoneOpt[_cB, _sA].Init(b =>
 			{
-				b.CurrentSize = 3000;
+				b.CurrentSize = 1000;
 				b.Managed = true;
 			});
 			zoneOpt[_cB, _sB].Init(b =>
 			{
-				b.CurrentSize = 1000;
+				b.CurrentSize = 3000;
 				b.Managed = true;
 			});
 
-			var solve = ZoneOptimizationSolve.Find(zoneOpt);
+			var solve = OptimalDataPartition.Find(zoneOpt, CancellationToken.None);
+
+			Assert.IsTrue(solve.IsSuccess);
+			Assert.Multiple(() =>
+			{
+				Assert.That(zoneOpt[_cA, _sA].TargetSize, Is.EqualTo(2000));
+				Assert.That(zoneOpt[_cA, _sB].TargetSize, Is.EqualTo(2000));
+				Assert.That(zoneOpt[_cB, _sA].TargetSize, Is.EqualTo(2000));
+				Assert.That(zoneOpt[_cB, _sB].TargetSize, Is.EqualTo(2000));
+			});
+		}
+
+		[Test]
+		public void Trivial_unManaged()
+		{
+			var zoneOpt = new ZoneOptimizationDescriptor(
+				new []{_cA, _cB},
+				new []{_sA, _sB});
+
+			zoneOpt[_cA, _sA].Init(b => { b.CurrentSize =  500; b.Managed = false;});
+			zoneOpt[_cA, _sB].Init(b => { b.CurrentSize = 1000; b.Managed = true;});
+
+			zoneOpt[_cB, _sA].Init(b => { b.CurrentSize = 1000; b.Managed = true;});
+			zoneOpt[_cB, _sB].Init(b => { b.CurrentSize = 1000; b.Managed = true;});
+
+			var solve = OptimalDataPartition.Find(zoneOpt, CancellationToken.None);
 
 			Assert.IsTrue(solve.IsSuccess);
 
-			Assert.That(solve[_cA, _sA].TargetSize, Is.EqualTo(2000));
-			Assert.That(solve[_cA, _sB].TargetSize, Is.EqualTo(2000));
-			Assert.That(solve[_cB, _sA].TargetSize, Is.EqualTo(2000));
-			Assert.That(solve[_cB, _sB].TargetSize, Is.EqualTo(2000));
+			Assert.Multiple(() =>
+			{
+				Assert.That(zoneOpt[_cA, _sA].TargetSize, Is.EqualTo(0));
+				Assert.That(zoneOpt[_cA, _sB].TargetSize, Is.EqualTo(1000));
+				Assert.That(zoneOpt[_cB, _sA].TargetSize, Is.EqualTo(1250));
+				Assert.That(zoneOpt[_cB, _sB].TargetSize, Is.EqualTo(750));
+			});
+		}
+
+		[Test]
+		public void unManaged()
+		{
+			var zoneOpt = new ZoneOptimizationDescriptor(
+				new []{_cA, _cB},
+				new []{_sA, _sB, _sC});
+
+			zoneOpt[_cA, _sA].Init(b => { b.CurrentSize =  10; b.Managed = false;});
+			zoneOpt[_cA, _sB].Init(b => { b.CurrentSize =  10; b.Managed = true;});
+			zoneOpt[_cA, _sC].Init(b => { b.CurrentSize =  10; b.Managed = true;});
+
+			zoneOpt[_cB, _sA].Init(b => { b.CurrentSize =  10; b.Managed = true;});
+			zoneOpt[_cB, _sB].Init(b => { b.CurrentSize = 1000; b.Managed = true;});
+			zoneOpt[_cB, _sC].Init(b => { b.CurrentSize =  10; b.Managed = true;});
+
+			var solve = OptimalDataPartition.Find(zoneOpt, CancellationToken.None);
+
+			Assert.IsTrue(solve.IsSuccess);
+		}
+
+		[Test]
+		public void ExcessImbalance()
+		{
+			var zoneOpt = new ZoneOptimizationDescriptor(
+				new []{_cA},
+				new []{_sA, _sB, _sC});
+
+			zoneOpt[_cA, _sA].OnSize(   10).OnManaged();
+			zoneOpt[_cA, _sB].OnSize(10000).OnManaged();
+			zoneOpt[_cA, _sC].OnSize(   10).OnManaged();
+
+			var solve = OptimalDataPartition.Find(zoneOpt, CancellationToken.None);
+
+			Assert.IsTrue(solve.IsSuccess);
+			Assert.Multiple(() =>
+			{
+				Assert.That(zoneOpt[_cA, _sA].TargetSize, Is.EqualTo(3340).Within(1));
+				Assert.That(zoneOpt[_cA, _sB].TargetSize, Is.EqualTo(3340).Within(1));
+				Assert.That(zoneOpt[_cA, _sC].TargetSize, Is.EqualTo(3340).Within(1));
+			});
 		}
 
 		private static readonly ShardIdentity _sA = new ShardIdentity("shA");

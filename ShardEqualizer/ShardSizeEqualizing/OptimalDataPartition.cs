@@ -7,6 +7,8 @@ namespace ShardEqualizer.ShardSizeEqualizing
 {
 	public static class OptimalDataPartition
 	{
+		public static Solve Find(ZoneOptimizationDescriptor source) => Find(source, CancellationToken.None);
+
 		public static Solve Find(ZoneOptimizationDescriptor source, CancellationToken token)
 		{
 			var managedBuckets = source.AllManagedBuckets;
@@ -61,6 +63,9 @@ namespace ShardEqualizer.ShardSizeEqualizing
 			{ // read solution
 				bucket.TargetSize = (long) Math.Round(shardEqSolver.GetSolution(bucket));
 			}
+
+			foreach (var bucket in source.AllBuckets.Where(_ => !_.Managed))
+				bucket.TargetSize = bucket.CurrentSize;
 
 			return new Solve(true, shardEqSolver.ActiveConstraints);
 		}

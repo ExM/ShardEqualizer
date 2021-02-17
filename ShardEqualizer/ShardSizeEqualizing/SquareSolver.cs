@@ -118,36 +118,36 @@ namespace ShardEqualizer.ShardSizeEqualizing
 			_log.Trace("LinearTerms: {0}",  targetFunction.LinearTerms.ToCSharp());
 			_log.Trace("ConstantTerm: {0}",  targetFunction.ConstantTerm);
 
-			//var solver = new GoldfarbIdnani(targetFunction, constraints) {Token = token};
-			var solver = new AugmentedLagrangian(targetFunction, constraints) {Token = token, Solution = initArray};
+			var innerSolver = new BroydenFletcherGoldfarbShanno(indexMap.Count)
+			{
+				LineSearch = LineSearch.Default, //default BacktrackingArmijo algorithm has stationary starting values
+				Corrections = 3,
+				Epsilon = 1E-10,
+				MaxIterations = 100000
+			};
 
-			//var solver = new GradientDescent()
-			//	{ NumberOfVariables = indexMap.Count, Function = targetFunction.Function, Gradient = targetFunction.Gradient, Solution = initArray};
+			var solver = new AugmentedLagrangian(innerSolver, targetFunction, constraints) {Token = token, Solution = initArray};
 
 			var startValue = solver.Function(solver.Solution);
-
 			_log.Trace($"Objective start value: {startValue}");
 			_log.Trace($"Objective gradient: {solver.Gradient(solver.Solution).ToCSharp()}");
 
 			var solveResult = solver.Minimize();
-			//var solveStatus = solver.Status;
 
 			_log.Trace("Objective end value: {0}", solver.Value);
-			//_log.Trace("Solve status: {0}", solveStatus);
+			_log.Trace("Objective gradient on solution: {0}", solver.Gradient(solver.Solution).ToCSharp());
+			_log.Trace("Solve status: {0}", solver.Status);
 
 			if (!solveResult)
 				return false;
 
-			if (solver.Value >= startValue)
-				throw new Exception("solution not changed");
-
 			var solutionVector = new Vector<T>();
 
-			foreach (var p in indexMap)
+			foreach (var (key, value) in indexMap)
 			{
-				var x = solver.Solution[p.Value];
-				solutionVector[p.Key] = x;
-				_nameMap[p.Key].Solution = x;
+				var x = solver.Solution[value];
+				solutionVector[key] = x;
+				_nameMap[key].Solution = x;
 			}
 
 			foreach (var v in _nameMap.Values.Where(_ => _.Closed))
