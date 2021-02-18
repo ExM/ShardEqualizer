@@ -29,6 +29,7 @@ namespace ShardEqualizer.ShardSizeEqualizing
 
 			ShardEqualsPriority = 100;
 			DeviationLimitFromAverage = 0.5;
+			MaxBucketSize = 0.95;
 		}
 
 		public Bucket this[CollectionNamespace coll, ShardIdentity shard] =>
@@ -52,6 +53,8 @@ namespace ShardEqualizer.ShardSizeEqualizing
 		/// limit of deviation from the average value of the bucket in percent
 		/// </summary>
 		public double DeviationLimitFromAverage { get; set; }
+
+		public double MaxBucketSize { get; set; }
 
 		public IUnShardedSizeDescriptor UnShardedSize => this;
 

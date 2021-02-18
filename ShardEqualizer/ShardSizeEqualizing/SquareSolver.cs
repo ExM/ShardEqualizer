@@ -32,9 +32,19 @@ namespace ShardEqualizer.ShardSizeEqualizing
 			SetPositiveConstraint(new LinearPolynomial2<T>() {[variable] = -1, Constant = max}, $"[{variable}] <= {max}");
 		}
 
+		public void SetMax(T variable, double max, string desc)
+		{
+			SetPositiveConstraint(new LinearPolynomial2<T>() {[variable] = -1, Constant = max}, desc);
+		}
+
 		public void SetMin(T variable, double min)
 		{
 			SetPositiveConstraint(new LinearPolynomial2<T>() {[variable] = 1, Constant = -min}, $"{min} <= [{variable}]");
+		}
+
+		public void SetMin(T variable, double min, string desc)
+		{
+			SetPositiveConstraint(new LinearPolynomial2<T>() {[variable] = 1, Constant = -min}, desc);
 		}
 
 		public void SetPositiveConstraint(LinearPolynomial2<T> func, string desc)
@@ -115,15 +125,14 @@ namespace ShardEqualizer.ShardSizeEqualizing
 				initArray[indexMap[t.Key]] = t.Value;
 
 			_log.Trace("QuadraticTerms: {0}",  targetFunction.QuadraticTerms.ToCSharp());
+			_log.Trace("QuadraticTerms det: {0}",  targetFunction.QuadraticTerms.Determinant());
 			_log.Trace("LinearTerms: {0}",  targetFunction.LinearTerms.ToCSharp());
 			_log.Trace("ConstantTerm: {0}",  targetFunction.ConstantTerm);
 
 			var innerSolver = new BroydenFletcherGoldfarbShanno(indexMap.Count)
 			{
 				LineSearch = LineSearch.Default, //default BacktrackingArmijo algorithm has stationary starting values
-				Corrections = 3,
-				Epsilon = 1E-10,
-				MaxIterations = 100000
+				MaxIterations = 100000,
 			};
 
 			var solver = new AugmentedLagrangian(innerSolver, targetFunction, constraints) {Token = token, Solution = initArray};
@@ -199,7 +208,8 @@ namespace ShardEqualizer.ShardSizeEqualizing
 		{
 			foreach (var c in _positiveConstraints)
 			{
-				if(c.Function.Function(init) < 0)
+				var funcValue = c.Function.Function(init);
+				if(funcValue < 0)
 					throw new Exception("constraint fail");
 			}
 		}

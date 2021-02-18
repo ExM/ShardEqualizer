@@ -19,6 +19,7 @@ namespace ShardEqualizer.ShardSizeEqualizing
 
 			result.ShardEqualsPriority = container.ShardEqualsPriority;
 			result.DeviationLimitFromAverage = container.DeviationLimitFromAverage;
+			result.MaxBucketSize = container.MaxBucketSize;
 
 			foreach (var collDesc in container.Collections)
 			{
@@ -52,6 +53,7 @@ namespace ShardEqualizer.ShardSizeEqualizing
 			{
 				ShardEqualsPriority = ShardEqualsPriority,
 				DeviationLimitFromAverage = DeviationLimitFromAverage,
+				MaxBucketSize = MaxBucketSize,
 				Collections = Collections.Select(_ => new CollectionDescriptor()
 				{
 					Ns = _.FullName,
@@ -82,6 +84,7 @@ namespace ShardEqualizer.ShardSizeEqualizing
 			public CollectionDescriptor[] Collections;
 			public ShardDescriptor[] Shards;
 			public BucketDescriptor[] Buckets;
+			public double MaxBucketSize { get; set; }
 		}
 
 		private class BucketDescriptor
