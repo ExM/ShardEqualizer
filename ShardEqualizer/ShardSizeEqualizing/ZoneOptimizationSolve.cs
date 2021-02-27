@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Accord.Math;
 using Accord.Math.Optimization;
 using MongoDB.Driver;
+using NLog;
 using ShardEqualizer.Models;
 
 namespace ShardEqualizer.ShardSizeEqualizing
@@ -17,7 +19,7 @@ namespace ShardEqualizer.ShardSizeEqualizing
 				.ToDictionary(k => k.Key,
 					v => (IReadOnlyDictionary<CollectionNamespace, BucketSolve>) v.ToDictionary(
 						_ => _.Collection, _ => _));
-			
+
 			_managedBucketList = allBucketList.Where(b => source[b.Collection, b.Shard].Managed).ToList();
 		}
 
@@ -55,7 +57,7 @@ namespace ShardEqualizer.ShardSizeEqualizing
 					currentVar++;
 				}
 			}
-		
+
 			var avgManagedShardSize = (double) source.TotalManagedSize / source.Shards.Count;
 
 			var targetShardSize = source.UnmovedSizeByShard.ToDictionary(_ => _.Key, _ => avgManagedShardSize - _.Value);
@@ -63,10 +65,10 @@ namespace ShardEqualizer.ShardSizeEqualizing
 			var targetFunction = new QuadraticObjectiveFunction(
 				new double[totalVariables, totalVariables],
 				new double[totalVariables]);
-			
+
 			var managedBucketsByShard = _managedBucketList.GroupBy(_ => _.Shard)
 				.ToDictionary(p => p.Key, p => p.ToList());
-				
+
 			foreach (var shard in managedBucketsByShard.Keys)
 			{
 				var sum = new LinearPolinomial(totalVariables)
@@ -76,8 +78,7 @@ namespace ShardEqualizer.ShardSizeEqualizing
 
 				foreach (var bucket in managedBucketsByShard[shard])
 				{
-					if(source.CollectionSettings[bucket.Collection].Adjustable)
-						sum += bucket.VariableFunction;
+					sum += bucket.VariableFunction;
 				}
 
 				targetFunction += sum.Square() * (source.ShardEqualsPriority / (avgManagedShardSize * avgManagedShardSize));
@@ -99,7 +100,7 @@ namespace ShardEqualizer.ShardSizeEqualizing
 			foreach (var bucket in _managedBucketList)
 			{
 				var avg = avgCollectionSize[bucket.Collection];
-				
+
 				if(avg <= 0)
 					continue;
 
@@ -109,9 +110,6 @@ namespace ShardEqualizer.ShardSizeEqualizing
 
 				targetFunction += error * (source.CollectionSettings[bucket.Collection].Priority / (avg * avg));
 			}
-
-			//Console.WriteLine(targetFunction.QuadraticTerms.ToCSharp());
-			//Console.WriteLine(targetFunction.QuadraticTerms.Determinant());
 
 			var constraints = new List<LinearConstraint>();
 
@@ -152,7 +150,7 @@ namespace ShardEqualizer.ShardSizeEqualizing
 				});
 				_constraintDescriptions.Add(new BucketConstraint(bucket, BucketConstraint.ConstraintType.Max, (long) Math.Round(max)));
 			}
-			
+
 			var initialVector = new double[totalVariables];
 
 			foreach (var bucket in _managedBucketList.Where(_ => _.VariableIndex.HasValue))
@@ -160,48 +158,69 @@ namespace ShardEqualizer.ShardSizeEqualizing
 				initialVector[bucket.VariableIndex.Value] = bucket.CurrentSize;
 			}
 
-			var solver = new GoldfarbIdnani(targetFunction, constraints) {Token = token};
+			var det = targetFunction.QuadraticTerms.Determinant(true);
 
-			IsSuccess = solver.Minimize(initialVector);
+			_log.Trace("QuadraticTerms: {0}",  targetFunction.QuadraticTerms.ToCSharp());
+			_log.Trace("QuadraticTerms det: {0}",  det);
+			_log.Trace("LinearTerms: {0}",  targetFunction.LinearTerms.ToCSharp());
+			_log.Trace("ConstantTerm: {0}",  targetFunction.ConstantTerm);
+
+			var solver = new GoldfarbIdnani(targetFunction, constraints) {Solution = initialVector, Token = token};
+
+			var startValue = solver.Function(solver.Solution);
+			_log.Trace($"Objective start value: {startValue}");
+			_log.Trace($"Objective gradient: {solver.Gradient(solver.Solution).ToCSharp()}");
+
+			IsSuccess = solver.Minimize();
 			if (!IsSuccess)
 				return;
-			
+
+			_log.Trace("Objective end value: {0}", solver.Value);
+			_log.Trace("Objective gradient on solution: {0}", solver.Gradient(solver.Solution).ToCSharp());
+			_log.Trace("Solve status: {0}", solver.Status);
+
+
+
+
+
 			foreach (var bucket in _managedBucketList)
 				bucket.TargetSize = (long) Math.Round(bucket.VariableFunction.Function(solver.Solution));
 
 			TargetShards = _bucketsByShardByCollection.ToDictionary(
 				_ => _.Key,
 				_ => _.Value.Values.Select(b => b.TargetSize).Sum() + source.UnShardedSize[_.Key]);
-			
+
 			TargetShardMaxDeviation = TargetShards.Values.Max() - TargetShards.Values.Min();
 		}
 
 		public static ZoneOptimizationSolve Find(ZoneOptimizationDescriptor source) => Find(source, CancellationToken.None);
-		
+
 		public static ZoneOptimizationSolve Find(ZoneOptimizationDescriptor source, CancellationToken token)
 		{
 			var solve = new ZoneOptimizationSolve(source);
-			
+
 			solve.find(source, token);
-			
+
 			return solve;
 		}
 
 		public BucketSolve this[CollectionNamespace coll, ShardIdentity shard] =>
 			_bucketsByShardByCollection[shard][coll];
-		
+
 		public IReadOnlyDictionary<ShardIdentity, long> TargetShards { get; private set; }
 
 		public long TargetShardMaxDeviation { get; private set; }
-		
+
 		public List<BucketConstraint> ActiveConstraints => _constraintDescriptions.Where(_ => _.IsActive).ToList();
-		
+
 		public IReadOnlyList<BucketSolve> AllManagedBuckets => _managedBucketList;
-		
+
 		private readonly IReadOnlyDictionary<ShardIdentity, IReadOnlyDictionary<CollectionNamespace, BucketSolve>> _bucketsByShardByCollection;
 		private readonly IReadOnlyList<BucketSolve> _managedBucketList;
-		
+
 		private readonly List<BucketConstraint> _constraintDescriptions = new List<BucketConstraint>();
 		public bool IsSuccess { get; private set; }
+
+		private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 	}
 }

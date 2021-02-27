@@ -101,7 +101,6 @@ namespace ShardEqualizer.Operations
 			foreach (var interval in _adjustableIntervals)
 			{
 				var collCfg = _zoneOpt.CollectionSettings[interval.Namespace];
-				collCfg.Adjustable = interval.Adjustable;
 				collCfg.Priority = 1;
 
 				var allChunks = _chunksByCollection[interval.Namespace];

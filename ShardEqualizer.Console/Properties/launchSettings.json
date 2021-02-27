@@ -26,7 +26,11 @@
     },
     "equalize": {
       "commandName": "Project",
-      "commandLineArgs": "equalize --moveLimit=200"
+      "commandLineArgs": "equalize"
+    },
+    "equalize limited": {
+      "commandName": "Project",
+      "commandLineArgs": "equalize --moveLimit=51200"
     },
     "equalize offline": {
       "commandName": "Project",
@@ -46,7 +50,7 @@
     },
     "balancer": {
       "commandName": "Project",
-      "commandLineArgs": "balancer"
+      "commandLineArgs": "balancer --resetStore"
     }
   }
 }
