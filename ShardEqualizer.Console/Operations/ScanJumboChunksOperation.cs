@@ -114,7 +114,7 @@ namespace ShardEqualizer.Operations
 			foreach (var nsGroup in _chunkDataSizes.GroupBy(_ => _.Ns))
 			{
 				var group = nsGroup.ToList();
-				Console.WriteLine(" * {0} - count: {1}, empty: {2}", nsGroup.Key, group.Count, group.Count(_ => _.Size == 0));
+				Console.WriteLine(" * {0} - count: {1}, empty: {2}, size: {3}", nsGroup.Key, group.Count, group.Count(_ => _.Size == 0), group.Sum(_ => _.Size).ByteSize());
 				renderPercentiles(group.Select(_ => _.Size));
 			}
 
@@ -123,12 +123,12 @@ namespace ShardEqualizer.Operations
 			foreach (var shardGroup in _chunkDataSizes.GroupBy(_ => _.Shard))
 			{
 				var group = shardGroup.ToList();
-				Console.WriteLine(" * {0} - count: {1}, empty: {2}", shardGroup.Key, group.Count, group.Count(_ => _.Size == 0));
+				Console.WriteLine(" * {0} - count: {1}, empty: {2}, size: {3}", shardGroup.Key, group.Count, group.Count(_ => _.Size == 0), group.Sum(_ => _.Size).ByteSize());
 				renderPercentiles(group.Select(_ => _.Size));
 			}
 
 			Console.WriteLine();
-			Console.WriteLine("Total - count: {0}, empty: {1}", _chunkDataSizes.Count, _chunkDataSizes.Count(_ => _.Size == 0));
+			Console.WriteLine("Total - count: {0}, empty: {1}, size: {2}", _chunkDataSizes.Count, _chunkDataSizes.Count(_ => _.Size == 0), _chunkDataSizes.Sum(_ => _.Size).ByteSize());
 			renderPercentiles(_chunkDataSizes.Select(_ => _.Size));
 		}
 
