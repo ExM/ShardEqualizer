@@ -26,6 +26,8 @@ namespace ShardEqualizer.ShardSizeEqualizing
 
 			var shardEqSolver = new SquareSolver<Bucket>();
 
+			var minorMultiply = 0.1d / managedBuckets.Count;
+
 			foreach (var bucket in managedBuckets)
 			{ // init variables and limits
 				shardEqSolver.InitVariable(bucket, bucket.CurrentSize);
@@ -33,6 +35,8 @@ namespace ShardEqualizer.ShardSizeEqualizing
 				shardEqSolver.SetMin(bucket, min, renderMinConstraint(bucket, min));
 				var max = Math.Max(managedSizeByCollection[bucket.Collection] * source.MaxBucketSize, bucket.CurrentSize);
 				shardEqSolver.SetMax(bucket, max, renderMaxConstraint(bucket, (long)Math.Round(max)));
+
+				shardEqSolver.SetObjective(Vector<Bucket>.Unit(new []{ bucket }) * (minorMultiply / bucket.CurrentSize), minorMultiply);
 			}
 
 			foreach (var (coll, buckets) in managedBucketsByCollection)

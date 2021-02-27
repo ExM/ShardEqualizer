@@ -161,6 +161,24 @@ namespace ShardEqualizer.ShardSizeEqualizing
 			}
 		}
 
+		public static Vector<T> operator *(Vector<T> v, double a)
+		{
+			return Multiply(a, v);
+		}
+
+		public static Vector<T> operator *(double a,  Vector<T> v)
+		{
+			return Multiply(a, v);
+		}
+
+		public static Vector<T> Multiply(double a,  Vector<T> v)
+		{
+			var result = new Vector<T>();
+			foreach (var p in v._values)
+				result[p.Key] = a * p.Value;
+			return result;
+		}
+
 		public static Vector<T> operator +(Vector<T> x, Vector<T> y)
 		{
 			var result = new Vector<T>(x);
