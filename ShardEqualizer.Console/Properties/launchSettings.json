@@ -28,6 +28,10 @@
       "commandName": "Project",
       "commandLineArgs": "equalize"
     },
+    "equalize correctionPercent": {
+      "commandName": "Project",
+      "commandLineArgs": "equalize --correctionPercent=10"
+    },
     "equalize limited": {
       "commandName": "Project",
       "commandLineArgs": "equalize --moveLimit=51200"

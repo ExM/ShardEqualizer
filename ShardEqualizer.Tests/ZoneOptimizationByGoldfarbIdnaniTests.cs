@@ -263,7 +263,7 @@ namespace ShardEqualizer
 
 			foreach (var b in zoneOpt.AllManagedBuckets)
 			{
-				b.CurrentSize = b.CurrentSize + (long)Math.Round(pathPercent * (solve[b.Collection, b.Shard].TargetSize - b.CurrentSize));
+				b.CurrentSize = solve[b.Collection, b.Shard].PartialTargetSize(pathPercent);
 			}
 
 			var solve2 = ZoneOptimizationSolve.Find(zoneOpt);

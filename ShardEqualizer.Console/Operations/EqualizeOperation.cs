@@ -43,6 +43,7 @@ namespace ShardEqualizer.Operations
 			ProgressRenderer progressRenderer,
 			CommandPlanWriter commandPlanWriter,
 			long? moveLimit,
+			double movePercent,
 			bool planOnly)
 		{
 			_shardListService = shardListService;
@@ -56,6 +57,7 @@ namespace ShardEqualizer.Operations
 			_commandPlanWriter = commandPlanWriter;
 			_moveLimit = moveLimit;
 			_planOnly = planOnly;
+			_movePercent = movePercent;
 
 			if (intervals.Count == 0)
 				throw new ArgumentException("interval list is empty");
@@ -72,6 +74,7 @@ namespace ShardEqualizer.Operations
 		private Dictionary<TagIdentity, Shard> _shardByTag;
 		private IReadOnlyDictionary<CollectionNamespace, IReadOnlyList<TagRange>> _tagRangesByNs;
 		private readonly IReadOnlyList<Interval> _adjustableIntervals;
+		private readonly double _movePercent;
 
 		private void createZoneOptimizationDescriptor()
 		{
@@ -171,9 +174,10 @@ namespace ShardEqualizer.Operations
 
 			foreach (var interval in _adjustableIntervals)
 			{
+
 				var targetSizes = interval.Zones.ToDictionary(
 					t => t,
-					t => solve[interval.Namespace, _shardByTag[t].Id].TargetSize);
+					t => solve[interval.Namespace, _shardByTag[t].Id].PartialTargetSize(_movePercent));
 
 				var equalizer = new ShardSizeEqualizer(
 					_shards,
