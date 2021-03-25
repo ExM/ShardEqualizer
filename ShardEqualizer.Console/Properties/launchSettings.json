@@ -30,7 +30,7 @@
     },
     "equalize correctionPercent": {
       "commandName": "Project",
-      "commandLineArgs": "equalize --correctionPercent=10"
+      "commandLineArgs": "equalize --correctionPercent=20 --resetStore"
     },
     "equalize limited": {
       "commandName": "Project",
