@@ -16,9 +16,7 @@ namespace ShardEqualizer
 	{
 		private readonly IMongoClient _mongoClient;
 		private readonly ProgressRenderer _progressRenderer;
-		private readonly LocalStore<CollStatsContainer> _store;
-
-		private readonly ConcurrentDictionary<CollectionNamespace, CollectionStatistics> _map = new ConcurrentDictionary<CollectionNamespace, CollectionStatistics>();
+		private readonly INsLocalStore<CollectionStatistics> _store;
 
 		public CollectionStatisticService(
 			IMongoClient mongoClient,
@@ -28,49 +26,30 @@ namespace ShardEqualizer
 			_mongoClient = mongoClient;
 			_progressRenderer = progressRenderer;
 
-			_store = storeProvider.Create<CollStatsContainer>("collStats", onSave);
-
-			if (_store.Container.Stats != null)
-				foreach (var (key, value) in _store.Container.Stats)
-					_map[key] = value;
+			_store = storeProvider.Get("collStats", uploadData);
 		}
 
-		private void onSave(CollStatsContainer container)
+		public async Task<IReadOnlyDictionary<CollectionNamespace, CollectionStatistics>> Get(IEnumerable<CollectionNamespace> nss, CancellationToken token)
 		{
-			container.Stats = new Dictionary<CollectionNamespace, CollectionStatistics>(_map);
-		}
+			var nsList = nss.ToList();
+			await using var reporter = _progressRenderer.Start($"Load collection statistics", nsList.Count);
 
-		public async Task<IReadOnlyDictionary<CollectionNamespace, CollectionStatistics>> Get(IEnumerable<CollectionNamespace> nsList, CancellationToken token)
-		{
-			var nsSet = new HashSet<CollectionNamespace>(nsList);
-
-			var missedKeys = nsSet.Except(_map.Keys).ToList();
-
-			if (missedKeys.Any())
+			async Task<(CollectionNamespace ns, CollectionStatistics collStat)> getCollStat(CollectionNamespace ns, CancellationToken t)
 			{
-				await using var reporter = _progressRenderer.Start($"Load collection statistics", missedKeys.Count);
-				{
-					async Task getCollStat(CollectionNamespace ns,
-						CancellationToken t)
-					{
-						var db = _mongoClient.GetDatabase(ns.DatabaseNamespace.DatabaseName);
-						var collStat = await db.CollStats(ns.CollectionName, 1, t);
-						reporter.Increment();
-						_map[ns] = new CollectionStatistics(collStat);
-					}
-
-					await missedKeys.ParallelsAsync(getCollStat, 32, token);
-				}
-				_store.OnChanged();
+				var result = await _store.Get(ns, t);
+				reporter.Increment();
+				return (ns, result);
 			}
 
-			return nsSet.ToDictionary(_ => _, _ => _map[_]);
+			var results = await nsList.ParallelsAsync(getCollStat, 32, token);
+			return results.ToDictionary(_ => _.ns, _ => _.collStat);
 		}
 
-		private class CollStatsContainer: Container
+		private async Task<CollectionStatistics> uploadData(CollectionNamespace ns, CancellationToken token)
 		{
-			[BsonElement("collStats"), BsonDictionaryOptions(DictionaryRepresentation.Document), BsonIgnoreIfNull]
-			public Dictionary<CollectionNamespace, CollectionStatistics> Stats { get; set; }
+			var db = _mongoClient.GetDatabase(ns.DatabaseNamespace.DatabaseName);
+			var collStat = await db.CollStats(ns.CollectionName, 1, token);
+			return new CollectionStatistics(collStat);
 		}
 	}
 }

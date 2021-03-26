@@ -1,51 +1,53 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using MongoDB.Bson.Serialization;
+using System.Reflection.Metadata;
+using System.Threading;
+using System.Threading.Tasks;
+using MongoDB.Driver;
 using ShardEqualizer.Config;
 
 namespace ShardEqualizer.LocalStoring
 {
 	public class LocalStoreProvider
 	{
-		private readonly string _path;
-		private readonly bool _readStore;
-		private readonly IList<LocalStore> _createdStorages = new List<LocalStore>();
+		private readonly string _basePath;
+		private readonly bool _read;
+		private readonly bool _write;
 
-		public LocalStoreProvider(ClusterIdService clusterIdService, LocalStoreConfig localStoreConfig)
+		public LocalStoreProvider(LocalStoreConfig config)
 		{
-			_path = Path.GetFullPath(Path.Combine(".", "localStore", clusterIdService.ClusterId.ToString()));
-			if (!Directory.Exists(_path))
-				Directory.CreateDirectory(_path);
-			_readStore = localStoreConfig.ResetStore != true;
-		}
+			_basePath = Path.GetFullPath(Path.Combine(".", "localStore"));
 
-		public LocalStore<T> Create<T>(string storeName, Action<T> onSave = null) where T : Container, new()
-		{
-			var fileName = Path.Combine(_path, storeName + ".json");
-			T container;
-			if (_readStore && File.Exists(fileName))
+			_read = config.Read == true;
+			_write = config.Write == true;
+
+			if (Directory.Exists(_basePath))
 			{
-				container = BsonSerializer.Deserialize<T>(File.OpenText(fileName));
+				if (config.Clean == true)
+				{
+					Directory.Delete(_basePath, true);
+					if(_write)
+						Directory.CreateDirectory(_basePath);
+				}
 			}
 			else
-			{
-				container = new T
-				{
-					Date = DateTime.UtcNow
-				};
-			}
-
-			var store = new LocalStore<T>(fileName, container, onSave);
-			_createdStorages.Add(store);
-
-			return store;
+				if(_write)
+					Directory.CreateDirectory(_basePath);
 		}
 
-		public void SaveFile()
+		public ILocalStore<T> Get<T>(string name, Func<CancellationToken, Task<T>> uploadData)
 		{
-			foreach (var localStore in _createdStorages)
-				localStore.SaveFile();
+			if (!_read && !_write)
+				return new BypassStore<T>(uploadData);
+			return new LocalStore<T>(_basePath, name, uploadData, _read, _write);
+		}
+
+		public INsLocalStore<T> Get<T>(string path, Func<CollectionNamespace, CancellationToken, Task<T>> uploadData)
+		{
+			if (!_read && !_write)
+				return new NsBypassStore<T>(uploadData);
+			return new NsLocalStore<T>(Path.Combine(_basePath, path), uploadData, _read, _write);
 		}
 	}
 }

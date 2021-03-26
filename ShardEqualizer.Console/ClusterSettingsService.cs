@@ -9,7 +9,7 @@ namespace ShardEqualizer
 	{
 		private readonly SettingsRepository _repo;
 		private readonly ProgressRenderer _progressRenderer;
-		private readonly LocalStore<SettingsContainer> _store;
+		private readonly ILocalStore<Container> _store;
 
 		public ClusterSettingsService(
 			SettingsRepository repo,
@@ -18,30 +18,30 @@ namespace ShardEqualizer
 		{
 			_repo = repo;
 			_progressRenderer = progressRenderer;
-
-			_store = storeProvider.Create<SettingsContainer>("settings", onSave);
-		}
-
-		private void onSave(SettingsContainer container)
-		{
+			_store = storeProvider.Get("settings", uploadChunksize);
 		}
 
 		public async Task<long> GetChunkSize(CancellationToken token)
 		{
-			if (_store.Container.ChunkSize == null)
-			{
-				await using var reporter = _progressRenderer.Start("Load settings");
-				_store.Container.ChunkSize = await _repo.GetChunksize(token);
-				_store.OnChanged();
-			}
+			await using var reporter = _progressRenderer.Start("Load settings");
 
-			return _store.Container.ChunkSize.Value;
+			var container = await _store.Get(token);
+
+			return container.ChunkSize;
 		}
 
-		private class SettingsContainer: Container
+		private async Task<Container> uploadChunksize(CancellationToken token)
+		{
+			return new Container()
+			{
+				ChunkSize = await _repo.GetChunksize(token)
+			};
+		}
+
+		private class Container
 		{
 			[BsonElement("chunkSize"), BsonRequired]
-			public long? ChunkSize { get; set; }
+			public long ChunkSize { get; set; }
 		}
 	}
 }

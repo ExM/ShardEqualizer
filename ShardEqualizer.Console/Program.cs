@@ -83,8 +83,7 @@ namespace ShardEqualizer
 			kernel.Bind<ClusterConfig>().ToConstant(clusterConfig);
 
 			var localStoreConfig = appSettings.TryGet<LocalStoreConfig>() ?? new LocalStoreConfig();
-			if (verbose.ResetStore)
-				localStoreConfig.ResetStore = true;
+			localStoreConfig.UpdateModes(verbose.StoreMode);
 
 			kernel.Bind<LocalStoreConfig>().ToConstant(localStoreConfig);
 

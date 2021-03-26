@@ -1,57 +1,25 @@
 using System;
 using System.IO;
-using MongoDB.Bson;
-using MongoDB.Bson.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ShardEqualizer.LocalStoring
 {
-	public class LocalStore<T>: LocalStore where T: Container
+	public class LocalStore<T>: BaseLocalStore<T>, ILocalStore<T>
 	{
-		private readonly Action<T> _onSave;
-
-		public LocalStore(string fileName, T container, Action<T> onSave): base(fileName)
-		{
-			_onSave = onSave;
-			Container = container;
-		}
-
-		public T Container { get; }
-
-		protected override Container GetUpdatedContainer()
-		{
-			_onSave?.Invoke(Container);
-			return Container;
-		}
-	}
-
-	public abstract class LocalStore
-	{
-		private static readonly JsonWriterSettings _jsonWriterSettings =
-			new JsonWriterSettings() {Indent = true, OutputMode = JsonOutputMode.CanonicalExtendedJson};
-
+		private readonly Func<CancellationToken, Task<T>> _uploadData;
 		private readonly string _fileName;
-		private volatile bool _changed = false;
 
-		public LocalStore(string fileName)
+		public LocalStore(string basePath, string name, Func<CancellationToken, Task<T>> uploadData,
+			bool read, bool write): base(read, write)
 		{
-			_fileName = fileName;
+			_fileName = Path.Combine(basePath, $"{name}.bson");
+			_uploadData = uploadData;
 		}
 
-		public void OnChanged()
+		public Task<T> Get(CancellationToken token)
 		{
-			_changed = true;
-		}
-
-		protected abstract Container GetUpdatedContainer();
-
-		public void SaveFile()
-		{
-			if(!_changed)
-				return;
-
-			var container = GetUpdatedContainer();
-			var content = container.ToJson(container.GetType(), _jsonWriterSettings);
-			File.WriteAllText(_fileName, content);
+			return Get(_fileName, _uploadData, token);
 		}
 	}
 }

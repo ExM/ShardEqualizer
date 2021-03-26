@@ -26,9 +26,6 @@ namespace ShardEqualizer.Config
 
 		public bool IsRequireAuth => User != null || Password != null;
 
-		[DataMember(Name = "Id")]
-		public string Id { get; private set; }
-
 		[DataMember(Name = "Interval"), Combiner(typeof(Union<>))]
 		public IList<IntervalConfig> Intervals  { get; private set; }
 

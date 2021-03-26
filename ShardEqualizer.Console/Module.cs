@@ -13,10 +13,7 @@ namespace ShardEqualizer
 		{
 			CollectionNamespaceSerializer.Register();
 			Bind<MongoClientBuilder>().ToSelf().InSingletonScope();
-			Bind<ClusterIdService>().ToSelf().InSingletonScope();
 			Bind<IAsyncDisposable, ProgressRenderer>().To<ProgressRenderer>().InSingletonScope();
-
-			Bind<LocalStoreProvider>().ToSelf().InSingletonScope();
 
 			Bind<IMongoClient>().ToMethod(ctx => ctx.Kernel.Get<MongoClientBuilder>().Build()).InSingletonScope();
 			Bind<ConfigDBContainer>().ToMethod(ctx => new ConfigDBContainer(ctx.Kernel.Get<IMongoClient>())).InSingletonScope();
@@ -44,6 +41,8 @@ namespace ShardEqualizer
 			Bind<CollectionStatisticService>().ToSelf().InSingletonScope();
 			Bind<ChunkService>().ToSelf().InSingletonScope();
 			Bind<ChunkSizeService>().ToSelf().InSingletonScope();
+
+			Bind<LocalStoreProvider>().ToSelf().InSingletonScope();
 		}
 	}
 

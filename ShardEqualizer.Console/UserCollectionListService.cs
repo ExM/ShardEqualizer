@@ -12,7 +12,7 @@ namespace ShardEqualizer
 	{
 		private readonly IMongoClient _mongoClient;
 		private readonly ProgressRenderer _progressRenderer;
-		private readonly LocalStore<UserCollectionsContainer> _store;
+		private readonly ILocalStore<Container> _store;
 
 		public CollectionListService(
 			IMongoClient mongoClient,
@@ -21,40 +21,44 @@ namespace ShardEqualizer
 		{
 			_mongoClient = mongoClient;
 			_progressRenderer = progressRenderer;
-			_store = storeProvider.Create<UserCollectionsContainer>("userCollections");
+			_store = storeProvider.Get("userCollections", uploadData);
 		}
 
 		public async Task<IReadOnlyCollection<CollectionNamespace>> Get(CancellationToken token)
 		{
-			if (_store.Container.AllUserCollections == null)
-			{
-				await using var reporter = _progressRenderer.Start("Load user collections");
-
-				var userDatabases = await _mongoClient.ListUserDatabases(token);
-				reporter.UpdateTotal(userDatabases.Count);
-				_progressRenderer.WriteLine($"Found {userDatabases.Count} user databases.");
-
-
-				async Task<IEnumerable<CollectionNamespace>> listCollectionNames(DatabaseNamespace dbName,
-					CancellationToken t)
-				{
-					var colls = await _mongoClient.GetDatabase(dbName.DatabaseName).ListUserCollections(t);
-					reporter.Increment();
-					return colls;
-				}
-
-				var results = (await userDatabases.ParallelsAsync(listCollectionNames, 32, token))
-					.SelectMany(_ => _).ToList();
-
-				reporter.SetCompleteMessage($"found {results.Count} collections.");
-				_store.Container.AllUserCollections = results;
-				_store.OnChanged();
-			}
-
-			return _store.Container.AllUserCollections;
+			var result = await _store.Get(token);
+			return result.AllUserCollections;
 		}
 
-		private class UserCollectionsContainer: Container
+		private async Task<Container> uploadData(CancellationToken token)
+		{
+			await using var reporter = _progressRenderer.Start("Load user collections");
+
+			var userDatabases = await _mongoClient.ListUserDatabases(token);
+			reporter.UpdateTotal(userDatabases.Count);
+			_progressRenderer.WriteLine($"Found {userDatabases.Count} user databases.");
+
+
+			async Task<IEnumerable<CollectionNamespace>> listCollectionNames(DatabaseNamespace dbName,
+				CancellationToken t)
+			{
+				var colls = await _mongoClient.GetDatabase(dbName.DatabaseName).ListUserCollections(t);
+				reporter.Increment();
+				return colls;
+			}
+
+			var results = (await userDatabases.ParallelsAsync(listCollectionNames, 32, token))
+				.SelectMany(_ => _).ToList();
+
+			reporter.SetCompleteMessage($"found {results.Count} collections.");
+
+			return new Container()
+			{
+				AllUserCollections = results
+			};
+		}
+
+		private class Container
 		{
 			[BsonElement("allUserCollections"), BsonRequired]
 			public IReadOnlyCollection<CollectionNamespace> AllUserCollections { get; set; }

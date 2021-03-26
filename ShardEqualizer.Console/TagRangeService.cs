@@ -15,9 +15,7 @@ namespace ShardEqualizer
 	{
 		private readonly TagRangeRepository _repo;
 		private readonly ProgressRenderer _progressRenderer;
-		private readonly LocalStore<TagRangeContainer> _store;
-
-		private readonly ConcurrentDictionary<CollectionNamespace, IReadOnlyList<TagRange>> _map = new ConcurrentDictionary<CollectionNamespace, IReadOnlyList<TagRange>>();
+		private readonly INsLocalStore<Container> _store;
 
 		public TagRangeService(
 			TagRangeRepository repo,
@@ -27,44 +25,39 @@ namespace ShardEqualizer
 			_repo = repo;
 			_progressRenderer = progressRenderer;
 
-			_store = storeProvider.Create<TagRangeContainer>("tagRanges", onSave);
-
-			if (_store.Container.TagRanges != null)
-				foreach (var (key, value) in _store.Container.TagRanges)
-					_map[key] = value;
+			_store = storeProvider.Get("tagRanges", uploadTagRanges);
 		}
 
-		private void onSave(TagRangeContainer container)
+		public async Task<IReadOnlyDictionary<CollectionNamespace, IReadOnlyList<TagRange>>> Get(IEnumerable<CollectionNamespace> nss, CancellationToken token)
 		{
-			container.TagRanges = new Dictionary<CollectionNamespace, IReadOnlyList<TagRange>>(_map);
-		}
+			var nsList = nss.ToList();
 
-		public async Task<IReadOnlyDictionary<CollectionNamespace, IReadOnlyList<TagRange>>> Get(IEnumerable<CollectionNamespace> nsList, CancellationToken token)
-		{
-			var nsSet = new HashSet<CollectionNamespace>(nsList);
+			await using var reporter = _progressRenderer.Start($"Load tag ranges", nsList.Count);
 
-			var missedKeys = nsSet.Except(_map.Keys).ToList();
-
-			if (missedKeys.Any())
+			async Task<(CollectionNamespace ns, IReadOnlyList<TagRange> tagRanges)> getTagRanges(CollectionNamespace ns, CancellationToken t)
 			{
-				await using var reporter = _progressRenderer.Start($"Load tag ranges", missedKeys.Count);
-				{
-					foreach (var missedKey in missedKeys)
-					{
-						_map[missedKey] = await _repo.Get(missedKey, token);
-						reporter.Increment();
-					}
-				}
-				_store.OnChanged();
+				var container = await _store.Get(ns, t);
+				reporter.Increment();
+				return (ns, container.TagRanges);
 			}
 
-			return nsSet.ToDictionary(_ => _, _ => _map[_]);
+			var pairs = await nsList.ParallelsAsync(getTagRanges, 32, token);
+
+			return pairs.ToDictionary(_ => _.ns, _ => _.tagRanges);
 		}
 
-		private class TagRangeContainer: Container
+		private async Task<Container> uploadTagRanges(CollectionNamespace ns, CancellationToken token)
 		{
-			[BsonElement("tagRanges"), BsonDictionaryOptions(DictionaryRepresentation.Document), BsonIgnoreIfNull]
-			public Dictionary<CollectionNamespace, IReadOnlyList<TagRange>> TagRanges { get; set; }
+			return new Container()
+			{
+				TagRanges = await _repo.Get(ns, token)
+			};
+		}
+
+		private class Container
+		{
+			[BsonElement("tagRanges")]
+			public IReadOnlyList<TagRange> TagRanges { get; set; }
 		}
 	}
 }

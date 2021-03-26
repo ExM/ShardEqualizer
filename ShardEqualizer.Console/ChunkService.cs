@@ -16,9 +16,7 @@ namespace ShardEqualizer
 	{
 		private readonly ChunkRepository _repo;
 		private readonly ProgressRenderer _progressRenderer;
-		private readonly LocalStore<ChunkContainer> _store;
-
-		private readonly ConcurrentDictionary<CollectionNamespace, ChunksCache> _map = new ConcurrentDictionary<CollectionNamespace, ChunksCache>();
+		private readonly INsLocalStore<Container> _store;
 
 		public ChunkService(
 			ChunkRepository repo,
@@ -27,74 +25,43 @@ namespace ShardEqualizer
 		{
 			_repo = repo;
 			_progressRenderer = progressRenderer;
-
-			_store = storeProvider.Create<ChunkContainer>("chunks", onSave);
-
-			if (_store.Container.Chunks != null)
-			{
-				foreach (var (ns, chunks) in _store.Container.Chunks)
-					_map[ns] = new ChunksCache(chunks);
-			}
+			_store = storeProvider.Get("chunks", uploadChunks);
 		}
 
-		private void onSave(ChunkContainer container)
+		public async Task<IReadOnlyDictionary<CollectionNamespace, ChunksCache>> Get(IEnumerable<CollectionNamespace> nss, CancellationToken token)
 		{
-			container.Chunks = new Dictionary<CollectionNamespace, ChunkInfo[]>();
+			var nsList = nss.ToList();
 
-			foreach (var (ns, chunks) in _map)
-				container.Chunks[ns] = chunks.Array;
-		}
-
-		public async Task<IReadOnlyDictionary<CollectionNamespace, ChunksCache>> Get(IEnumerable<CollectionNamespace> nsList, CancellationToken token)
-		{
-			var nsSet = new HashSet<CollectionNamespace>(nsList);
-
-			var missedKeys = nsSet.Except(_map.Keys).ToList();
-
-			if (missedKeys.Any())
+			await using var reporter = _progressRenderer.Start($"Load chunks", nsList.Count);
 			{
-				await using var reporter = _progressRenderer.Start($"Load chunks");
+				async Task<(CollectionNamespace ns, List<ChunkInfo> chunks)> getChunks(CollectionNamespace ns, CancellationToken t)
 				{
-					async Task<(CollectionNamespace ns, long count)> getCounts(CollectionNamespace ns, CancellationToken t)
-					{
-						var count = await _repo.ByNamespace(ns).Count(t);
-						return (ns, count);
-					}
-
-					var counts = await missedKeys.ParallelsAsync(getCounts, 32, token);
-
-					reporter.UpdateTotal(counts.Sum(_ => _.Item2));
-
-					var orderedNs = counts.OrderByDescending(_ => _.Item2).ToList();
-
-					async Task getChunks(CollectionNamespace ns, long expectedCount, CancellationToken t)
-					{
-						var cursor = await _repo.ByNamespace(ns).Find(t);
-						var chunks = new List<ChunkInfo>((int)expectedCount);
-						using (cursor)
-						{
-							while (await cursor.MoveNextAsync(t))
-							{
-								chunks.AddRange(cursor.Current.Select(_ => new ChunkInfo(_)));
-								reporter.Increment(cursor.Current.Count());
-							}
-						}
-
-						_map[ns] = new ChunksCache(chunks.ToArray());
-					}
-
-					await orderedNs.ParallelsAsync((i, t) => getChunks(i.ns, i.count, t), 32, token);
+					var container = await _store.Get(ns, t);
+					reporter.Increment();
+					return (ns, container.Chunks);
 				}
-				_store.OnChanged();
-			}
 
-			return nsSet.ToDictionary(_ => _, _ => _map[_]);
+				var pairs = await nsList.ParallelsAsync(getChunks, 32, token);
+
+				return pairs.ToDictionary(_ => _.ns, _ => new ChunksCache(_.chunks));
+			}
 		}
 
-		private class ChunkContainer: Container
+		private async Task<Container> uploadChunks(CollectionNamespace ns, CancellationToken t)
 		{
-			[BsonElement("chunks"), BsonDictionaryOptions(DictionaryRepresentation.Document), BsonIgnoreIfNull]
-			public Dictionary<CollectionNamespace, ChunkInfo[]> Chunks { get; set; }
+			var expectedCount = await _repo.ByNamespace(ns).Count(t);
+			var chunks = new List<ChunkInfo>((int)expectedCount);
+			using var cursor = await _repo.ByNamespace(ns).Find(t);
+			while (await cursor.MoveNextAsync(t))
+				chunks.AddRange(cursor.Current.Select(_ => new ChunkInfo(_)));
+
+			return new Container(){ Chunks = chunks };
+		}
+
+		private class Container
+		{
+			[BsonElement("chunks")]
+			public List<ChunkInfo> Chunks { get; set; }
 		}
 	}
 }

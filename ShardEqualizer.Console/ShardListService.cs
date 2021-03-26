@@ -11,7 +11,7 @@ namespace ShardEqualizer
 	{
 		private readonly ShardRepository _repo;
 		private readonly ProgressRenderer _progressRenderer;
-		private readonly LocalStore<AllShardsContainer> _store;
+		private readonly ILocalStore<Container> _store;
 
 		public ShardListService(
 			ShardRepository repo,
@@ -20,24 +20,28 @@ namespace ShardEqualizer
 		{
 			_repo = repo;
 			_progressRenderer = progressRenderer;
-			_store = storeProvider.Create<AllShardsContainer>("shards");
+			_store = storeProvider.Get("shards", uploadData);
 		}
 
 		public async Task<IReadOnlyCollection<Shard>> Get(CancellationToken token)
 		{
-			if (_store.Container.Shards == null)
-			{
-				await using var reporter = _progressRenderer.Start("Load shard list");
-				var result = await _repo.GetAll(token);
-				reporter.SetCompleteMessage($"found {result.Count} shards.");
-				_store.Container.Shards = result;
-				_store.OnChanged();
-			}
-
-			return _store.Container.Shards;
+			var result = await _store.Get(token);
+			return result.Shards;
 		}
 
-		private class AllShardsContainer: Container
+		private async Task<Container> uploadData(CancellationToken token)
+		{
+			await using var reporter = _progressRenderer.Start("Load shard list");
+			var result = await _repo.GetAll(token);
+			reporter.SetCompleteMessage($"found {result.Count} shards.");
+
+			return new Container()
+			{
+				Shards = result
+			};
+		}
+
+		private class Container
 		{
 			[BsonElement("shards"), BsonRequired]
 			public IReadOnlyCollection<Shard> Shards { get; set; }

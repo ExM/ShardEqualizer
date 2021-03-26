@@ -22,7 +22,7 @@
 
 	-->
 
-	<LocalStore Reset="false" />
+	<!--LocalStore Clean="false" Write="true" Read="true"/-->
 
 	<Clusters Default="LocalDemo">
 		<LocalDemo Servers="localhost" zones="A,B,C" >

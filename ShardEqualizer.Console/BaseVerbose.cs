@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using CommandLine;
 using Ninject;
 using NLog;
-using ShardEqualizer.LocalStoring;
 
 namespace ShardEqualizer
 {
@@ -16,18 +15,13 @@ namespace ShardEqualizer
 		[Option('c', "clusterName", Required = false,  HelpText = "selected cluster name in configuration file")]
 		public string ClusterName { get; set; }
 
-		[Option("resetStore", Required = false,  Default = false, HelpText = "clean up of current intermediate storage")]
-		public bool ResetStore { get; set; }
-
-		[Option("offline", Required = false,  Default = false, HelpText = "skip read or check cluster id")]
-		public bool Offline { get; set; }
+		[Option("storeMode", Required = false,  Default = null, HelpText = "specifying flags of the mode of operation of the intermediate file storage [c - clean, r - read, w - write]")]
+		public string StoreMode { get; set; }
 
 		public async Task Run(IKernel kernel, CancellationToken token)
 		{
 			try
 			{
-				await kernel.Get<ClusterIdService>().Validate(Offline);
-
 				await RunOperation(kernel, token);
 			}
 			catch (Exception)
@@ -39,9 +33,6 @@ namespace ShardEqualizer
 			}
 			finally
 			{
-				if(!Offline)
-					kernel.Get<LocalStoreProvider>().SaveFile();
-
 				foreach (var item in kernel.GetAll<IAsyncDisposable>())
 					await item.DisposeAsync();
 

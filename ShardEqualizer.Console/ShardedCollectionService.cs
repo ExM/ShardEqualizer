@@ -14,9 +14,7 @@ namespace ShardEqualizer
 	{
 		private readonly CollectionRepository _repo;
 		private readonly ProgressRenderer _progressRenderer;
-		private readonly LocalStore<ShardedCollectionContainer> _store;
-
-		private IReadOnlyDictionary<CollectionNamespace, ShardedCollectionInfo> _map;
+		private readonly ILocalStore<Container> _store;
 
 		public ShardedCollectionService(
 			CollectionRepository repo,
@@ -25,34 +23,28 @@ namespace ShardEqualizer
 		{
 			_repo = repo;
 			_progressRenderer = progressRenderer;
-
-			_store = storeProvider.Create<ShardedCollectionContainer>("shardedCollections", onSave);
-
-			if (_store.Container.ShardedCollection != null)
-				_map = _store.Container.ShardedCollection;
-		}
-
-		private void onSave(ShardedCollectionContainer container)
-		{
-			container.ShardedCollection = new Dictionary<CollectionNamespace, ShardedCollectionInfo>(_map);
+			_store = storeProvider.Get("shardedCollections", uploadData);
 		}
 
 		public async Task<IReadOnlyDictionary<CollectionNamespace, ShardedCollectionInfo>> Get(CancellationToken token)
 		{
-			if (_map == null)
-			{
-				await using var reporter = _progressRenderer.Start("Load sharded collections");
-				var result = await _repo.FindAll(false, token); //TODO maybe skip dropped items
-				reporter.SetCompleteMessage($"found {result.Count} collections.");
-
-				_map = result.ToDictionary(_ => _.Id);
-				_store.OnChanged();
-			}
-
-			return _map;
+			var container = await _store.Get(token);
+			return container.ShardedCollection;
 		}
 
-		private class ShardedCollectionContainer: Container
+		private async Task<Container> uploadData(CancellationToken token)
+		{
+			await using var reporter = _progressRenderer.Start("Load sharded collections");
+			var result = await _repo.FindAll(false, token); //TODO maybe skip dropped items
+			reporter.SetCompleteMessage($"found {result.Count} collections.");
+
+			return new Container()
+			{
+				ShardedCollection = result.ToDictionary(_ => _.Id)
+			};
+		}
+
+		private class Container
 		{
 			[BsonElement("shardedCollections"), BsonDictionaryOptions(DictionaryRepresentation.Document), BsonIgnoreIfNull]
 			public Dictionary<CollectionNamespace, ShardedCollectionInfo> ShardedCollection { get; set; }

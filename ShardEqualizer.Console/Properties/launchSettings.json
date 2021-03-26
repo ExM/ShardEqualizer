@@ -22,7 +22,7 @@
     },
     "equalize planOnly": {
       "commandName": "Project",
-      "commandLineArgs": "equalize --planOnly"
+      "commandLineArgs": "equalize --planOnly --storeMode=rw"
     },
     "equalize": {
       "commandName": "Project",
@@ -30,7 +30,7 @@
     },
     "equalize correctionPercent": {
       "commandName": "Project",
-      "commandLineArgs": "equalize --correctionPercent=20 --resetStore"
+      "commandLineArgs": "equalize --correctionPercent=20"
     },
     "equalize limited": {
       "commandName": "Project",
@@ -38,7 +38,7 @@
     },
     "equalize offline": {
       "commandName": "Project",
-      "commandLineArgs": "equalize --offline --moveLimit=200"
+      "commandLineArgs": "equalize --moveLimit=200"
     },
     "merge": {
       "commandName": "Project",
@@ -54,7 +54,7 @@
     },
     "balancer": {
       "commandName": "Project",
-      "commandLineArgs": "balancer --resetStore"
+      "commandLineArgs": "balancer"
     }
   }
 }
