@@ -8,7 +8,7 @@ namespace ShardEqualizer.Models
 	{
 		private static readonly IReadOnlyList<TagIdentity> _emptyTags = new TagIdentity[0];
 
-		private Shard()
+		public Shard()
 		{
 		}
 
@@ -17,21 +17,22 @@ namespace ShardEqualizer.Models
 			Id = new ShardIdentity(id);
 			_tags = tags.Select( _ => new TagIdentity(_)).ToList();
 		}
-		
+
 		[BsonId]
 		public ShardIdentity Id { get; private set; }
-		
+
 		[BsonElement("host"), BsonRequired]
 		public string Host { get; private set; }
-		
+
 		[BsonElement("state"), BsonRequired]
 		public ShardState State { get; private set; }
 
 		[BsonElement("tags"), BsonIgnoreIfNull]
 		private IReadOnlyList<TagIdentity> _tags { get; set; }
 
-		[BsonIgnore] public IReadOnlyList<TagIdentity> Tags => _tags ?? _emptyTags;
-		
+		[BsonIgnore]
+		public IReadOnlyList<TagIdentity> Tags => _tags ?? _emptyTags;
+
 		[BsonElement("maxSize"), BsonIgnoreIfNull]
 		public double? MaxSize { get; private set; }
 	}

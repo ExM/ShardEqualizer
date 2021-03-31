@@ -22,6 +22,10 @@
     },
     "equalize planOnly": {
       "commandName": "Project",
+      "commandLineArgs": "equalize -cdev.xml --planOnly"
+    },
+    "equalize planOnly from cache": {
+      "commandName": "Project",
       "commandLineArgs": "equalize -cdev.xml --planOnly --storeMode=rw"
     },
     "equalize": {
