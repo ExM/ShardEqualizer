@@ -12,9 +12,6 @@ namespace ShardEqualizer
 		[Option('f', "config", Required = false, HelpText = "configuration file", Default = "configuration.xml")]
 		public string ConfigFile { get; set; }
 
-		[Option('c', "clusterName", Required = false,  HelpText = "selected cluster name in configuration file")]
-		public string ClusterName { get; set; }
-
 		[Option("storeMode", Required = false,  Default = null, HelpText = "specifying flags of the mode of operation of the intermediate file storage [c - clean, r - read, w - write]")]
 		public string StoreMode { get; set; }
 

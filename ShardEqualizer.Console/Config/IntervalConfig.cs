@@ -2,22 +2,22 @@ using System.Runtime.Serialization;
 
 namespace ShardEqualizer.Config
 {
-	[DataContract(Name = "interval")]
+	[DataContract(Name = "Interval")]
 	public class IntervalConfig
 	{
-		[DataMember(Name = "nameSpace")]
+		[DataMember(Name = "NameSpace")]
 		public string Namespace { get; set; }
 
-		[DataMember(Name = "minBound")]
+		[DataMember(Name = "MinBound")]
 		public string MinBound { get; set; }
 
-		[DataMember(Name = "maxBound")]
+		[DataMember(Name = "MaxBound")]
 		public string MaxBound { get; set; }
 
-		[DataMember(Name = "zones")]
+		[DataMember(Name = "Zones")]
 		public string Zones { get; set; }
 
-		[DataMember(Name = "adjustable")]
+		[DataMember(Name = "Adjustable")]
 		public bool? Adjustable { get; set; }
 	}
 }

@@ -78,16 +78,14 @@ namespace ShardEqualizer
 		{
 			var appSettings = loadConfiguration(verbose.ConfigFile);
 
-			var clusterConfig = loadClusterConfig(appSettings, verbose.ClusterName);
-
-			kernel.Bind<ClusterConfig>().ToConstant(clusterConfig);
+			kernel.Bind<ConnectionConfig>().ToConstant(appSettings.TryGet<ConnectionConfig>());
 
 			var localStoreConfig = appSettings.TryGet<LocalStoreConfig>() ?? new LocalStoreConfig();
 			localStoreConfig.UpdateModes(verbose.StoreMode);
 
 			kernel.Bind<LocalStoreConfig>().ToConstant(localStoreConfig);
 
-			var intervalConfigs = loadIntervalConfigurations(clusterConfig, appSettings);
+			var intervalConfigs = loadIntervalConfigurations(appSettings);
 			var intervals = intervalConfigs.Select(_ => new Interval(_)).ToList().AsReadOnly();
 
 			kernel.Bind<IReadOnlyList<Interval>>().ToConstant(intervals);
@@ -97,22 +95,14 @@ namespace ShardEqualizer
 				.InSingletonScope();
 		}
 
-		private static ClusterConfig loadClusterConfig(IAppSettings settings, string clusterNameInCommandLine)
+		private static IEnumerable<IntervalConfig> loadIntervalConfigurations(IAppSettings appSettings)
 		{
-			var selectedCluster = clusterNameInCommandLine ?? settings.TryGet<ClustersConfig>()?.Default;
-			if (string.IsNullOrWhiteSpace(selectedCluster))
-				throw new Exception("can't select cluster name in configuration (Clusters/Default) or command line");
+			var defaultZones = appSettings.TryGet<DefaultsConfig>()?.Zones;
 
-			return settings.Subsection(AppSettingExtensions.GetSectionName<ClustersConfig>())
-				.Get<ClusterConfig>(selectedCluster);
-		}
-
-		private static IEnumerable<IntervalConfig> loadIntervalConfigurations(ClusterConfig clusterConfig, ICombiner combiner)
-		{
-			foreach (var g in clusterConfig.Intervals.GroupBy(_ => _.Namespace, StringComparer.Ordinal))
+			foreach (var g in appSettings.LoadSections<IntervalConfig>().GroupBy(_ => _.Namespace, StringComparer.Ordinal))
 			{
-				var intervalConfig = g.Aggregate(combiner.Combine);
-				intervalConfig.Zones ??= clusterConfig.Zones;
+				var intervalConfig = g.Aggregate(appSettings.Combine);
+				intervalConfig.Zones ??= defaultZones;
 
 				yield return intervalConfig;
 			}
