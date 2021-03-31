@@ -9,7 +9,7 @@ namespace ShardEqualizer
 {
 	public abstract class BaseVerbose
 	{
-		[Option('f', "config", Required = false, HelpText = "configuration file", Default = "configuration.xml")]
+		[Option('c', "config", Required = false, HelpText = "configuration file", Default = "configuration.xml")]
 		public string ConfigFile { get; set; }
 
 		[Option("storeMode", Required = false,  Default = null, HelpText = "specifying flags of the mode of operation of the intermediate file storage [c - clean, r - read, w - write]")]

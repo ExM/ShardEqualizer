@@ -1,0 +1,9 @@
+<Configuration>
+	<!-- configuration for debugging -->
+	<!-- we are looking for the configuration file above the project directory
+		../devConfigs/ShardEqualizer.xml or
+		../../devConfigs/ShardEqualizer.xml or
+		../../../devConfigs/ShardEqualizer.xml ...
+	-->
+	<IncludeXmlFile path='devConfigs/ShardEqualizer.xml' search='all' include='first' required='true'/>
+</Configuration>

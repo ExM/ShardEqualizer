@@ -8,16 +8,18 @@ namespace ShardEqualizer.Reporting
 	public class LayoutDescription
 	{
 		public string Title { get; }
-		
+
 		public IReadOnlyList<ColumnDescription> Columns { get; }
-		
-		public static LayoutDescription Default => new LayoutDescription(LayoutConfig.Default);
 
-		public LayoutDescription(LayoutConfig config)
+		public LayoutDescription(LayoutConfig config): this(config.Title, config.Columns)
 		{
-			Title = config.Title;
+		}
 
-			Columns = config.Columns
+		public LayoutDescription(string title, string columnsString)
+		{
+			Title = title;
+
+			Columns = columnsString
 				.Split(new char[] {' '}, StringSplitOptions.RemoveEmptyEntries)
 				.Select(ColumnDescription.Parse)
 				.ToList();

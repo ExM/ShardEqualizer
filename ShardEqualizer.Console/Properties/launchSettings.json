@@ -10,51 +10,51 @@
     },
     "config-update": {
       "commandName": "Project",
-      "commandLineArgs": "config-update"
+      "commandLineArgs": "config-update -cdev.xml"
     },
     "deviation": {
       "commandName": "Project",
-      "commandLineArgs": "deviation -sG --format=md --layouts=\"base,balance\""
+      "commandLineArgs": "deviation -cdev.xml -sG --format=md --layouts=\"default,balance\""
     },
     "scanJumbo": {
       "commandName": "Project",
-      "commandLineArgs": "scanJumbo"
+      "commandLineArgs": "scanJumbo -cdev.xml"
     },
     "equalize planOnly": {
       "commandName": "Project",
-      "commandLineArgs": "equalize --planOnly --storeMode=rw"
+      "commandLineArgs": "equalize -cdev.xml --planOnly --storeMode=rw"
     },
     "equalize": {
       "commandName": "Project",
-      "commandLineArgs": "equalize"
+      "commandLineArgs": "equalize -cdev.xml"
     },
     "equalize correctionPercent": {
       "commandName": "Project",
-      "commandLineArgs": "equalize --correctionPercent=20"
+      "commandLineArgs": "equalize -cdev.xml --correctionPercent=20"
     },
     "equalize limited": {
       "commandName": "Project",
-      "commandLineArgs": "equalize --moveLimit=51200"
+      "commandLineArgs": "equalize -cdev.xml --moveLimit=51200"
     },
     "equalize offline": {
       "commandName": "Project",
-      "commandLineArgs": "equalize --moveLimit=200"
+      "commandLineArgs": "equalize -cdev.xml --moveLimit=200"
     },
     "merge": {
       "commandName": "Project",
-      "commandLineArgs": "merge"
+      "commandLineArgs": "merge -cdev.xml"
     },
     "presplit": {
       "commandName": "Project",
-      "commandLineArgs": "presplit"
+      "commandLineArgs": "presplit -cdev.xml"
     },
     "presplit renew": {
       "commandName": "Project",
-      "commandLineArgs": "presplit --renew"
+      "commandLineArgs": "presplit -cdev.xml --renew"
     },
     "balancer": {
       "commandName": "Project",
-      "commandLineArgs": "balancer"
+      "commandLineArgs": "balancer -cdev.xml"
     }
   }
 }
