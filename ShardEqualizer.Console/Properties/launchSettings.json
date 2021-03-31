@@ -8,6 +8,10 @@
       "commandName": "Project",
       "commandLineArgs": "version"
     },
+    "config-init": {
+      "commandName": "Project",
+      "commandLineArgs": "config-init --config=newConfig.xml -hlocalhost:27017,localhost:27018"
+    },
     "config-update": {
       "commandName": "Project",
       "commandLineArgs": "config-update -cdev.xml"

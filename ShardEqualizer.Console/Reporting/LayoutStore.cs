@@ -10,13 +10,14 @@ namespace ShardEqualizer.Reporting
 
 		public LayoutStore(List<LayoutConfig> layoutConfigs)
 		{
-			foreach (var layoutConfig in layoutConfigs)
-			{
-				if(_map.ContainsKey(layoutConfig.Name))
-					throw new ArgumentException($"duplicate layout name {layoutConfig.Name} in configuration");
+			if(layoutConfigs != null)
+				foreach (var layoutConfig in layoutConfigs)
+				{
+					if(_map.ContainsKey(layoutConfig.Name))
+						throw new ArgumentException($"duplicate layout name {layoutConfig.Name} in configuration");
 
-				_map.Add(layoutConfig.Name, new LayoutDescription(layoutConfig));
-			}
+					_map.Add(layoutConfig.Name, new LayoutDescription(layoutConfig));
+				}
 
 			if(!_map.ContainsKey("default"))
 				_map.Add("default", new LayoutDescription("Base report", "TtSz TtSt TtIs TtSzD TtStD TtIsD UsSz UsSt UsIs ShSz ShSt ShIs"));

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.Serialization;
 
 namespace ShardEqualizer.Config
@@ -8,20 +6,13 @@ namespace ShardEqualizer.Config
 	public class ConnectionConfig
 	{
 		[DataMember(Name = "Servers")]
-		private string _servers
-		{
-			get => Servers == null ? null : string.Join(",", Servers);
-			set => Servers = value?.Split(',').ToList();
-		}
-
-		[IgnoreDataMember]
-		public IReadOnlyList<string> Servers { get; private set; }
+		public string Servers { get; set; }
 
 		[DataMember(Name = "User")]
-		public string User { get; private set; }
+		public string User { get; set; }
 
 		[DataMember(Name = "Password")]
-		public string Password { get; private set; }
+		public string Password { get; set; }
 
 		public bool IsRequireAuth => User != null || Password != null;
 	}

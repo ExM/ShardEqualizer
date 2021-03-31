@@ -19,12 +19,12 @@ namespace ShardEqualizer
 
 		public IMongoClient Build()
 		{
-			_progressRenderer.WriteLine($"Connecting to {string.Join(",", _connectionConfig.Servers)}");
-			_log.Info("Connecting to {0}", string.Join(",", _connectionConfig.Servers));
+			_progressRenderer.WriteLine($"Connecting to {_connectionConfig.Servers}");
+			_log.Info("Connecting to {0}", _connectionConfig.Servers);
 
 			var urlBuilder = new MongoUrlBuilder()
 			{
-				Servers = _connectionConfig.Servers.Select(MongoServerAddress.Parse),
+				Servers = _connectionConfig.Servers.Split(',').Select(MongoServerAddress.Parse).ToList(),
 			};
 
 			if(_connectionConfig.IsRequireAuth)

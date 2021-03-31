@@ -45,6 +45,11 @@ namespace ShardEqualizer.MongoCommands
 			_writer.WriteLine($"db.adminCommand({{ mergeChunks: \"{ns.FullName}\", bounds: [ {minText}, {maxText} ] }});");
 		}
 
+		public void AddShardToZone(ShardIdentity shard, string zoneName)
+		{
+			_writer.WriteLine($"sh.addShardToZone(\"{shard}\", \"{zoneName}\");");
+		}
+
 		public void Flush()
 		{
 			_writer.Flush();
