@@ -1,41 +1,28 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-    <PropertyGroup>
-        <TargetFramework>netcoreapp3.1</TargetFramework>
-
-        <IsPackable>false</IsPackable>
-
-        <RootNamespace>ShardEqualizer</RootNamespace>
-
-        <LangVersion>8</LangVersion>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Include="Accord.Math" Version="3.8.0" />
-        <PackageReference Include="CsvHelper" Version="15.0.2" />
-        <PackageReference Include="nunit" Version="3.11.0" />
-        <PackageReference Include="NUnit3TestAdapter" Version="3.16.1" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\ShardEqualizer.Console\ShardEqualizer.Console.csproj" />
-      <ProjectReference Include="..\ShardEqualizer\ShardEqualizer.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Update="conditionSamples\SmartcatCluster\dump1.js">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-      <None Update="conditionSamples\SmartcatCluster\dump2.js">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-      <None Update="conditionSamples\SmartcatCluster\dump3.js">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-      <None Update="conditionSamples\SmartcatCluster\conditionDump_20200928_0750.js">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-    </ItemGroup>
-
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>ShardEqualizer</RootNamespace>
+    <LangVersion>8</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ShardEqualizer.Console\ShardEqualizer.Console.csproj" />
+    <ProjectReference Include="..\ShardEqualizer\ShardEqualizer.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="conditionSamples\SmartcatCluster\dump1.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="conditionSamples\SmartcatCluster\dump2.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="conditionSamples\SmartcatCluster\dump3.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="conditionSamples\SmartcatCluster\conditionDump_20200928_0750.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <Import Project="..\.paket\Paket.Restore.targets" />
 </Project>

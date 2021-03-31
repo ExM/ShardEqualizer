@@ -1,0 +1,7 @@
+CommandLineParser
+MongoDB.Bson
+MongoDB.Driver
+MongoDB.Driver.Core
+NConfiguration
+Ninject
+NLog

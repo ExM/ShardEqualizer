@@ -3,6 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27703.2026
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{2515AED2-61F4-4BB1-945D-9EDCCD28DB13}"
+	ProjectSection(SolutionItems) = preProject
+		paket.dependencies = paket.dependencies
+	EndProjectSection
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ShardEqualizer.Console", "ShardEqualizer.Console\ShardEqualizer.Console.csproj", "{29B5102C-B12E-4BD9-9628-8A4E3D1E364F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShardEqualizer", "ShardEqualizer\ShardEqualizer.csproj", "{AB230AF1-8247-450F-BD17-AD2513AC99FF}"
