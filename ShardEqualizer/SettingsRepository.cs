@@ -16,7 +16,9 @@ namespace ShardEqualizer
 
 		public async Task<long> GetChunksize(CancellationToken token)
 		{
-			var model =  await _coll.Find(Builders<BsonDocument>.Filter.Eq("_id", "chunksize")).SingleAsync(token);
+			var model =  await _coll.Find(Builders<BsonDocument>.Filter.Eq("_id", "chunksize")).SingleOrDefaultAsync(token);
+			if(model == null)
+				return 64 * ScaleSuffix.Mega.Factor();
 			var sizeInMb = model["value"].AsInt64;
 			return sizeInMb * ScaleSuffix.Mega.Factor();
 		}

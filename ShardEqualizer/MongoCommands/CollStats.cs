@@ -16,16 +16,16 @@ namespace ShardEqualizer.MongoCommands
 
 		[BsonElement("count"), BsonRequired]
 		public long Count;
-		
+
 		[BsonElement("max"), BsonIgnoreIfNull]
 		public long? Max;
-			
+
 		[BsonElement("maxSize"), BsonIgnoreIfNull]
 		public long? MaxSize;
-		
+
 		[BsonElement("sleepCount"), BsonIgnoreIfNull]
 		public long? SleepCount;
-		
+
 		[BsonElement("sleepMS"), BsonIgnoreIfNull]
 		public long? SleepMS;
 
@@ -52,16 +52,28 @@ namespace ShardEqualizer.MongoCommands
 
 		[BsonElement("indexSizes"), BsonDictionaryOptions(DictionaryRepresentation.Document), BsonRequired]
 		public IReadOnlyDictionary<string, long> IndexSizes;
-		
+
 		[BsonElement("$gleStats"), BsonIgnoreIfNull]
-		public BsonDocument GleStats { get; private set; }
-		
+		public BsonDocument GleStats;
+
 		[BsonElement("$configServerState"), BsonIgnoreIfNull]
-		public BsonDocument ConfigServerState { get; private set; }
-		
+		public BsonDocument ConfigServerState;
+
 		[BsonElement("lastCommittedOpTime"), BsonIgnoreIfNull]
-		public BsonTimestamp LastCommittedOpTime { get; private set; }
-		
+		public BsonTimestamp LastCommittedOpTime;
+
+		[BsonElement("totalSize")]
+		public long? TotalSize;
+
+		[BsonElement("freeStorageSize")]
+		public long? FreeStorageSize;
+
+		[BsonElement("indexBuilds")]
+		public BsonArray IndexBuilds;
+
+		[BsonElement("scaleFactor")]
+		public double? ScaleFactor;
+
 		//[BsonExtraElements]
 		//public BsonDocument ExtraElements;
 	}

@@ -17,6 +17,14 @@ namespace ShardEqualizer.ShortModels
 			TotalIndexSize = collStats.TotalIndexSize;
 		}
 
+		public ShardCollectionStatistics(CollStatsResult collStats)
+		{
+			Size = collStats.Size;
+			Count = collStats.Count;
+			StorageSize = collStats.StorageSize;
+			TotalIndexSize = collStats.TotalIndexSize;
+		}
+
 		[BsonElement("size"), BsonRequired]
 		public long Size { get; set; }
 

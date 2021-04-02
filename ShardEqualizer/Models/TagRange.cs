@@ -1,3 +1,4 @@
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 
@@ -15,21 +16,21 @@ namespace ShardEqualizer.Models
 			Min = min;
 			Max = max;
 			Namespace = new CollectionNamespace("test", "test");
-			Id = new TagRangeIdentity(Namespace, min);
+			Id = ObjectId.GenerateNewId();
 		}
-		
+
 		[BsonId]
-		public TagRangeIdentity Id { get; private set; }
+		public BsonValue Id { get; private set; }
 
 		[BsonElement("ns"), BsonRequired]
 		public CollectionNamespace Namespace { get; private set; }
-		
+
 		[BsonElement("min"), BsonRequired]
 		public BsonBound Min { get; private set; }
-		
+
 		[BsonElement("max"), BsonRequired]
 		public BsonBound Max { get; private set; }
-		
+
 		[BsonElement("tag"), BsonRequired]
 		public TagIdentity Tag { get; private set; }
 	}
