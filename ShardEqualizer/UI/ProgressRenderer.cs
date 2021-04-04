@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ShardEqualizer.UI;
 
-namespace ShardEqualizer
+namespace ShardEqualizer.UI
 {
 	public class ProgressRenderer: IAsyncDisposable
 	{

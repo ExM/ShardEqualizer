@@ -1,7 +1,8 @@
 using System;
 using System.Globalization;
+using ShardEqualizer.ByteSizeRendering;
 
-namespace ShardEqualizer
+namespace ShardEqualizer.Reporting
 {
 	public class SizeRenderer
 	{

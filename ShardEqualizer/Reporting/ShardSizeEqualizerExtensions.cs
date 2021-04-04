@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using ShardEqualizer.ByteSizeRendering;
 using ShardEqualizer.ShardSizeEqualizing;
 
 namespace ShardEqualizer.Reporting

@@ -2,8 +2,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using ShardEqualizer.ByteSizeRendering;
 
-namespace ShardEqualizer
+namespace ShardEqualizer.ConfigRepositories
 {
 	public class SettingsRepository
 	{

@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using ShardEqualizer.ByteSizeRendering;
 
 namespace ShardEqualizer
 {

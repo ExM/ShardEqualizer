@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using MongoDB.Driver;
 using ShardEqualizer.Models;
 
-namespace ShardEqualizer
+namespace ShardEqualizer.ConfigRepositories
 {
 	public class ChunkRepository
 	{

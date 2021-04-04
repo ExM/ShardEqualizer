@@ -2,6 +2,7 @@ using System.Linq;
 using MongoDB.Driver;
 using NLog;
 using ShardEqualizer.Config;
+using ShardEqualizer.UI;
 
 namespace ShardEqualizer
 {

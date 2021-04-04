@@ -1,16 +1,16 @@
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Bson.Serialization.Options;
 using MongoDB.Driver;
 using ShardEqualizer.ChunkCaching;
+using ShardEqualizer.ConfigRepositories;
 using ShardEqualizer.LocalStoring;
 using ShardEqualizer.ShortModels;
+using ShardEqualizer.UI;
 
-namespace ShardEqualizer
+namespace ShardEqualizer.ConfigServices
 {
 	public class ChunkService
 	{

@@ -1,3 +1,5 @@
+using ShardEqualizer.ByteSizeRendering;
+
 namespace ShardEqualizer.ShardSizeEqualizing
 {
 	public class BucketConstraint

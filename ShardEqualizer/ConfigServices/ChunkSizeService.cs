@@ -5,7 +5,7 @@ using MongoDB.Driver;
 using ShardEqualizer.Models;
 using ShardEqualizer.MongoCommands;
 
-namespace ShardEqualizer
+namespace ShardEqualizer.ConfigServices
 {
 	public class ChunkSizeService
 	{

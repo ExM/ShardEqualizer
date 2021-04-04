@@ -1,6 +1,6 @@
 using System;
 
-namespace ShardEqualizer
+namespace ShardEqualizer.ByteSizeRendering
 {
 	public static class ScaleSuffixExtensions
 	{

@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 
-namespace ShardEqualizer
+namespace ShardEqualizer.ByteSizeRendering
 {
 	public static class LongExtensions
 	{

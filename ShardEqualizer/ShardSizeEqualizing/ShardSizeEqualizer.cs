@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MongoDB.Bson;
 using NLog;
+using ShardEqualizer.ByteSizeRendering;
 using ShardEqualizer.Models;
 using ShardEqualizer.ShortModels;
 

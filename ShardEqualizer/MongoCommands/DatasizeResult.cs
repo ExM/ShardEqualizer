@@ -1,6 +1,6 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
 
-namespace ShardEqualizer
+namespace ShardEqualizer.MongoCommands
 {
 	public class DatasizeResult : CommandResult
 	{

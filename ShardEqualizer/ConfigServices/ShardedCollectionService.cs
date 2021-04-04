@@ -5,10 +5,12 @@ using System.Threading.Tasks;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.Options;
 using MongoDB.Driver;
+using ShardEqualizer.ConfigRepositories;
 using ShardEqualizer.LocalStoring;
 using ShardEqualizer.Models;
+using ShardEqualizer.UI;
 
-namespace ShardEqualizer
+namespace ShardEqualizer.ConfigServices
 {
 	public class ShardedCollectionService
 	{

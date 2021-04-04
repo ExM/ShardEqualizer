@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Driver;
+using ShardEqualizer.ByteSizeRendering;
+using ShardEqualizer.ConfigServices;
 using ShardEqualizer.JsonSerialization;
 using ShardEqualizer.Models;
 using ShardEqualizer.ShortModels;

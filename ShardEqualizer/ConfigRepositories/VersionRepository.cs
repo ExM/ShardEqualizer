@@ -2,7 +2,7 @@ using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
-namespace ShardEqualizer
+namespace ShardEqualizer.ConfigRepositories
 {
 	public class VersionRepository
 	{

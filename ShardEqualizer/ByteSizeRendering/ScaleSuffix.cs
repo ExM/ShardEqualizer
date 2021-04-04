@@ -1,4 +1,4 @@
-namespace ShardEqualizer
+namespace ShardEqualizer.ByteSizeRendering
 {
 	public enum ScaleSuffix
 	{

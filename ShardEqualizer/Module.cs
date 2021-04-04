@@ -12,9 +12,13 @@ using Ninject.Activation;
 using Ninject.Modules;
 using NLog;
 using ShardEqualizer.Config;
+using ShardEqualizer.ConfigRepositories;
+using ShardEqualizer.ConfigServices;
 using ShardEqualizer.LocalStoring;
 using ShardEqualizer.Reporting;
 using ShardEqualizer.Serialization;
+using ShardEqualizer.UI;
+using ShardEqualizer.Verbs;
 
 namespace ShardEqualizer
 {

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
 using NUnit.Framework;
+using ShardEqualizer.ByteSizeRendering;
 using ShardEqualizer.Models;
 using ShardEqualizer.Reporting;
 using ShardEqualizer.ShortModels;

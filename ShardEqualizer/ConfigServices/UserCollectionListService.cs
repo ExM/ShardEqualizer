@@ -5,8 +5,9 @@ using System.Threading.Tasks;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using ShardEqualizer.LocalStoring;
+using ShardEqualizer.UI;
 
-namespace ShardEqualizer
+namespace ShardEqualizer.ConfigServices
 {
 	public class CollectionListService
 	{

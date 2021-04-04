@@ -5,7 +5,7 @@ using CommandLine;
 using Ninject;
 using NLog;
 
-namespace ShardEqualizer
+namespace ShardEqualizer.Verbs
 {
 	public abstract class BaseVerbose
 	{

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CommandLine;
 using Ninject;
 using NLog;
+using ShardEqualizer.Verbs;
 
 namespace ShardEqualizer
 {

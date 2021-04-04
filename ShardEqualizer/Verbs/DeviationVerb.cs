@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
 using Ninject;
+using ShardEqualizer.ByteSizeRendering;
 using ShardEqualizer.Operations;
 using ShardEqualizer.Reporting;
 

@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using ShardEqualizer.MongoCommands;
 
 namespace ShardEqualizer
 {
@@ -26,7 +27,7 @@ namespace ShardEqualizer
 			var result = await _db.RunCommandAsync<CommandResult>(cmd, null, token);
 			result.EnsureSuccess();
 		}
-		
+
 		public async Task MergeChunks(CollectionNamespace ns, BsonDocument leftBound, BsonDocument rightBound, CancellationToken token)
 		{
 			var cmd = new BsonDocument
@@ -34,7 +35,7 @@ namespace ShardEqualizer
 				{ "mergeChunks", ns.FullName },
 				{ "bounds", new BsonArray() { leftBound, rightBound }},
 			};
-			
+
 			var result = await _db.RunCommandAsync<CommandResult>(cmd, null, token);
 			result.EnsureSuccess();
 		}
