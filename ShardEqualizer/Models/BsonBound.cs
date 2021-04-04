@@ -96,7 +96,7 @@ namespace ShardEqualizer.Models
 				new BsonSerializationArgs()
 				{
 					NominalType = typeof(BsonDocument),
-					SerializeIdFirst = true,
+					SerializeIdFirst = false,
 					SerializeAsNominalType = true
 				};
 
