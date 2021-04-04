@@ -2,8 +2,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
+    <RootNamespace>ShardEqualizer</RootNamespace>
     <LangVersion>9</LangVersion>
-    <Nullable>disable</Nullable>
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
+  <ItemGroup>
+    <None Update="configuration.sample.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="NLog.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="dev.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />
 </Project>

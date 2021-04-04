@@ -7,7 +7,6 @@
     <LangVersion>9</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ShardEqualizer.Console\ShardEqualizer.Console.csproj" />
     <ProjectReference Include="..\ShardEqualizer\ShardEqualizer.csproj" />
   </ItemGroup>
   <ItemGroup>

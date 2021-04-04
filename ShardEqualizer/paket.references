@@ -1,5 +1,10 @@
 Accord.Math
+CommandLineParser
 MongoDB.Bson
 MongoDB.Driver
+MongoDB.Driver.Core
+NConfiguration
 Newtonsoft.Json
+Ninject
 NLog
+
