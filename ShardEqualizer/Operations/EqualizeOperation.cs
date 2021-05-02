@@ -32,7 +32,7 @@ namespace ShardEqualizer.Operations
 		private readonly ProgressRenderer _progressRenderer;
 		private readonly CommandPlanWriter _commandPlanWriter;
 		private readonly long? _moveLimit;
-		private readonly bool _planOnly;
+		private readonly bool _dryRun;
 
 		public EqualizeOperation(
 			ShardListService shardListService,
@@ -47,7 +47,7 @@ namespace ShardEqualizer.Operations
 			CommandPlanWriter commandPlanWriter,
 			long? moveLimit,
 			double movePercent,
-			bool planOnly)
+			bool dryRun)
 		{
 			_shardListService = shardListService;
 			_collectionListService = collectionListService;
@@ -59,7 +59,7 @@ namespace ShardEqualizer.Operations
 			_progressRenderer = progressRenderer;
 			_commandPlanWriter = commandPlanWriter;
 			_moveLimit = moveLimit;
-			_planOnly = planOnly;
+			_dryRun = dryRun;
 			_movePercent = movePercent;
 
 			if (intervals.Count == 0)
@@ -271,13 +271,14 @@ namespace ShardEqualizer.Operations
 			var userColls = await _collectionListService.Get(token);
 			_collStatsMap = await _collectionStatisticService.Get(userColls, token);
 			_shards = await _shardListService.Get(token);
-			_shardByTag =  _intervals
+			_shardByTag = _intervals
 				.SelectMany(_ => _.Zones)
 				.Distinct()
 				.ToDictionary(_ => _, _ => _shards.Single(s => s.Tags.Contains(_)));
 
-			var allTagRangesByNs =  await _tagRangeService.Get(_adjustableIntervals.Select(_ => _.Namespace), token);
-			_tagRangesByNs = _adjustableIntervals.ToDictionary(_ => _.Namespace, _ => allTagRangesByNs[_.Namespace].InRange(_.Min, _.Max));
+			var allTagRangesByNs = await _tagRangeService.Get(_adjustableIntervals.Select(_ => _.Namespace), token);
+			_tagRangesByNs = _adjustableIntervals.ToDictionary(_ => _.Namespace,
+				_ => allTagRangesByNs[_.Namespace].InRange(_.Min, _.Max));
 
 			var allChunksByNs = await _chunkService.Get(_adjustableIntervals.Select(_ => _.Namespace), token);
 			_chunksByCollection = _adjustableIntervals.ToDictionary(_ => _.Namespace,
@@ -294,45 +295,47 @@ namespace ShardEqualizer.Operations
 			}
 
 			_progressRenderer.WriteLine($"Total update pressure:");
-			foreach (var pair in equalizeWorks.SelectMany(_ => _.Equalizer.Zones).GroupBy(_ => _.Main).OrderBy(_ => _.Key))
+			foreach (var pair in equalizeWorks.SelectMany(_ => _.Equalizer.Zones).GroupBy(_ => _.Main)
+				.OrderBy(_ => _.Key))
 				_progressRenderer.WriteLine($"  [{pair.Key}] {pair.Sum(_ => _.RequirePressure).ByteSize()}");
 			_progressRenderer.WriteLine();
 
-			if (!_planOnly)
+			if (_dryRun)
+				return;
+
+			var updateQuotes = _shards.ToDictionary(_ => _.Id, _ => _moveLimit);
+
+			foreach (var item in equalizeWorks.OrderByDescending(_ => _.Equalizer.RequireMoveSize).ToList())
 			{
-				var updateQuotes = _shards.ToDictionary(_ => _.Id, _ => _moveLimit);
+				item.Equalizer.SetQuotes(updateQuotes);
+			}
 
-				foreach (var item in equalizeWorks.OrderByDescending(_ => _.Equalizer.RequireMoveSize).ToList())
-				{
-					item.Equalizer.SetQuotes(updateQuotes);
-				}
+			equalizeWorks = equalizeWorks.Where(_ => _.Equalizer.RequireMoveSize > 0).ToList();
 
-				equalizeWorks = equalizeWorks.Where(_ => _.Equalizer.RequireMoveSize > 0).ToList();
+			_progressRenderer.WriteLine("Quoted plan:");
+			foreach (var item in equalizeWorks)
+			{
+				renderShardSizeChanges(item);
+				_progressRenderer.WriteLine();
+			}
 
-				_progressRenderer.WriteLine("Quoted plan:");
+			var movedChunks = 0;
+
+			try
+			{
+				movedChunks = await runEqualizeAllCollections(equalizeWorks, token);
+			}
+			finally
+			{
 				foreach (var item in equalizeWorks)
-				{
-					renderShardSizeChanges(item);
-					_progressRenderer.WriteLine();
-				}
+					item.RenderCommandPlan(_commandPlanWriter);
 
-				var movedChunks = 0;
+				_commandPlanWriter.Comment($"\tMoved chunks: {movedChunks}");
+				_commandPlanWriter.Comment($"\tCurrent update pressure:");
 
-				try
-				{
-					movedChunks = await runEqualizeAllCollections(equalizeWorks, token);
-				}
-				finally
-				{
-					foreach (var item in equalizeWorks)
-						item.RenderCommandPlan(_commandPlanWriter);
-
-					_commandPlanWriter.Comment($"\tMoved chunks: {movedChunks}");
-					_commandPlanWriter.Comment($"\tCurrent update pressure:");
-
-					foreach (var shard in equalizeWorks.SelectMany(_ => _.Equalizer.Zones).GroupBy(_ => _.Main).OrderBy(_ => _.Key))
-						_commandPlanWriter.Comment($"\t\t[{shard.Key}] {shard.Sum(_ => _.CurrentPressure).ByteSize()}");
-				}
+				foreach (var shard in equalizeWorks.SelectMany(_ => _.Equalizer.Zones).GroupBy(_ => _.Main)
+					.OrderBy(_ => _.Key))
+					_commandPlanWriter.Comment($"\t\t[{shard.Key}] {shard.Sum(_ => _.CurrentPressure).ByteSize()}");
 			}
 		}
 

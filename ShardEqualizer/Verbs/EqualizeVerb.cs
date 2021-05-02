@@ -8,17 +8,17 @@ using ShardEqualizer.Operations;
 
 namespace ShardEqualizer.Verbs
 {
-	[Verb("equalize", HelpText = "Alignment shard sizes by moving bound of zones.")]
+	[Verb("equalize", HelpText = "Align shard sizes by changing zone ranges")]
 	public class EqualizeVerb: BaseCommandFileVerb
 	{
-		[Option("moveLimit", Required = false, Default = null, HelpText = "limit of moving data (Mb)")]
+		[Option("move-limit", Required = false, Default = null, HelpText = "Limit of data to move (Mb).")]
 		public long? MoveLimit { get; set; }
 
-		[Option("correctionPercent", Required = false, Default = 100, HelpText = "percentage of partial correction from 0 to 100")]
+		[Option("correction-percent", Required = false, Default = 100, HelpText = "Percentage of partial correction from 0 to 100.")]
         public double CorrectionPercent { get; set; }
 
-		[Option("planOnly", Required = false, Default = false, HelpText = "show moving plan without equalization")]
-		public bool PlanOnly { get; set; }
+		[Option("dry-run", Required = false, Default = false, HelpText = "Simulate equalization.")]
+		public bool DryRun { get; set; }
 
 		protected override Task RunOperation(IKernel kernel, CancellationToken token)
 		{
@@ -32,7 +32,7 @@ namespace ShardEqualizer.Verbs
 			kernel.Bind<IOperation>().To<EqualizeOperation>()
 				.WithConstructorArgument(scaledMoveLimit)
 				.WithConstructorArgument(CorrectionPercent / 100)
-				.WithConstructorArgument(PlanOnly);
+				.WithConstructorArgument(DryRun);
 
 			return base.RunOperation(kernel, token);
 		}

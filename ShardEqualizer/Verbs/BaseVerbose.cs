@@ -9,10 +9,10 @@ namespace ShardEqualizer.Verbs
 {
 	public abstract class BaseVerbose
 	{
-		[Option('c', "config", Required = false, HelpText = "configuration file", Default = "configuration.xml")]
+		[Option('c', "config", Required = false, HelpText = "The configuration file to use.", Default = "configuration.xml")]
 		public string ConfigFile { get; set; }
 
-		[Option("storeMode", Required = false,  Default = null, HelpText = "specifying flags of the mode of operation of the intermediate file storage [c - clean, r - read, w - write]")]
+		[Option("store-mode", Required = false,  HelpText = "Operation modes of the intermediate file storage [c - clean, r - read, w - write].")]
 		public string StoreMode { get; set; }
 
 		public async Task Run(IKernel kernel, CancellationToken token)

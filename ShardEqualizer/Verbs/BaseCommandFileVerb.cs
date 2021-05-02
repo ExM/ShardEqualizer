@@ -11,7 +11,7 @@ namespace ShardEqualizer.Verbs
 {
 	public abstract class BaseCommandFileVerb: BaseVerbose
 	{
-		[Option("commandFile", Required = false, Default = "", HelpText = "file for command plan")]
+		[Option("command-file", Required = false, HelpText = "(Default: commandPlan_{currentDateTime}.js) Command plan file.")]
 		public string CommandFile { get; set; }
 
 		protected override async Task RunOperation(IKernel kernel, CancellationToken token)

@@ -10,16 +10,16 @@ using ShardEqualizer.Reporting;
 
 namespace ShardEqualizer.Verbs
 {
-	[Verb("deviation", HelpText = "Calculation of collection size deviation.")]
+	[Verb("deviation", HelpText = "Calculate collection size deviation.")]
 	public class DeviationVerb: BaseVerbose
 	{
-		[Option('s', "scale", Required = false, Default = "", HelpText = "scale of size (K,M,G,T,P,E)")]
+		[Option('s', "scale", Required = false, Default = "no scale", HelpText = "Size scale [K,M,G,T,P,E].")]
 		public string Scale { get; set; }
 
-		[Option("layouts", Required = false, Default = "default", HelpText = "Сomma separated name list of layouts (default)")]
+		[Option("layouts", Required = false, Default = "default", HelpText = "Сomma separated list of layout names.")]
 		public string Layouts { get; set; }
 
-		[Option("format", Required = false, Default = "csv", HelpText = "format of report (csv - CSV, md - markdown")]
+		[Option("format", Required = false, Default = "csv", HelpText = "Output format [csv - CSV, md - markdown].")]
 		public string Format { get; set; }
 
 		protected override async Task RunOperation(IKernel kernel, CancellationToken token)
@@ -40,7 +40,7 @@ namespace ShardEqualizer.Verbs
 		{
 			switch (scale)
 			{
-				case "": return ScaleSuffix.None;
+				case "no scale": return ScaleSuffix.None;
 				case "K": return ScaleSuffix.Kilo;
 				case "M": return ScaleSuffix.Mega;
 				case "G": return ScaleSuffix.Giga;

@@ -10,13 +10,13 @@ namespace ShardEqualizer.Verbs
 	[Verb("config-init", HelpText = "Create new configuration.")]
 	public class ConfigInitVerb: BaseCommandFileVerb
 	{
-		[Option('h', "hosts", Required = true, HelpText = "The host (and optional port number) where mongos instance for a sharded cluster is running. You can specify multiple hosts separated by commas")]
+		[Option('h', "hosts", Required = true, HelpText = "Required. The host name (and optional port number) where the mongos of the sharded cluster is running. You can specify multiple hosts separated by commas.")]
 		public string Hosts { get; set; }
 
-		[Option('u', "user", Required = false, HelpText = "user name for authentication")]
+		[Option('u', "user", Required = false, HelpText = "User name with which to authenticate to the mongos.")]
 		public string User { get; set; }
 
-		[Option('p', "password", Required = false, HelpText = "password for authentication")]
+		[Option('p', "password", Required = false, HelpText = "Password with which to authenticate to the mongos.")]
 		public string Password { get; set; }
 
 		protected override async Task RunOperation(IKernel kernel, CancellationToken token)

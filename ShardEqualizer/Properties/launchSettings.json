@@ -20,17 +20,17 @@
       "commandName": "Project",
       "commandLineArgs": "deviation -cdev.xml -sG --format=md --layouts=\"default,balance\""
     },
-    "scanJumbo": {
+    "scan-jumbo": {
       "commandName": "Project",
-      "commandLineArgs": "scanJumbo -cdev.xml"
+      "commandLineArgs": "scan-jumbo -cdev.xml"
     },
     "equalize planOnly": {
       "commandName": "Project",
-      "commandLineArgs": "equalize -cdev.xml --planOnly"
+      "commandLineArgs": "equalize -cdev.xml --dry-run"
     },
     "equalize planOnly from cache": {
       "commandName": "Project",
-      "commandLineArgs": "equalize -cdev.xml --planOnly --storeMode=rw"
+      "commandLineArgs": "equalize -cdev.xml --dry-run --store-mode=rw"
     },
     "equalize": {
       "commandName": "Project",
@@ -38,15 +38,15 @@
     },
     "equalize correctionPercent": {
       "commandName": "Project",
-      "commandLineArgs": "equalize -cdev.xml --correctionPercent=20"
+      "commandLineArgs": "equalize -cdev.xml --correction-percent=20"
     },
     "equalize limited": {
       "commandName": "Project",
-      "commandLineArgs": "equalize -cdev.xml --moveLimit=51200"
+      "commandLineArgs": "equalize -cdev.xml --move-limit=51200"
     },
     "equalize offline": {
       "commandName": "Project",
-      "commandLineArgs": "equalize -cdev.xml --moveLimit=200"
+      "commandLineArgs": "equalize -cdev.xml --move-limit=200"
     },
     "merge": {
       "commandName": "Project",
@@ -63,6 +63,26 @@
     "balancer": {
       "commandName": "Project",
       "commandLineArgs": "balancer -cdev.xml"
+    },
+    "balancer help": {
+      "commandName": "Project",
+      "commandLineArgs": "balancer --help"
+    },
+    "presplit help": {
+      "commandName": "Project",
+      "commandLineArgs": "presplit --help"
+    },
+    "equalize help": {
+      "commandName": "Project",
+      "commandLineArgs": "equalize --help"
+    },
+    "deviation help": {
+      "commandName": "Project",
+      "commandLineArgs": "deviation --help"
+    },
+    "config-init": {
+      "commandName": "Project",
+      "commandLineArgs": "config-init --help"
     }
   }
 }

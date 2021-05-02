@@ -6,7 +6,7 @@ using ShardEqualizer.Operations;
 
 namespace ShardEqualizer.Verbs
 {
-	[Verb("scanJumbo", HelpText = "Scan jumbo chunks.")]
+	[Verb("scan-jumbo", HelpText = "Scan jumbo chunks.")]
 	public class ScanJumboChunksVerb : BaseVerbose
 	{
 		protected override async Task RunOperation(IKernel kernel, CancellationToken token)
