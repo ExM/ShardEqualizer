@@ -6,20 +6,21 @@ using CommandLine;
 using Ninject;
 using NLog;
 using ShardEqualizer.MongoCommands;
+using ShardEqualizer.UI;
 
 namespace ShardEqualizer.Verbs
 {
 	public abstract class BaseCommandFileVerb: BaseVerbose
 	{
-		[Option("command-file", Required = false, HelpText = "(Default: commandPlan_{currentDateTime}.js) Command plan file.")]
-		public string CommandFile { get; set; }
+		[Option("script-file", Required = false, HelpText = "(Default: commandPlan_{currentDateTime}.js) Command plan file.")]
+		public string ScriptFile { get; set; }
 
 		protected override async Task RunOperation(IKernel kernel, CancellationToken token)
 		{
-			if (string.IsNullOrWhiteSpace(CommandFile))
-				CommandFile = $"commandPlan_{DateTime.UtcNow:yyyyMMdd_HHmm}.js";
+			if (string.IsNullOrWhiteSpace(ScriptFile))
+				ScriptFile = $"commandPlan_{DateTime.UtcNow:yyyyMMdd_HHmm}.js";
 
-			var fullPath = Path.GetFullPath(CommandFile);
+			var fullPath = Path.GetFullPath(ScriptFile);
 
 			await using (var file = File.CreateText(fullPath))
 			{
@@ -29,6 +30,7 @@ namespace ShardEqualizer.Verbs
 				await base.RunOperation(kernel, token);
 			}
 
+			kernel.Get<ProgressRenderer>().WriteLine($"save all commands to file {fullPath}");
 			_log.Info("all commands in file {0}", fullPath);
 		}
 
