@@ -24,7 +24,7 @@ namespace ShardEqualizer.Models
 		[BsonElement("host"), BsonRequired]
 		public string Host { get; private set; }
 
-		[BsonElement("state"), BsonRequired]
+		[BsonElement("state"), BsonIgnoreIfNull]
 		public ShardState State { get; private set; }
 
 		[BsonElement("tags"), BsonIgnoreIfNull]
