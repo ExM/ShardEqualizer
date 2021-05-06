@@ -1,3 +1,6 @@
+[![NuGet Version](http://img.shields.io/nuget/v/ShardEqualizer.svg?style=flat)](https://www.nuget.org/packages/ShardEqualizer/) 
+[![NuGet Downloads](http://img.shields.io/nuget/dt/ShardEqualizer.svg?style=flat)](https://www.nuget.org/packages/ShardEqualizer/)
+
 # ShardEqualizer
 
 Console utility for aligning the size of stored data between shards of the MongoDB cluster.
