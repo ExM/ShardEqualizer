@@ -62,17 +62,12 @@ namespace ShardEqualizer.Operations
 
 		private BaseReport createReport(SizeRenderer sizeRenderer)
 		{
-			switch (_reportFormat)
+			return _reportFormat switch
 			{
-				case ReportFormat.Csv:
-					return new CsvReport(sizeRenderer);
-
-				case ReportFormat.Markdown:
-					return new MarkdownReport(sizeRenderer);
-
-				default:
-					throw new ArgumentException($"unexpected report format: {_reportFormat}");
-			}
+				ReportFormat.Csv => new CsvReport(sizeRenderer),
+				ReportFormat.Markdown => new MarkdownReport(sizeRenderer),
+				_ => throw new ArgumentException($"unexpected report format: {_reportFormat}")
+			};
 		}
 	}
 }

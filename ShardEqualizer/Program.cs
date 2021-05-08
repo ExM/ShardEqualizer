@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -13,32 +14,38 @@ namespace ShardEqualizer
 	internal static class Program
 	{
 		private static readonly Logger _log = LogManager.GetCurrentClassLogger();
+		private static readonly CancellationTokenSource _cts = new ();
 
-		static async Task<int> Main(string[] args)
+		public static async Task<int> Main(string[] args)
 		{
-			var cts = new CancellationTokenSource();
-
-			Console.CancelKeyPress += (sender, eventArgs) =>
+			try
 			{
-				cts.Cancel();
-				eventArgs.Cancel = true;
-				_log.Warn("cancel operation requested...");
-			};
-
-			var parsed = Parser.Default.ParseArguments(args, loadVerbs()) as Parsed<object>;
-
-			if (parsed == null)
+				LogManager.Configuration = null;
+				var nlogConfigFile = Path.Combine(Environment.CurrentDirectory, "NLog.config");
+				if(File.Exists(nlogConfigFile)) //use config file from current directory
+					LogManager.LoadConfiguration(nlogConfigFile);
+			}
+			catch (Exception e)
+			{
+				Console.Error.WriteLine(e);
 				return 1;
+			}
 
 			try
 			{
+				var parsed = Parser.Default.ParseArguments(args, loadVerbs()) as Parsed<object>;
+
+				if (parsed == null)
+					return 1;
+
 				var verbose = (BaseVerbose) parsed.Value;
 
 				var kernel = new StandardKernel(new NinjectSettings() { LoadExtensions = false });
 				kernel.Bind<BaseVerbose>().ToConstant(verbose);
 				kernel.Load<Module>();
 
-				await verbose.Run(kernel, cts.Token);
+				Console.CancelKeyPress += OnCancelKeyPress;
+				await verbose.Run(kernel, _cts.Token);
 
 				return 0;
 			}
@@ -53,6 +60,13 @@ namespace ShardEqualizer
 			{
 				LogManager.Flush();
 			}
+		}
+
+		private static void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs eventArgs)
+		{
+			_cts.Cancel();
+			eventArgs.Cancel = true;
+			_log.Warn("cancel operation requested...");
 		}
 
 		private	static Type[] loadVerbs() => Assembly.GetExecutingAssembly().GetTypes()

@@ -9,19 +9,18 @@
     <IsPackable>true</IsPackable>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>ShardEqualizer</ToolCommandName>
-    <PackageVersion>1.0.0-beta3</PackageVersion>
+    <PackageVersion>1.0.0-beta5</PackageVersion>
     <Authors>Anatoliy Koperin &lt;a.koperin@gmail.com&gt;</Authors>
     <Description>Tool for aligning the size of stored data on shards in a MongoDB cluster</Description>
     <RepositoryUrl>https://github.com/ExM/ShardEqualizer</RepositoryUrl>
     <PackageLicenseUrl>https://github.com/ExM/ShardEqualizer/blob/develop/LICENSE.txt</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/ExM/ShardEqualizer</PackageProjectUrl>
+    <PackageTags>mongodb sharding</PackageTags>
   </PropertyGroup>
-  <ItemGroup>
+  <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <None Update="NLog.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
-  <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <None Update="configuration.sample.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
