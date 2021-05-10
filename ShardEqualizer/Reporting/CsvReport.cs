@@ -15,7 +15,7 @@ namespace ShardEqualizer.Reporting
 			sb.AppendLine(rowTitle +  ";" + string.Join(";", cells.Select(_ => _.HasValue ? SizeRenderer.Render(_.Value): "")));
 		}
 
-		protected override void AppendHeader(StringBuilder sb, IEnumerable<string> cells)
+		protected override void AppendHeader(StringBuilder sb, ICollection<string> cells)
 		{
 			sb.AppendLine(string.Join(";", cells));
 		}

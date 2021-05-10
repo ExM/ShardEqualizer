@@ -70,7 +70,7 @@ namespace ShardEqualizer
 				FirstColumn.Add(rowTitle, cells[0].Value);
 			}
 
-			protected override void AppendHeader(StringBuilder sb, IEnumerable<string> cells)
+			protected override void AppendHeader(StringBuilder sb, ICollection<string> cells)
 			{
 			}
 		}

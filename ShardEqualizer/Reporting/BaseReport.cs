@@ -73,7 +73,7 @@ namespace ShardEqualizer.Reporting
 
 			var sb = new StringBuilder();
 
-			AppendHeader(sb, new [] {"Shards "}.Concat(collDescriptions.Select(_ => _.Header())));
+			AppendHeader(sb, new [] {"Shards "}.Concat(collDescriptions.Select(_ => _.Header())).ToList());
 
 			currentRow = 0;
 			foreach (var p in _rows.OrderBy(_ => _.Key))
@@ -90,7 +90,7 @@ namespace ShardEqualizer.Reporting
 
 		protected abstract void AppendRow(StringBuilder sb, string rowTitle, params long?[] cells);
 
-		protected abstract void AppendHeader(StringBuilder sb, IEnumerable<string> cells);
+		protected abstract void AppendHeader(StringBuilder sb, ICollection<string> cells);
 	}
 
 	/*
