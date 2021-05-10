@@ -54,7 +54,7 @@ namespace ShardEqualizer.Operations
 
 			foreach (var layout in _layouts)
 			{
-				Console.WriteLine($"{layout.Title}:");
+				Console.WriteLine($"{layout.Title} (in {_scaleSuffix.Text()}b):");
 				Console.WriteLine(report.Render(layout.Columns));
 				Console.WriteLine();
 			}

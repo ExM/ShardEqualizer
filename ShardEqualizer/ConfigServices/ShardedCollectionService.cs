@@ -37,8 +37,12 @@ namespace ShardEqualizer.ConfigServices
 		private async Task<Container> uploadData(CancellationToken token)
 		{
 			await using var reporter = _progressRenderer.Start("Load sharded collections");
-			var result = await _repo.FindAll(false, token); //TODO maybe skip dropped items
-			reporter.SetCompleteMessage($"found {result.Count} collections.");
+			var result = await _repo.FindAll(false, token);
+
+			var droppedCount = result.Count(x => x.Dropped);
+			var message = $"found {result.Count(x => !x.Dropped)} collections" +
+			              (droppedCount == 0 ? "." : $" of which {droppedCount} dropped.");
+			reporter.SetCompleteMessage(message);
 
 			return new Container()
 			{

@@ -81,7 +81,7 @@ namespace ShardEqualizer.Operations
 
 			reporter.SetCompleteMessage(totalUnMovedChunks == 0
 				? "all chunks moved."
-				: $"found {totalUnMovedChunks} chunks is awaiting movement.");
+				: $"found {totalUnMovedChunks} chunks awaiting movement.");
 
 			return result;
 		}
@@ -95,7 +95,7 @@ namespace ShardEqualizer.Operations
 				Console.WriteLine("{0}:", unMovedChunkGroup.Key);
 				foreach (var  unMovedChunk in unMovedChunkGroup.OrderBy(_ => _.TagRange))
 				{
-					Console.WriteLine("  tag range '{0}' wait {1} chunks from {2} shards",
+					Console.WriteLine("  tag range '{0}' waits for {1} chunks from {2} shards",
 						unMovedChunk.TagRange, unMovedChunk.Count, string.Join(", ", unMovedChunk.SourceShards));
 				}
 			}

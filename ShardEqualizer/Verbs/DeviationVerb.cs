@@ -16,7 +16,7 @@ namespace ShardEqualizer.Verbs
 		[Option('s', "scale", Required = false, Default = "no scale", HelpText = "Size scale [K,M,G,T,P,E].")]
 		public string Scale { get; set; }
 
-		[Option("layouts", Required = false, Default = "default", HelpText = "Сomma separated list of layout names.")]
+		[Option("layouts", Required = false, Default = "default", HelpText = "Comma separated list of layout names.")]
 		public string Layouts { get; set; }
 
 		[Option("format", Required = false, Default = "csv", HelpText = "Output format [csv - CSV, md - markdown].")]
