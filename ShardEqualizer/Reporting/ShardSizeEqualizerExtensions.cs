@@ -80,10 +80,10 @@ namespace ShardEqualizer.Reporting
 					var shift = zone.Left.RequireShiftSize;
 					var dirSymbol = "";
 					if (shift > 0)
-						dirSymbol = "-";
+						dirSymbol = "<-";
 					else if (shift < 0)
 					{
-						dirSymbol = "+";
+						dirSymbol = "->";
 						shift = -shift;
 					}
 
@@ -119,10 +119,10 @@ namespace ShardEqualizer.Reporting
 					var shift = zone.Right.RequireShiftSize;
 					var dirSymbol = "";
 					if (shift > 0)
-						dirSymbol = "+";
+						dirSymbol = "<-";
 					else if (shift < 0)
 					{
-						dirSymbol = "-";
+						dirSymbol = "->";
 						shift = -shift;
 					}
 
@@ -133,7 +133,7 @@ namespace ShardEqualizer.Reporting
 
 			var resultRows = new List<string>(zones.Count);
 			for (var i = 0; i < zones.Count; i++)
-				resultRows.Add($"{shardColumn[i]} {directionColumn[i]} {sizeColumn[i]}");
+				resultRows.Add($"{sizeColumn[i]} {directionColumn[i]} {shardColumn[i]}");
 
 			return resultRows;
 		}

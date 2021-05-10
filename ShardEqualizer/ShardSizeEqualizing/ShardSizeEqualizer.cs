@@ -90,15 +90,15 @@ namespace ShardEqualizer.ShardSizeEqualizing
 				var shiftSize = bound.ShiftSize;
 				var target = " | ";
 				if (shiftSize > 0)
-					target = " > ";
+					target = " < ";
 				else if (shiftSize < 0)
 				{
-					target = " < ";
+					target = " > ";
 					shiftSize *= -1;
 				}
 
 				sb.Append(target);
-				sb.Append($"{shiftSize.ByteSize()} ({bound.LeftChunk.Order})");
+				sb.Append($"{shiftSize.ByteSize()}");
 				sb.Append(target);
 				sb.Append($"[{bound.RightZone.Main}]");
 			}
