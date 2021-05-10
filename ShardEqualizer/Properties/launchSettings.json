@@ -80,9 +80,10 @@
       "commandName": "Project",
       "commandLineArgs": "deviation --help"
     },
-    "config-init": {
+    "config-init help": {
       "commandName": "Project",
       "commandLineArgs": "config-init --help"
+    },
     }
   }
 }

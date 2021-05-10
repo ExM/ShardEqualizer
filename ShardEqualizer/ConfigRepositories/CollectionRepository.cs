@@ -21,11 +21,6 @@ namespace ShardEqualizer.ConfigRepositories
 			return _coll.Find(_ => _.Id == ns).FirstOrDefaultAsync();
 		}
 
-		public Task<IReadOnlyList<ShardedCollectionInfo>> FindAll(bool includeConfigCollections = false)
-		{
-			return FindAll(includeConfigCollections, CancellationToken.None);
-		}
-
 		public async Task<IReadOnlyList<ShardedCollectionInfo>> FindAll(bool includeConfigCollections, CancellationToken token)
 		{
 			var result = await _coll.Find(Builders<ShardedCollectionInfo>.Filter.Empty).ToListAsync(token);
