@@ -10,12 +10,17 @@ namespace ShardEqualizer.Reporting
 		{
 		}
 
-		protected override void AppendRow(StringBuilder sb, string rowTitle, params long?[] cells)
+		protected override void AppendShardRow(StringBuilder sb, string rowTitle, params long?[] cells)
 		{
 			sb.AppendLine(rowTitle +  ";" + string.Join(";", cells.Select(_ => _.HasValue ? SizeRenderer.Render(_.Value): "")));
 		}
 
-		protected override void AppendHeader(StringBuilder sb, IEnumerable<string> cells)
+		protected override void AppendOverallRow(StringBuilder sb, string rowTitle, params long?[] cells)
+		{
+			sb.AppendLine("<" + rowTitle +  ">;" + string.Join(";", cells.Select(_ => _.HasValue ? SizeRenderer.Render(_.Value): "")));
+		}
+
+		protected override void AppendHeader(StringBuilder sb, ICollection<string> cells)
 		{
 			sb.AppendLine(string.Join(";", cells));
 		}

@@ -73,24 +73,26 @@ namespace ShardEqualizer.Reporting
 
 			var sb = new StringBuilder();
 
-			AppendHeader(sb, new [] {"Shards "}.Concat(collDescriptions.Select(_ => _.Header())));
+			AppendHeader(sb, new [] {"Shards "}.Concat(collDescriptions.Select(_ => _.Header())).ToList());
 
 			currentRow = 0;
 			foreach (var p in _rows.OrderBy(_ => _.Key))
 			{
-				AppendRow(sb, (string) p.Key, colls.Select(r => r.GetRow(currentRow)).ToArray());
+				AppendShardRow(sb, (string) p.Key, colls.Select(r => r.GetRow(currentRow)).ToArray());
 				currentRow++;
 			}
 
-			AppendRow(sb, "<total>", colls.Select(r => r.Total).ToArray());
-			AppendRow(sb, "<average>", colls.Select(r => r.Average).ToArray());
+			AppendOverallRow(sb, "total", colls.Select(r => r.Total).ToArray());
+			AppendOverallRow(sb, "average", colls.Select(r => r.Average).ToArray());
 
 			return sb;
 		}
 
-		protected abstract void AppendRow(StringBuilder sb, string rowTitle, params long?[] cells);
+		protected abstract void AppendShardRow(StringBuilder sb, string rowTitle, params long?[] cells);
 
-		protected abstract void AppendHeader(StringBuilder sb, IEnumerable<string> cells);
+		protected abstract void AppendOverallRow(StringBuilder sb, string rowTitle, params long?[] cells);
+
+		protected abstract void AppendHeader(StringBuilder sb, ICollection<string> cells);
 	}
 
 	/*
