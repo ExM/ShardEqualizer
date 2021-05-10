@@ -46,6 +46,10 @@ namespace ShardEqualizer.Operations
 			foreach (var tagRange in tagRanges)
 			{
 				var validShards = shards.Where(_ => _.Tags.Contains(tagRange.Tag)).Select(_ => _.Id).ToList();
+				if (validShards.Count == 0)
+					throw new Exception($"no shard was found containing the tag zone '{tagRange.Tag}'");
+
+				//TODO here supports multiple shards to scan all collections in the future
 
 				var unMovedChunks = await (await _chunkRepo.ByNamespace(interval.Namespace)
 						.From(tagRange.Min).To(tagRange.Max).NoJumbo().ExcludeShards(validShards).Find(token))

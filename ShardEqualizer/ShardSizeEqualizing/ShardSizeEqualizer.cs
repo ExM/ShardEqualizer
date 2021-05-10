@@ -17,7 +17,7 @@ namespace ShardEqualizer.ShardSizeEqualizing
 
 		private readonly IReadOnlyList<Bound> _movingBounds;
 
-		public ShardSizeEqualizer(IReadOnlyCollection<Shard> shards,
+		public ShardSizeEqualizer(IDictionary<TagIdentity, Shard> shardByTag,
 			IReadOnlyDictionary<ShardIdentity, ShardCollectionStatistics> collStatsByShards,
 			IReadOnlyList<TagRange> tagRanges,
 			IDictionary<TagIdentity, long> targetSize,
@@ -31,7 +31,7 @@ namespace ShardEqualizer.ShardSizeEqualizing
 			}
 
 			Zones = tagRanges
-				.Select(r => new { tagRange = r, shardId = SelectOnlyOneShardByTag(shards, r.Tag).Id})
+				.Select(r => new { tagRange = r, shardId = shardByTag[r.Tag].Id})
 				.Select(i => new Zone(i.shardId, i.tagRange, sizeByShard(i.shardId), targetSize[i.tagRange.Tag]))
 				.ToList();
 
@@ -61,27 +61,6 @@ namespace ShardEqualizer.ShardSizeEqualizing
 				toRight += bound.LeftZone.TargetSize - bound.LeftZone.CurrentSize;
 				bound.RequireShiftSize = toRight;
 			}
-		}
-
-		private static Shard SelectOnlyOneShardByTag(IReadOnlyCollection<Shard> shards, TagIdentity tag)
-		{
-			using var e = shards.GetEnumerator();
-			while (e.MoveNext())
-			{
-				var result = e.Current;
-				if (result.Tags.Contains(tag))
-				{
-					while (e.MoveNext())
-					{
-						if (e.Current.Tags.Contains(tag))
-							throw new Exception($"shard '{result.Id}' and '{e.Current.Id}' both contains one tag '{tag}'");
-					}
-
-					return result;
-				}
-			}
-
-			throw new Exception($"no shard was found containing the tag '{tag}'");
 		}
 
 		public IReadOnlyList<Zone> Zones { get; }

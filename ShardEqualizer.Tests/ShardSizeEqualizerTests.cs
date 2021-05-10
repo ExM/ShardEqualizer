@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using MongoDB.Bson;
 using NUnit.Framework;
@@ -77,7 +78,9 @@ namespace ShardEqualizer
 				{tagRanges[2].Tag, 200},
 			};
 
-			var equalizer = new ShardSizeEqualizer(shards, collStatsByShards, tagRanges, targetSize, chunkColl);
+			var shardByTag = ShardTagCollator.Collate(shards, tagRanges.Select(x => x.Tag));
+
+			var equalizer = new ShardSizeEqualizer(shardByTag, collStatsByShards, tagRanges, targetSize, chunkColl);
 
 			var round = 0;
 			while(!(await equalizer.Equalize()).IsSuccess)
