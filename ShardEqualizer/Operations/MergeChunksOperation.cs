@@ -41,15 +41,15 @@ namespace ShardEqualizer.Operations
 			_progressRenderer = progressRenderer;
 		}
 
-		private async Task<Tuple<List<MergeCommand>, int>> mergeInterval(IEnumerable<Shard> shards, MergeZone zone, ProgressReporter progressReporter,
+		private async Task<Tuple<List<MergeCommand>, int>> mergeInterval(IDictionary<TagIdentity, Shard> shardByTag, MergeZone zone, ProgressReporter progressReporter,
 			CancellationToken token)
 		{
 			var mergeCommands = new List<MergeCommand>();
 			var mergedChunks = 0;
-			var validShards = shards.Where(_ => _.Tags.Contains(zone.TagRange.Tag)).Select(_ => _.Id).ToList();
+			var validShardId = shardByTag[zone.TagRange.Tag].Id;
 
 			var mergeCandidates = await (await _chunkRepo.ByNamespace(zone.Interval.Namespace)
-				.From(zone.TagRange.Min).To(zone.TagRange.Max).NoJumbo().ByShards(validShards).Find(token))
+				.From(zone.TagRange.Min).To(zone.TagRange.Max).NoJumbo().ByShards(new [] { validShardId }).Find(token))
 				.ToListAsync(token);
 
 			foreach (var shardGroup in mergeCandidates.GroupBy(_ => _.Shard))
@@ -96,14 +96,14 @@ namespace ShardEqualizer.Operations
 			return mergedChunks;
 		}
 
-		private async Task<List<MergeCommand>> mergeIntervals(IReadOnlyCollection<Shard> shards,
+		private async Task<List<MergeCommand>> mergeIntervals(IDictionary<TagIdentity, Shard> shardByTag,
 			IReadOnlyCollection<MergeZone> mergeZones, CancellationToken token)
 		{
 			var allMergeCommands = new List<MergeCommand>();
 
 			await using var reporter = _progressRenderer.Start($"Merge intervals", mergeZones.Count);
 			{
-				var results = await mergeZones.ParallelsAsync((zone, t) => mergeInterval(shards, zone, reporter, t), 16, token);
+				var results = await mergeZones.ParallelsAsync((zone, t) => mergeInterval(shardByTag, zone, reporter, t), 16, token);
 
 				var allMergedChunks = 0;
 				foreach (var (mergeCommands, mergedChunks) in results)
@@ -142,13 +142,14 @@ namespace ShardEqualizer.Operations
 		{
 			var shards = await _shardListService.Get(token);
 			var tagRangesByNs = await _tagRangeService.Get(_intervals.Select(_ => _.Namespace), token);
+			var shardByTag = ShardTagCollator.Collate(shards, _intervals.SelectMany(_ => _.Zones));
 
 			var mergeZones = _intervals
 				.SelectMany(interval => tagRangesByNs[interval.Namespace].Select(tagRange => new {interval, tagRange}))
 				.Select(_ => new MergeZone(_.interval, _.tagRange))
 				.ToList();
 
-			var mergeCommands = await mergeIntervals(shards, mergeZones, token);
+			var mergeCommands = await mergeIntervals(shardByTag, mergeZones, token);
 
 			writeCommandFile(mergeCommands);
 		}

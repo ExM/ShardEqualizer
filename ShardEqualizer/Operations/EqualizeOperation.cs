@@ -74,7 +74,7 @@ namespace ShardEqualizer.Operations
 		private IReadOnlyDictionary<CollectionNamespace, CollectionStatistics> _collStatsMap;
 		private IReadOnlyDictionary<CollectionNamespace, IReadOnlyList<ChunkInfo>> _chunksByCollection;
 		private ZoneOptimizationDescriptor _zoneOpt;
-		private Dictionary<TagIdentity, Shard> _shardByTag;
+		private IDictionary<TagIdentity, Shard> _shardByTag;
 		private IReadOnlyDictionary<CollectionNamespace, IReadOnlyList<TagRange>> _tagRangesByNs;
 		private readonly IReadOnlyList<Interval> _adjustableIntervals;
 		private readonly double _movePercent;
@@ -183,7 +183,7 @@ namespace ShardEqualizer.Operations
 					t => solve[interval.Namespace, _shardByTag[t].Id].PartialTargetSize(_movePercent));
 
 				var equalizer = new ShardSizeEqualizer(
-					_shards,
+					_shardByTag,
 					_collStatsMap[interval.Namespace].Shards,
 					_tagRangesByNs[interval.Namespace],
 					targetSizes,
@@ -271,10 +271,7 @@ namespace ShardEqualizer.Operations
 			var userColls = await _collectionListService.Get(token);
 			_collStatsMap = await _collectionStatisticService.Get(userColls, token);
 			_shards = await _shardListService.Get(token);
-			_shardByTag = _intervals
-				.SelectMany(_ => _.Zones)
-				.Distinct()
-				.ToDictionary(_ => _, _ => _shards.Single(s => s.Tags.Contains(_)));
+			_shardByTag = ShardTagCollator.Collate(_shards, _intervals.SelectMany(_ => _.Zones));
 
 			var allTagRangesByNs = await _tagRangeService.Get(_adjustableIntervals.Select(_ => _.Namespace), token);
 			_tagRangesByNs = _adjustableIntervals.ToDictionary(_ => _.Namespace,
