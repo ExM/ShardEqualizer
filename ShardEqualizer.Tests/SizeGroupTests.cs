@@ -65,7 +65,12 @@ namespace ShardEqualizer
 			{
 			}
 
-			protected override void AppendRow(StringBuilder sb, string rowTitle, params long?[] cells)
+			protected override void AppendShardRow(StringBuilder sb, string rowTitle, params long?[] cells)
+			{
+				FirstColumn.Add(rowTitle, cells[0].Value);
+			}
+
+			protected override void AppendOverallRow(StringBuilder sb, string rowTitle, params long?[] cells)
 			{
 				FirstColumn.Add(rowTitle, cells[0].Value);
 			}
