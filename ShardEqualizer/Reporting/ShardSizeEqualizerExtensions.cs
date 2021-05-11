@@ -29,7 +29,7 @@ namespace ShardEqualizer.Reporting
 			var currentColumn = createCollumn("current");
 			var targetColumn = createCollumn("target");
 			var deltaColumn = createCollumn("delta");
-			var pressureColumn = createCollumn("pressure");
+			var pressureColumn = createCollumn("incoming");
 
 			var leftAColumn = createCollumn("left accepted");
 			var rightAColumn = createCollumn("right accepted");

@@ -157,7 +157,7 @@ namespace ShardEqualizer.Operations
 				throw new Exception("solution for zone optimization not found");
 
 			var solutionMessage =
-				$"Found solution with max deviation of {solve.TargetShardMaxDeviation.ByteSize()} by shards";
+				$"Found solution with max deviation of {solve.TargetShardMaxDeviation.ByteSize()} between shards";
 			_progressRenderer.WriteLine("\t" + solutionMessage);
 			_commandPlanWriter.Comment(solutionMessage);
 
@@ -291,7 +291,7 @@ namespace ShardEqualizer.Operations
 				_progressRenderer.WriteLine();
 			}
 
-			_progressRenderer.WriteLine($"Total update pressure:");
+			_progressRenderer.WriteLine($"Incoming data by shard:");
 			foreach (var pair in equalizeWorks.SelectMany(_ => _.Equalizer.Zones).GroupBy(_ => _.Main)
 				.OrderBy(_ => _.Key))
 				_progressRenderer.WriteLine($"  [{pair.Key}] {pair.Sum(_ => _.RequirePressure).ByteSize()}");
@@ -328,7 +328,7 @@ namespace ShardEqualizer.Operations
 					item.RenderCommandPlan(_commandPlanWriter);
 
 				_commandPlanWriter.Comment($"\tChunks to be moved: {movedChunks}");
-				_commandPlanWriter.Comment($"\tCurrent update pressure:");
+				_commandPlanWriter.Comment($"\tIncoming data by shards:");
 
 				foreach (var shard in equalizeWorks.SelectMany(_ => _.Equalizer.Zones).GroupBy(_ => _.Main)
 					.OrderBy(_ => _.Key))
