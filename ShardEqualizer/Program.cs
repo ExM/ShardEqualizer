@@ -36,7 +36,7 @@ namespace ShardEqualizer
 				var parsed = Parser.Default.ParseArguments(args, loadVerbs()) as Parsed<object>;
 
 				if (parsed == null)
-					return 1;
+					return 0;
 
 				var verbose = (BaseVerbose) parsed.Value;
 
