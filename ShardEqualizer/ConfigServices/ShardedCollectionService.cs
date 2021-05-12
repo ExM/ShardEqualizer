@@ -39,9 +39,7 @@ namespace ShardEqualizer.ConfigServices
 			await using var reporter = _progressRenderer.Start("Load sharded collections");
 			var result = await _repo.FindAll(false, token);
 
-			var droppedCount = result.Count(x => x.Dropped);
-			var message = $"found {result.Count(x => !x.Dropped)} collections" +
-			              (droppedCount == 0 ? "." : $" of which {droppedCount} dropped.");
+			var message = $"found {result.Count(x => !x.Dropped)} collections";
 			reporter.SetCompleteMessage(message);
 
 			return new Container()
