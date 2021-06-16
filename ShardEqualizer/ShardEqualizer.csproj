@@ -16,8 +16,8 @@
     <PackageProjectUrl>https://github.com/ExM/ShardEqualizer</PackageProjectUrl>
     <PackageTags>mongodb sharding</PackageTags>
     <AssemblyVersion>1.0.0</AssemblyVersion>
-    <PackageVersion>1.0.0-beta.6</PackageVersion>
-    <InformationalVersion>1.0.0-beta.6</InformationalVersion>
+    <PackageVersion>1.0.0-beta.7</PackageVersion>
+    <InformationalVersion>1.0.0-beta.7</InformationalVersion>
   </PropertyGroup>
   <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <None Update="NLog.config">
