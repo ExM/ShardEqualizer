@@ -277,7 +277,8 @@ namespace ShardEqualizer.Operations
 			_tagRangesByNs = _adjustableIntervals.ToDictionary(_ => _.Namespace,
 				_ => allTagRangesByNs[_.Namespace].InRange(_.Min, _.Max));
 
-			var allChunksByNs = await _chunkService.Get(_adjustableIntervals.Select(_ => _.Namespace), token);
+			var allChunksByNs = await _chunkService.Get(_adjustableIntervals.Select(_ =>_.Namespace), token);
+
 			_chunksByCollection = _adjustableIntervals.ToDictionary(_ => _.Namespace,
 				_ => (IReadOnlyList<ChunkInfo>) allChunksByNs[_.Namespace].FromInterval(_.Min, _.Max));
 

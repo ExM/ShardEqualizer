@@ -15,6 +15,7 @@ namespace ShardEqualizer.Operations
 	{
 		private readonly ShardListService _shardListService;
 		private readonly TagRangeService _tagRangeService;
+		private readonly ShardedCollectionService _shardedCollectionService;
 		private readonly ChunkRepository _chunkRepo;
 		private readonly IReadOnlyList<Interval> _intervals;
 		private readonly ProgressRenderer _progressRenderer;
@@ -22,12 +23,14 @@ namespace ShardEqualizer.Operations
 		public BalancerStateOperation(
 			ShardListService shardListService,
 			TagRangeService tagRangeService,
+			ShardedCollectionService shardedCollectionService,
 			ChunkRepository chunkRepo,
 			IReadOnlyList<Interval> intervals,
 			ProgressRenderer progressRenderer)
 		{
 			_shardListService = shardListService;
 			_tagRangeService = tagRangeService;
+			_shardedCollectionService = shardedCollectionService;
 			_chunkRepo = chunkRepo;
 			_intervals = intervals;
 			_progressRenderer = progressRenderer;
@@ -51,7 +54,8 @@ namespace ShardEqualizer.Operations
 
 				//TODO here supports multiple shards to scan all collections in the future
 
-				var unMovedChunks = await (await _chunkRepo.ByNamespace(interval.Namespace)
+				var collectionInfo = await _shardedCollectionService.Get(interval.Namespace, token);
+				var unMovedChunks = await (await _chunkRepo.ByUuid(collectionInfo.Uuid)
 						.From(tagRange.Min).To(tagRange.Max).NoJumbo().ExcludeShards(validShards).Find(token))
 					.ToListAsync(token);
 

@@ -5,6 +5,7 @@ using MongoDB.Driver;
 
 namespace ShardEqualizer.Models
 {
+	[BsonIgnoreExtraElements]
 	public class ShardedCollectionInfo
 	{
 		[BsonId]
@@ -16,9 +17,6 @@ namespace ShardEqualizer.Models
 		[BsonElement("lastmod"), BsonRequired]
 		public DateTime Lastmod { get; private set; }
 
-		[BsonElement("dropped"), BsonRequired]
-		public bool Dropped { get; private set; }
-
 		[BsonElement("key"), BsonIgnoreIfNull]
 		public BsonDocument Key { get; private set; }
 
@@ -28,8 +26,8 @@ namespace ShardEqualizer.Models
 		[BsonElement("noBalance"), BsonIgnoreIfNull]
 		public bool? NoBalance { get; private set; }
 
-		[BsonElement("uuid"), BsonIgnoreIfNull]
-		public Guid? UUID { get; private set; }
+		[BsonElement("uuid"), BsonRequired, BsonGuidRepresentation(GuidRepresentation.Standard)]
+		public Guid Uuid { get; private set; }
 
 		[BsonElement("distributionMode"), BsonIgnoreIfNull]
 		private string DistributionMode { get; set; }

@@ -5,9 +5,9 @@ framework: auto-detect
 
 nuget Accord.Math  ~> 3.8
 nuget CommandLineParser  ~> 2.8
-nuget MongoDB.Bson ~> 2.12
-nuget MongoDB.Driver ~> 2.12
-nuget MongoDB.Driver.Core ~> 2.12
+nuget MongoDB.Bson ~> 2.25
+nuget MongoDB.Driver ~> 2.25
+nuget MongoDB.Driver.Core ~> 2.25
 nuget NConfiguration  ~> 3.0
 nuget Newtonsoft.Json  ~> 12.0
 nuget Ninject ~> 3.3

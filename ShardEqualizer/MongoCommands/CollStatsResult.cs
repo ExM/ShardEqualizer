@@ -78,7 +78,7 @@ namespace ShardEqualizer.MongoCommands
 		[BsonElement("totalSize")]
 		public long? TotalSize;
 
-		//[BsonExtraElements]
-		//public BsonDocument ExtraElements;
+		[BsonExtraElements]
+		public BsonDocument ExtraElements;
 	}
 }

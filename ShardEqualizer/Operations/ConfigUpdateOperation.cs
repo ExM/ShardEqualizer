@@ -40,23 +40,14 @@ namespace ShardEqualizer.Operations
 		{
 			foreach (var ns in _intervals.Select(_ => _.Namespace))
 			{
-				if (_shardedCollections.TryGetValue(ns, out var shardedCollection))
+				if (_shardedCollections.ContainsKey(ns))
 				{
-					if(shardedCollection.Dropped)
-						Console.WriteLine("\tcollection '{0}' dropped", ns);
-
 					_shardedCollections.Remove(ns);
 				}
 				else
 				{
 					Console.WriteLine("\tcollection '{0}' not sharded", ns);
 				}
-			}
-
-			foreach (var ns in _shardedCollections.Keys.ToList())
-			{
-				if(_shardedCollections[ns].Dropped)
-					_shardedCollections.Remove(ns);
 			}
 		}
 

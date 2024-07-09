@@ -74,7 +74,7 @@ namespace ShardEqualizer.MongoCommands
 		[BsonElement("scaleFactor")]
 		public double? ScaleFactor;
 
-		//[BsonExtraElements]
-		//public BsonDocument ExtraElements;
+		[BsonExtraElements]
+		public BsonDocument ExtraElements;
 	}
 }
