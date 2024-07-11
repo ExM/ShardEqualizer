@@ -7,6 +7,7 @@ using ShardEqualizer.Models;
 
 namespace ShardEqualizer.MongoCommands
 {
+	[BsonIgnoreExtraElements]
 	public class CollStatsResult: CommandResult
 	{
 		[BsonElement("primary"), BsonIgnoreIfNull]
@@ -77,8 +78,5 @@ namespace ShardEqualizer.MongoCommands
 
 		[BsonElement("totalSize")]
 		public long? TotalSize;
-
-		[BsonExtraElements]
-		public BsonDocument ExtraElements;
 	}
 }
