@@ -11,6 +11,7 @@ namespace ShardEqualizer.LocalStoring
 	{
 		private readonly bool _read;
 		private readonly bool _write;
+		private readonly object _lock = new object() ;
 
 		protected BaseLocalStore(bool read, bool write)
 		{
@@ -30,11 +31,14 @@ namespace ShardEqualizer.LocalStoring
 
 			if (_write)
 			{
-				await using var stream = File.Open(fileName, FileMode.Create);
-				using var bsonWriter = new BsonBinaryWriter(stream);
-				BsonSerializer.Serialize(bsonWriter, data);
-				bsonWriter.Flush();
-				await stream.FlushAsync(token);
+				lock (_lock)
+				{
+					using var stream = File.Open(fileName, FileMode.Create);
+					using var bsonWriter = new BsonBinaryWriter(stream);
+					BsonSerializer.Serialize(bsonWriter, data);
+					bsonWriter.Flush();
+					stream.Flush(true);
+				}
 			}
 
 			return data;
