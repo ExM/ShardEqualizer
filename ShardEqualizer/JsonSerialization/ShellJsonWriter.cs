@@ -57,9 +57,12 @@ namespace ShardEqualizer.JsonSerialization
 			}
 			else
 			{
-				guidRepresentation = subType == BsonBinarySubType.UuidStandard
-					? GuidRepresentation.Standard
-					: GuidRepresentation.Unspecified;
+				guidRepresentation = subType switch
+				{
+					BsonBinarySubType.UuidLegacy => GuidRepresentation.CSharpLegacy,
+					BsonBinarySubType.UuidStandard => GuidRepresentation.Standard,
+					_ => GuidRepresentation.Unspecified
+				};
 			}
 #pragma warning restore 618
 
