@@ -80,7 +80,7 @@ namespace ShardEqualizer.Operations
 			{
 				Servers = _connectionConfig.Servers,
 				DefaultZones = string.Join(",", zones.Select(_ => _.zoneName)),
-				ShardedCollections = shardedCollections.Values.Where(_ => !_.Dropped).Select(_ => _.Id.ToString()).ToList(), //TODO exclude hashed keys
+				ShardedCollections = shardedCollections.Values.Select(_ => _.Id.ToString()).ToList(), //TODO exclude hashed keys
 				SecretFileName = secretFileName
 			};
 

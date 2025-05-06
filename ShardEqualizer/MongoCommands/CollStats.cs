@@ -6,6 +6,7 @@ using MongoDB.Driver;
 
 namespace ShardEqualizer.MongoCommands
 {
+	[BsonIgnoreExtraElements]
 	public class CollStats: CommandResult
 	{
 		[BsonElement("ns"), BsonRequired]
@@ -73,8 +74,5 @@ namespace ShardEqualizer.MongoCommands
 
 		[BsonElement("scaleFactor")]
 		public double? ScaleFactor;
-
-		//[BsonExtraElements]
-		//public BsonDocument ExtraElements;
 	}
 }

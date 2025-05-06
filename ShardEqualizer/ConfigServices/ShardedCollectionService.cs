@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -34,12 +35,19 @@ namespace ShardEqualizer.ConfigServices
 			return container.ShardedCollection;
 		}
 
+		public async Task<ShardedCollectionInfo> Get(CollectionNamespace ns, CancellationToken token)
+		{
+			var container = await _store.Get(token);
+			return container.ShardedCollection.GetValueOrDefault(ns)
+			       ?? throw new InvalidOperationException($"Cannot find collection by namespace '{ns}'");
+		}
+
 		private async Task<Container> uploadData(CancellationToken token)
 		{
 			await using var reporter = _progressRenderer.Start("Load sharded collections");
 			var result = await _repo.FindAll(false, token);
 
-			var message = $"found {result.Count(x => !x.Dropped)} collections";
+			var message = $"found {result.Count} collections";
 			reporter.SetCompleteMessage(message);
 
 			return new Container()

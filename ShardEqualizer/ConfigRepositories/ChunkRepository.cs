@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,9 +21,9 @@ namespace ShardEqualizer.ConfigRepositories
 			return _coll.Find(_ => _.Id == id).SingleOrDefaultAsync();
 		}
 
-		public Filtered ByNamespace(CollectionNamespace ns)
+		public Filtered ByUuid(Guid namespaceId)
 		{
-			return new Filtered(_coll, Builders<Chunk>.Filter.Eq(_ => _.Namespace, ns));
+			return new Filtered(_coll, Builders<Chunk>.Filter.Eq(_ => _.Uuid, namespaceId));
 		}
 
 		public class Filtered
@@ -41,7 +42,7 @@ namespace ShardEqualizer.ConfigRepositories
 				return await _coll.FindAsync(_filter, new FindOptions<Chunk>()
 				{
 					Sort = Builders<Chunk>.Sort
-						.Ascending(_ => _.Namespace)
+						.Ascending(_ => _.Uuid)
 						.Ascending(_ => _.Min)
 				}, token);
 			}

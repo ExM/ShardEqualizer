@@ -1,4 +1,5 @@
 using System.Linq;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using NLog;
 using ShardEqualizer.Config;
@@ -20,6 +21,8 @@ namespace ShardEqualizer
 
 		public IMongoClient Build()
 		{
+			BsonDefaults.GuidRepresentationMode = GuidRepresentationMode.V3;
+
 			_progressRenderer.WriteLine($"Connecting to {_connectionConfig.Servers}");
 			_log.Info("Connecting to {0}", _connectionConfig.Servers);
 

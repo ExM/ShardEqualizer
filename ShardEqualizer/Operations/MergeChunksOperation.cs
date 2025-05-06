@@ -18,12 +18,14 @@ namespace ShardEqualizer.Operations
 		private readonly ProgressRenderer _progressRenderer;
 		private readonly ShardListService _shardListService;
 		private readonly TagRangeService _tagRangeService;
+		private readonly ShardedCollectionService _shardedCollectionService;
 		private readonly ChunkRepository _chunkRepo;
 		private readonly CommandPlanWriter _commandPlanWriter;
 
 		public MergeChunksOperation(
 			ShardListService shardListService,
 			TagRangeService tagRangeService,
+			ShardedCollectionService shardedCollectionService,
 			ChunkRepository chunkRepo, //UNDONE use ChunkService
 			IReadOnlyList<Interval> intervals,
 			ProgressRenderer progressRenderer,
@@ -31,6 +33,7 @@ namespace ShardEqualizer.Operations
 		{
 			_shardListService = shardListService;
 			_tagRangeService = tagRangeService;
+			_shardedCollectionService = shardedCollectionService;
 			_chunkRepo = chunkRepo;
 			_commandPlanWriter = commandPlanWriter;
 
@@ -46,9 +49,17 @@ namespace ShardEqualizer.Operations
 		{
 			var mergeCommands = new List<MergeCommand>();
 			var mergedChunks = 0;
+
+			if (!shardByTag.TryGetValue(zone.TagRange.Tag, out var shard))
+			{
+				_progressRenderer.WriteLine($"Shard for tag '{zone.TagRange.Tag}' not found");
+				return new Tuple<List<MergeCommand>, int>(new List<MergeCommand>(), 0);
+			}
+
 			var validShardId = shardByTag[zone.TagRange.Tag].Id;
 
-			var mergeCandidates = await (await _chunkRepo.ByNamespace(zone.Interval.Namespace)
+			var collectionInfo = await _shardedCollectionService.Get(zone.Interval.Namespace, token);
+			var mergeCandidates = await (await _chunkRepo.ByUuid(collectionInfo.Uuid)
 				.From(zone.TagRange.Min).To(zone.TagRange.Max).NoJumbo().ByShards(new [] { validShardId }).Find(token))
 				.ToListAsync(token);
 

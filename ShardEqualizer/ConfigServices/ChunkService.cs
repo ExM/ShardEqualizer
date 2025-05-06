@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -17,20 +18,22 @@ namespace ShardEqualizer.ConfigServices
 		private readonly ChunkRepository _repo;
 		private readonly ProgressRenderer _progressRenderer;
 		private readonly INsLocalStore<Container> _store;
+		private readonly ShardedCollectionService _shardedCollectionService;
 
 		public ChunkService(
 			ChunkRepository repo,
 			ProgressRenderer progressRenderer,
-			LocalStoreProvider storeProvider)
+			LocalStoreProvider storeProvider, ShardedCollectionService shardedCollectionService)
 		{
 			_repo = repo;
 			_progressRenderer = progressRenderer;
+			_shardedCollectionService = shardedCollectionService;
 			_store = storeProvider.Get("chunks", uploadChunks);
 		}
 
-		public async Task<IReadOnlyDictionary<CollectionNamespace, ChunksCache>> Get(IEnumerable<CollectionNamespace> nss, CancellationToken token)
+		public async Task<IReadOnlyDictionary<CollectionNamespace, ChunksCache>> Get(IEnumerable<CollectionNamespace> ns, CancellationToken token)
 		{
-			var nsList = nss.ToList();
+			var nsList = ns.ToList();
 
 			await using var reporter = _progressRenderer.Start($"Load chunks", nsList.Count);
 			{
@@ -49,9 +52,11 @@ namespace ShardEqualizer.ConfigServices
 
 		private async Task<Container> uploadChunks(CollectionNamespace ns, CancellationToken t)
 		{
-			var expectedCount = await _repo.ByNamespace(ns).Count(t);
+			var collection = await _shardedCollectionService.Get(ns, t);
+
+			var expectedCount = await _repo.ByUuid(collection.Uuid).Count(t);
 			var chunks = new List<ChunkInfo>((int)expectedCount);
-			using var cursor = await _repo.ByNamespace(ns).Find(t);
+			using var cursor = await _repo.ByUuid(collection.Uuid).Find(t);
 			while (await cursor.MoveNextAsync(t))
 				chunks.AddRange(cursor.Current.Select(_ => new ChunkInfo(_)));
 

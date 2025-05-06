@@ -102,7 +102,7 @@ namespace ShardEqualizer.Operations
 		{
 			var collInfo = _shardedCollectionByNs[interval.Namespace];
 
-			if (collInfo == null || collInfo.Dropped)
+			if (collInfo == null)
 				throw new InvalidOperationException($"collection {interval.Namespace.FullName} not sharded");
 
 			if (!interval.Adjustable)
