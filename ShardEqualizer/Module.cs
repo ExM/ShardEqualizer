@@ -11,12 +11,16 @@ using Ninject;
 using Ninject.Activation;
 using Ninject.Modules;
 using NLog;
+using ShardEqualizer.Caching;
+using ShardEqualizer.Caching.Configs;
 using ShardEqualizer.Config;
-using ShardEqualizer.ConfigRepositories;
 using ShardEqualizer.ConfigServices;
-using ShardEqualizer.LocalStoring;
+using ShardEqualizer.Contracts.UI;
+using ShardEqualizer.DAL;
+using ShardEqualizer.DAL.Repositories;
+using ShardEqualizer.DAL.Serialization;
 using ShardEqualizer.Reporting;
-using ShardEqualizer.Serialization;
+using ShardEqualizer.ShardedClusterViews;
 using ShardEqualizer.UI;
 using ShardEqualizer.Verbs;
 
@@ -28,38 +32,30 @@ namespace ShardEqualizer
 
 		public override void Load()
 		{
-			CollectionNamespaceSerializer.Register();
+			CommonSerializers.Register();
+			
 			Bind<MongoClientBuilder>().ToSelf().InSingletonScope();
-			Bind<IAsyncDisposable, ProgressRenderer>().To<ProgressRenderer>().InSingletonScope();
+			Bind<IAsyncDisposable, IProgressCollector, ProgressRenderer>().To<ProgressRenderer>().InSingletonScope();
 
 			Bind<IMongoClient>().ToMethod(ctx => ctx.Kernel.Get<MongoClientBuilder>().Build()).InSingletonScope();
-			Bind<ConfigDBContainer>().ToMethod(ctx => new ConfigDBContainer(ctx.Kernel.Get<IMongoClient>())).InSingletonScope();
 
-			Bind<ChunkRepository>().ToSelf().InSingletonScope()
-				.WithConstructorArgument(ctx => ctx.Kernel.Get<ConfigDBContainer>().MongoDatabase);
-			Bind<CollectionRepository>().ToSelf().InSingletonScope()
-				.WithConstructorArgument(ctx => ctx.Kernel.Get<ConfigDBContainer>().MongoDatabase);
-			Bind<TagRangeRepository>().ToSelf().InSingletonScope()
-				.WithConstructorArgument(ctx => ctx.Kernel.Get<ConfigDBContainer>().MongoDatabase);
-			Bind<SettingsRepository>().ToSelf().InSingletonScope()
-				.WithConstructorArgument(ctx => ctx.Kernel.Get<ConfigDBContainer>().MongoDatabase);
-			Bind<ShardRepository>().ToSelf().InSingletonScope()
-				.WithConstructorArgument(ctx => ctx.Kernel.Get<ConfigDBContainer>().MongoDatabase);
-			Bind<VersionRepository>().ToSelf().InSingletonScope()
-				.WithConstructorArgument(ctx => ctx.Kernel.Get<ConfigDBContainer>().MongoDatabase);
+			Bind<SystemDatabases>().ToSelf().InSingletonScope();
+			Bind<ChunkRepository>().ToSelf().InSingletonScope();
+			Bind<CollectionRepository>().ToSelf().InSingletonScope();
+			Bind<TagRangeRepository>().ToSelf().InSingletonScope();
+			Bind<SettingsRepository>().ToSelf().InSingletonScope();
+			Bind<ShardRepository>().ToSelf().InSingletonScope();
 
-			Bind<IAdminDB>().To<AdminDB>().InSingletonScope();
-
-			Bind<ShardedCollectionService>().ToSelf().InSingletonScope();
-			Bind<TagRangeService>().ToSelf().InSingletonScope();
-			Bind<ClusterSettingsService>().ToSelf().InSingletonScope();
-			Bind<ShardListService>().ToSelf().InSingletonScope();
-			Bind<CollectionListService>().ToSelf().InSingletonScope();
-			Bind<CollectionStatisticService>().ToSelf().InSingletonScope();
-			Bind<ChunkService>().ToSelf().InSingletonScope();
+			Bind<ShardedCollectionInfoView>().ToSelf().InSingletonScope();
+			Bind<TagRangesView>().ToSelf().InSingletonScope();
+			Bind<ClusterSettingsView>().ToSelf().InSingletonScope();
+			Bind<ShardsView>().ToSelf().InSingletonScope();
+			Bind<UserCollectionsView>().ToSelf().InSingletonScope();
+			Bind<CollectionStatisticView>().ToSelf().InSingletonScope();
+			Bind<ChunkView>().ToSelf().InSingletonScope();
 			Bind<ChunkSizeService>().ToSelf().InSingletonScope();
 
-			Bind<LocalStoreProvider>().ToSelf().InSingletonScope();
+			Bind<IBsonCacheFactory>().To<BsonCacheFactory>().InSingletonScope();
 
 			Bind<IAppSettings>().ToMethod(loadConfiguration).InSingletonScope();
 
@@ -74,6 +70,8 @@ namespace ShardEqualizer
 			Bind<LayoutStore>()
 				.ToMethod(ctx => new LayoutStore(ctx.Kernel.Get<IAppSettings>().TryGet<DeviationLayoutsConfig>()?.Layouts))
 				.InSingletonScope();
+			
+			Bind<ILazyServiceProvider>().To<LazyServiceProvider>().InSingletonScope();
 		}
 
 		private static LocalStoreConfig buildLocalStoreConfig(IContext ctx)
@@ -116,15 +114,5 @@ namespace ShardEqualizer
 			loader.XmlFileBySection().FindingSettings += (s, e) => _log.Info("Search '{0}' from '{1}'", e.IncludeFile.Path, e.SearchPath);
 			return loader.LoadSettings(new XmlFileSettings(configFile)).Joined.ToAppSettings();
 		}
-	}
-
-	public class ConfigDBContainer
-	{
-		public ConfigDBContainer(IMongoClient mongoClient)
-		{
-			MongoDatabase = mongoClient.GetDatabase("config");
-		}
-
-		public IMongoDatabase MongoDatabase { get; }
 	}
 }

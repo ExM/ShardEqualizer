@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using ShardEqualizer.Models;
-using ShardEqualizer.ShortModels;
+using ShardEqualizer.DAL.Models;
+using ShardEqualizer.ShardedClusterViews.Models;
 
 namespace ShardEqualizer.Reporting
 {

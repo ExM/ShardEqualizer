@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MongoDB.Driver;
 using ShardEqualizer.Config;
-using ShardEqualizer.Models;
+using ShardEqualizer.DAL.Models;
 
 namespace ShardEqualizer
 {

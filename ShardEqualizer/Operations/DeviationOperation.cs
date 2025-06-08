@@ -6,29 +6,30 @@ using System.Threading.Tasks;
 using ShardEqualizer.ByteSizeRendering;
 using ShardEqualizer.ConfigServices;
 using ShardEqualizer.Reporting;
+using ShardEqualizer.ShardedClusterViews;
 using ShardEqualizer.Verbs;
 
 namespace ShardEqualizer.Operations
 {
 	public class DeviationOperation: IOperation
 	{
-		private readonly CollectionListService _collectionListService;
-		private readonly CollectionStatisticService _collectionStatisticService;
+		private readonly UserCollectionsView _userCollectionsView;
+		private readonly CollectionStatisticView _collectionStatisticView;
 		private readonly IReadOnlyList<Interval> _intervals;
 		private readonly ScaleSuffix _scaleSuffix;
 		private readonly ReportFormat _reportFormat;
 		private readonly List<LayoutDescription> _layouts;
 
 		public DeviationOperation(
-			CollectionListService collectionListService,
-			CollectionStatisticService collectionStatisticService,
+			UserCollectionsView userCollectionsView,
+			CollectionStatisticView collectionStatisticView,
 			IReadOnlyList<Interval> intervals,
 			ScaleSuffix scaleSuffix,
 			ReportFormat reportFormat,
 			List<LayoutDescription> layouts)
 		{
-			_collectionListService = collectionListService;
-			_collectionStatisticService = collectionStatisticService;
+			_userCollectionsView = userCollectionsView;
+			_collectionStatisticView = collectionStatisticView;
 			_intervals = intervals;
 			_scaleSuffix = scaleSuffix;
 			_reportFormat = reportFormat;
@@ -37,8 +38,8 @@ namespace ShardEqualizer.Operations
 
 		public async Task Run(CancellationToken token)
 		{
-			var userColls = await _collectionListService.Get(token);
-			var allCollStats = await _collectionStatisticService.Get(userColls, token);
+			var userColls = await _userCollectionsView.Get(token);
+			var allCollStats = await _collectionStatisticView.Get(userColls, token);
 
 			var sizeRenderer = new SizeRenderer("F2", _scaleSuffix);
 

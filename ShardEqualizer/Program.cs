@@ -40,7 +40,7 @@ namespace ShardEqualizer
 
 				var verbose = (BaseVerbose) parsed.Value;
 
-				var kernel = new StandardKernel(new NinjectSettings() { LoadExtensions = false });
+				var kernel = new StandardKernel(new NinjectSettings() { });
 				kernel.Bind<BaseVerbose>().ToConstant(verbose);
 				kernel.Load<Module>();
 

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using CommandLine;
 using Ninject;
 using NLog;
-using ShardEqualizer.MongoCommands;
+using ShardEqualizer.ScriptGen;
 using ShardEqualizer.UI;
 
 namespace ShardEqualizer.Verbs

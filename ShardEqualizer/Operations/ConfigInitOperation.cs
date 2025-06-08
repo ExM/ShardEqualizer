@@ -6,8 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using ShardEqualizer.Config;
 using ShardEqualizer.ConfigServices;
-using ShardEqualizer.MongoCommands;
-using ShardEqualizer.UI;
+using ShardEqualizer.Contracts.UI;
+using ShardEqualizer.DAL.Models;
+using ShardEqualizer.ScriptGen;
+using ShardEqualizer.ShardedClusterViews;
 using ShardEqualizer.Verbs;
 
 namespace ShardEqualizer.Operations
@@ -16,37 +18,42 @@ namespace ShardEqualizer.Operations
 	{
 		private readonly string _configFileName;
 		private readonly ConnectionConfig _connectionConfig;
-		private readonly ShardListService _shardListService;
-		private readonly ShardedCollectionService _shardedCollectionService;
+		private readonly ShardsView _shardsView;
+		private readonly ShardedCollectionInfoView _shardedCollectionInfoView;
 		private readonly CommandPlanWriter _commandPlanWriter;
-		private readonly ProgressRenderer _progressRenderer;
+		private readonly IProgressCollector _progressRenderer;
 
 		public ConfigInitOperation(
 			BaseVerbose baseVerbose,
 			ConnectionConfig connectionConfig,
-			ShardListService shardListService,
-			ShardedCollectionService shardedCollectionService,
+			ShardsView shardsView,
+			ShardedCollectionInfoView shardedCollectionInfoView,
 			CommandPlanWriter commandPlanWriter,
-			ProgressRenderer progressRenderer)
+			IProgressCollector progressRenderer)
 		{
 			_configFileName = baseVerbose.ConfigFile;
 			_connectionConfig = connectionConfig;
-			_shardListService = shardListService;
-			_shardedCollectionService = shardedCollectionService;
+			_shardsView = shardsView;
+			_shardedCollectionInfoView = shardedCollectionInfoView;
 			_commandPlanWriter = commandPlanWriter;
 			_progressRenderer = progressRenderer;
 		}
 
 		public async Task Run(CancellationToken token)
 		{
-			var shards = await _shardListService.Get(token);
-			//TODO validate existing tags
-			var zones = shards.Select(_ => (shardId: _.Id, zoneName: _.Id.ToString())).OrderBy(_ => _.shardId.ToString(), StringComparer.Ordinal).ToList();
+			var shards = await _shardsView.Get(token);
+			var defaultZones = new List<string>(shards.Count);
+			
+			foreach (var shard in shards.OrderBy(s => s.Id.ToString(), StringComparer.Ordinal))
+			{
+				var defaultZoneName = shard.Id.ToString();
+				defaultZones.Add(defaultZoneName);
+				if(shard.HaveTag(new TagIdentity(defaultZoneName)))
+					continue;
+				_commandPlanWriter.AddShardToZone(shard.Id, defaultZoneName);
+			}
 
-			foreach (var (shardId, zoneName) in zones)
-				_commandPlanWriter.AddShardToZone(shardId, zoneName);
-
-			var shardedCollections = await _shardedCollectionService.Get(token);
+			var shardedCollections = await _shardedCollectionInfoView.Get(token);
 
 			string secretFileName = null;
 			if (_connectionConfig.IsRequireAuth)
@@ -79,8 +86,8 @@ namespace ShardEqualizer.Operations
 			var mainConfigRenderer = new MainConfigRenderer()
 			{
 				Servers = _connectionConfig.Servers,
-				DefaultZones = string.Join(",", zones.Select(_ => _.zoneName)),
-				ShardedCollections = shardedCollections.Values.Where(_ => !_.Dropped).Select(_ => _.Id.ToString()).ToList(), //TODO exclude hashed keys
+				DefaultZones = string.Join(",", defaultZones),
+				ShardedCollections = shardedCollections.Values.Select(c => c.Id.ToString()).ToList(), //TODO exclude hashed keys
 				SecretFileName = secretFileName
 			};
 

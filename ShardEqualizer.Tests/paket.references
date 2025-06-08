@@ -1,7 +1,0 @@
-MongoDB.Bson
-MongoDB.Driver
-MongoDB.Driver.Core
-Accord.Math
-nunit
-NUnit3TestAdapter
-Microsoft.NET.Test.Sdk

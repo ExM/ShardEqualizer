@@ -5,7 +5,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using MongoDB.Bson;
-using ShardEqualizer.Models;
+using ShardEqualizer.DAL.Models;
 
 namespace ShardEqualizer
 {
@@ -39,13 +39,13 @@ namespace ShardEqualizer
 			if (IsUuidLegacy(min) && IsUuidLegacy(max))
 			{
 				return Split(min.AsByteArray, max.AsByteArray, zonesCount)
-					.Select(_ => (BsonValue)new BsonBinaryData(_, BsonBinarySubType.UuidLegacy, GuidRepresentation.CSharpLegacy)).ToList();
+					.Select(b => (BsonValue)new BsonBinaryData(b, BsonBinarySubType.UuidLegacy)).ToList();
 			}
 
 			if (IsUuidStandard(min) && IsUuidStandard(max))
 			{
 				return Split(min.AsByteArray, max.AsByteArray, zonesCount)
-					.Select(_ => (BsonValue)new BsonBinaryData(_, BsonBinarySubType.UuidStandard, GuidRepresentation.Standard)).ToList();
+					.Select(_ => (BsonValue)new BsonBinaryData(_, BsonBinarySubType.UuidStandard)).ToList();
 			}
 
 			if (min.IsObjectId && max.IsObjectId)

@@ -1,7 +1,7 @@
 using System;
 using MongoDB.Driver;
 using NUnit.Framework;
-using ShardEqualizer.Models;
+using ShardEqualizer.DAL.Models;
 using ShardEqualizer.ShardSizeEqualizing;
 
 namespace ShardEqualizer
@@ -49,8 +49,9 @@ namespace ShardEqualizer
 			Console.WriteLine(zoneOpt.Serialize());
 
 			var zoneOpt2 = ZoneOptimizationDescriptor.Deserialize(text);
-			
-			Assert.AreEqual(zoneOpt[_cB, _sB].CurrentSize, zoneOpt2[_cB, _sB].CurrentSize);
+
+
+			Assert.That(zoneOpt2[_cB, _sB].CurrentSize, Is.EqualTo(zoneOpt[_cB, _sB].CurrentSize));
 		}
 		
 		private static readonly ShardIdentity _sA = new ShardIdentity("shA");

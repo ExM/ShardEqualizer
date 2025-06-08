@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
     "help": {
       "commandName": "Project",
@@ -10,59 +11,67 @@
     },
     "config-init": {
       "commandName": "Project",
-      "commandLineArgs": "config-init --config=newConfig.xml -hlocalhost:27017,localhost:27018"
+      "commandLineArgs": "config-init --config=newConfig.xml -h localhost:27034"
     },
     "config-update": {
       "commandName": "Project",
-      "commandLineArgs": "config-update -cdev.xml"
+      "commandLineArgs": "config-update -c dev.xml"
     },
     "deviation": {
       "commandName": "Project",
-      "commandLineArgs": "deviation -cdev.xml -sG --format=md --layouts=\"default,balance\""
+      "commandLineArgs": "deviation -c dev.xml -sM --format=md --layouts=\"default,balance\""
     },
     "scan-jumbo": {
       "commandName": "Project",
-      "commandLineArgs": "scan-jumbo -cdev.xml"
+      "commandLineArgs": "scan-jumbo -c dev.xml"
     },
     "equalize planOnly": {
       "commandName": "Project",
-      "commandLineArgs": "equalize -cdev.xml --dry-run"
+      "commandLineArgs": "equalize -c dev.xml --dry-run"
     },
     "equalize planOnly from cache": {
       "commandName": "Project",
-      "commandLineArgs": "equalize -cdev.xml --dry-run --store-mode=rw"
+      "commandLineArgs": "equalize -c dev.xml --dry-run --store-mode=rw"
     },
     "equalize": {
       "commandName": "Project",
-      "commandLineArgs": "equalize -cdev.xml"
+      "commandLineArgs": "equalize -c dev.xml"
     },
     "equalize correctionPercent": {
       "commandName": "Project",
-      "commandLineArgs": "equalize -cdev.xml --correction-percent=20"
+      "commandLineArgs": "equalize -c dev.xml --correction-percent=20"
     },
     "equalize limited": {
       "commandName": "Project",
-      "commandLineArgs": "equalize -cdev.xml --move-limit=51200"
+      "commandLineArgs": "equalize -c dev.xml --move-limit=51200"
     },
     "equalize offline": {
       "commandName": "Project",
-      "commandLineArgs": "equalize -cdev.xml --move-limit=200"
+      "commandLineArgs": "equalize -c dev.xml --move-limit=200"
     },
     "merge": {
       "commandName": "Project",
-      "commandLineArgs": "merge -cdev.xml"
+      "commandLineArgs": "merge -c dev.xml"
+    },
+    "clear-jumbo": {
+      "commandName": "Project",
+      "commandLineArgs": "clear-jumbo -c dev.xml"
     },
     "presplit": {
       "commandName": "Project",
-      "commandLineArgs": "presplit -cdev.xml"
+      "commandLineArgs": "presplit -c dev.xml"
     },
     "presplit renew": {
       "commandName": "Project",
-      "commandLineArgs": "presplit -cdev.xml --renew"
+      "commandLineArgs": "presplit -c dev.xml --renew"
     },
     "balancer": {
       "commandName": "Project",
-      "commandLineArgs": "balancer -cdev.xml"
+      "commandLineArgs": "balancer -c dev.xml"
+    },
+    "clear-jumbo help": {
+      "commandName": "Project",
+      "commandLineArgs": "clear-jumbo --help"
     },
     "balancer help": {
       "commandName": "Project",
@@ -83,7 +92,6 @@
     "config-init help": {
       "commandName": "Project",
       "commandLineArgs": "config-init --help"
-    },
     }
   }
 }

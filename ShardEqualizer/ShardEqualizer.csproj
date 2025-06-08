@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
-    <LangVersion>9</LangVersion>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12</LangVersion>
     <OutputType>Exe</OutputType>
     <RootNamespace>ShardEqualizer</RootNamespace>
     <AssemblyName>ShardEqualizer</AssemblyName>
@@ -15,10 +15,22 @@
     <PackageLicenseUrl>https://github.com/ExM/ShardEqualizer/blob/develop/LICENSE.txt</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/ExM/ShardEqualizer</PackageProjectUrl>
     <PackageTags>mongodb sharding</PackageTags>
-    <AssemblyVersion>1.0.0</AssemblyVersion>
-    <PackageVersion>1.0.0-beta.7</PackageVersion>
-    <InformationalVersion>1.0.0-beta.7</InformationalVersion>
+    <AssemblyVersion>2.0.0</AssemblyVersion>
+    <PackageVersion>2.0.0-beta.0</PackageVersion>
+    <InformationalVersion>2.0.0-beta.0</InformationalVersion>
   </PropertyGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="Accord.Math" />
+    <PackageReference Include="CommandLineParser" />
+    <PackageReference Include="MongoDB.Bson" />
+    <PackageReference Include="MongoDB.Driver" />
+    <PackageReference Include="NConfiguration" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="Ninject" />
+    <PackageReference Include="NLog" />
+  </ItemGroup>
+
   <ItemGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <None Update="NLog.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -30,5 +42,12 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <Import Project="..\.paket\Paket.Restore.targets" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\Caching\Caching.csproj" />
+    <ProjectReference Include="..\Contracts\Contracts.csproj" />
+    <ProjectReference Include="..\DAL\DAL.csproj" />
+    <ProjectReference Include="..\ScriptGen\ScriptGen.csproj" />
+    <ProjectReference Include="..\ShardedClusterViews\ShardedClusterViews.csproj" />
+  </ItemGroup>
 </Project>

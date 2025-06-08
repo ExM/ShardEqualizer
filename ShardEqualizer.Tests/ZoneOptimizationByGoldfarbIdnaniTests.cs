@@ -1,8 +1,7 @@
-using System;
 using System.Linq;
 using MongoDB.Driver;
 using NUnit.Framework;
-using ShardEqualizer.Models;
+using ShardEqualizer.DAL.Models;
 using ShardEqualizer.ShardSizeEqualizing;
 
 namespace ShardEqualizer
@@ -48,7 +47,7 @@ namespace ShardEqualizer
 
 			var solve = ZoneOptimizationSolve.Find(zoneOpt);
 
-			Assert.IsTrue(solve.IsSuccess);
+			Assert.That(solve.IsSuccess, Is.True);
 		}
 
 		[Test]
@@ -74,7 +73,7 @@ namespace ShardEqualizer
 
 			var solve = ZoneOptimizationSolve.Find(zoneOpt);
 
-			Assert.IsTrue(solve.IsSuccess);
+			Assert.That(solve.IsSuccess, Is.True);
 
 			Assert.That(solve[_cB, _sB].TargetSize, Is.EqualTo(4000));
 			Assert.That(solve[_cC, _sA].TargetSize, Is.EqualTo(750));
@@ -107,8 +106,8 @@ namespace ShardEqualizer
 
 			var solve = ZoneOptimizationSolve.Find(zoneOpt);
 
-			Assert.IsTrue(solve.IsSuccess);
-
+			Assert.That(solve.IsSuccess, Is.True);
+			
 			Assert.That(solve[_cB, _sA].TargetSize, Is.EqualTo(4265));
 			Assert.That(solve[_cB, _sB].TargetSize, Is.EqualTo(2367));
 			Assert.That(solve[_cC, _sA].TargetSize, Is.EqualTo(535));
@@ -141,7 +140,7 @@ namespace ShardEqualizer
 
 			var solve = ZoneOptimizationSolve.Find(zoneOpt);
 
-			Assert.IsTrue(solve.IsSuccess);
+			Assert.That(solve.IsSuccess, Is.True);
 
 			Assert.That(solve[_cB, _sB].TargetSize, Is.EqualTo(2784));
 			Assert.That(solve[_cC, _sA].TargetSize, Is.EqualTo(500));
@@ -172,7 +171,7 @@ namespace ShardEqualizer
 
 			var solve = ZoneOptimizationSolve.Find(zoneOpt);
 
-			Assert.IsTrue(solve.IsSuccess);
+			Assert.That(solve.IsSuccess, Is.True);
 
 			Assert.That(solve.ActiveConstraints.Count, Is.EqualTo(3));
 
@@ -216,7 +215,7 @@ namespace ShardEqualizer
 
 			var solve = ZoneOptimizationSolve.Find(zoneOpt);
 
-			Assert.IsTrue(solve.IsSuccess);
+			Assert.That(solve.IsSuccess, Is.True);
 
 			var targetShards = solve.TargetShards;
 
@@ -258,7 +257,7 @@ namespace ShardEqualizer
 
 			var solve = ZoneOptimizationSolve.Find(zoneOpt);
 
-			Assert.IsTrue(solve.IsSuccess);
+			Assert.That(solve.IsSuccess, Is.True);
 			var expectedTargets = solve.AllManagedBuckets.Select(_ => _.TargetSize).ToList();
 
 			foreach (var b in zoneOpt.AllManagedBuckets)
@@ -268,7 +267,7 @@ namespace ShardEqualizer
 
 			var solve2 = ZoneOptimizationSolve.Find(zoneOpt);
 
-			Assert.IsTrue(solve2.IsSuccess);
+			Assert.That(solve2.IsSuccess, Is.True);
 
 			var actualTargets = solve2.AllManagedBuckets.Select(_ => _.TargetSize);
 
@@ -308,7 +307,7 @@ namespace ShardEqualizer
 
 			var solve = ZoneOptimizationSolve.Find(zoneOpt);
 
-			Assert.IsTrue(solve.IsSuccess);
+			Assert.That(solve.IsSuccess, Is.True);
 
 			var targetShards = solve.TargetShards;
 
@@ -344,7 +343,7 @@ namespace ShardEqualizer
 
 			var solve = ZoneOptimizationSolve.Find(zoneOpt);
 
-			Assert.IsTrue(solve.IsSuccess);
+			Assert.That(solve.IsSuccess, Is.True);
 
 			Assert.That(new []
 			{
@@ -387,7 +386,7 @@ namespace ShardEqualizer
 
 			var solve = ZoneOptimizationSolve.Find(zoneOpt);
 
-			Assert.IsTrue(solve.IsSuccess);
+			Assert.That(solve.IsSuccess, Is.True);
 
 			Assert.That(solve[_cA, _sA].TargetSize, Is.EqualTo(2000));
 			Assert.That(solve[_cA, _sB].TargetSize, Is.EqualTo(2000));

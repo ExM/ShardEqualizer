@@ -6,7 +6,7 @@ using Accord.Math;
 using Accord.Math.Optimization;
 using MongoDB.Driver;
 using NLog;
-using ShardEqualizer.Models;
+using ShardEqualizer.DAL.Models;
 
 namespace ShardEqualizer.ShardSizeEqualizing
 {

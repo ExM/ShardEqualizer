@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using ShardEqualizer.Contracts.UI;
 
 namespace ShardEqualizer.UI
 {
-	public class ProgressReporter: IAsyncDisposable
+	public class ProgressReporter: IProgressReporter
 	{
 		public ProgressReporter(string title, long total, Func<long, string> valueRenderer)
 		{

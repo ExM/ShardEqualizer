@@ -4,7 +4,7 @@ using System.Text;
 using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using NUnit.Framework;
-using ShardEqualizer.Models;
+using ShardEqualizer.DAL.Models;
 
 namespace ShardEqualizer
 {
@@ -19,9 +19,9 @@ namespace ShardEqualizer
 		[Test]
 		public void GuidBounds()
 		{
-			var guidMin = (BsonValue) Guid.Empty;
-			var guidMax = (BsonValue) Guid.Parse("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF");
-
+			var guidMin = new BsonBinaryData(Guid.Empty, GuidRepresentation.Standard);
+			var guidMax = new BsonBinaryData(Guid.Parse("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"), GuidRepresentation.Standard);
+			
 			var bounds = BsonSplitter.Split(guidMin, guidMax, 13);
 			var docBounds = bounds.Select(_ => new BsonBound(new BsonDocument("x", _))).ToList();
 
@@ -30,14 +30,14 @@ namespace ShardEqualizer
 
 			foreach (var pair in docBounds.Take(docBounds.Count - 1).Zip(docBounds.Skip(1), (x, y) => new { x, y}))
 			{
-				Assert.IsTrue(pair.x < pair.y);
+				Assert.That(pair.x < pair.y, Is.True);
 			}
 
 			foreach (var bound in bounds)
 			{
 				var hex = ByteArrayToString(((BsonBinaryData) bound).Bytes);
 
-				var jsonSettings = new JsonWriterSettings() {GuidRepresentation = GuidRepresentation.CSharpLegacy};
+				var jsonSettings = new JsonWriterSettings() {};
 
 				Console.WriteLine("{0} {1}", hex, bound.ToJson(jsonSettings));
 			}
@@ -58,7 +58,7 @@ namespace ShardEqualizer
 
 			foreach (var pair in docBounds.Take(docBounds.Count - 1).Zip(docBounds.Skip(1), (x, y) => new { x, y}))
 			{
-				Assert.IsTrue(pair.x < pair.y);
+				Assert.That(pair.x < pair.y, Is.True);
 			}
 
 
@@ -66,7 +66,7 @@ namespace ShardEqualizer
 			{
 				var hex = ByteArrayToString(((ObjectId) bound).ToByteArray());
 
-				var jsonSettings = new JsonWriterSettings() {GuidRepresentation = GuidRepresentation.CSharpLegacy};
+				var jsonSettings = new JsonWriterSettings() {};
 
 				Console.WriteLine("{0} {1}", hex, bound.ToJson(jsonSettings));
 			}

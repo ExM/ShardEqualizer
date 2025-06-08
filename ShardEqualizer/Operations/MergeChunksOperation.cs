@@ -4,33 +4,37 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Driver;
-using ShardEqualizer.ConfigRepositories;
 using ShardEqualizer.ConfigServices;
-using ShardEqualizer.Models;
-using ShardEqualizer.MongoCommands;
-using ShardEqualizer.UI;
+using ShardEqualizer.Contracts.UI;
+using ShardEqualizer.DAL.Models;
+using ShardEqualizer.DAL.Repositories;
+using ShardEqualizer.ScriptGen;
+using ShardEqualizer.ShardedClusterViews;
 
 namespace ShardEqualizer.Operations
 {
 	public class MergeChunksOperation : IOperation
 	{
 		private readonly IReadOnlyList<Interval> _intervals;
-		private readonly ProgressRenderer _progressRenderer;
-		private readonly ShardListService _shardListService;
-		private readonly TagRangeService _tagRangeService;
+		private readonly IProgressCollector _progressRenderer;
+		private readonly ShardsView _shardsView;
+		private readonly TagRangesView _tagRangesView;
+		private readonly ShardedCollectionInfoView _shardedCollectionInfoView;
 		private readonly ChunkRepository _chunkRepo;
 		private readonly CommandPlanWriter _commandPlanWriter;
 
 		public MergeChunksOperation(
-			ShardListService shardListService,
-			TagRangeService tagRangeService,
-			ChunkRepository chunkRepo, //UNDONE use ChunkService
+			ShardsView shardsView,
+			TagRangesView tagRangesView,
+			ShardedCollectionInfoView shardedCollectionInfoView,
+			ChunkRepository chunkRepo, //TODO use ChunkView
 			IReadOnlyList<Interval> intervals,
-			ProgressRenderer progressRenderer,
+			IProgressCollector progressRenderer,
 			CommandPlanWriter commandPlanWriter)
 		{
-			_shardListService = shardListService;
-			_tagRangeService = tagRangeService;
+			_shardsView = shardsView;
+			_tagRangesView = tagRangesView;
+			_shardedCollectionInfoView = shardedCollectionInfoView;
 			_chunkRepo = chunkRepo;
 			_commandPlanWriter = commandPlanWriter;
 
@@ -41,15 +45,21 @@ namespace ShardEqualizer.Operations
 			_progressRenderer = progressRenderer;
 		}
 
-		private async Task<Tuple<List<MergeCommand>, int>> mergeInterval(IDictionary<TagIdentity, Shard> shardByTag, MergeZone zone, ProgressReporter progressReporter,
+		private async Task<Tuple<List<MergeCommand>, int>> mergeInterval(IDictionary<TagIdentity, Shard> shardByTag, MergeZone zone, IProgressReporter progressReporter,
 			CancellationToken token)
 		{
 			var mergeCommands = new List<MergeCommand>();
 			var mergedChunks = 0;
-			var validShardId = shardByTag[zone.TagRange.Tag].Id;
 
-			var mergeCandidates = await (await _chunkRepo.ByNamespace(zone.Interval.Namespace)
-				.From(zone.TagRange.Min).To(zone.TagRange.Max).NoJumbo().ByShards(new [] { validShardId }).Find(token))
+			if (!shardByTag.TryGetValue(zone.TagRange.Tag, out var shard))
+			{
+				_progressRenderer.WriteLine($"Shard for tag '{zone.TagRange.Tag}' not found");
+				return new Tuple<List<MergeCommand>, int>(new List<MergeCommand>(), 0);
+			}
+
+			var collectionInfo = await _shardedCollectionInfoView.Get(zone.Interval.Namespace, token);
+			var mergeCandidates = await (await _chunkRepo.ByUuid(collectionInfo.Uuid)
+					.From(zone.TagRange.Min).To(zone.TagRange.Max).NoJumbo().ByShards([shard.Id]).Find(token))
 				.ToListAsync(token);
 
 			foreach (var shardGroup in mergeCandidates.GroupBy(_ => _.Shard))
@@ -140,8 +150,8 @@ namespace ShardEqualizer.Operations
 
 		public async Task Run(CancellationToken token)
 		{
-			var shards = await _shardListService.Get(token);
-			var tagRangesByNs = await _tagRangeService.Get(_intervals.Select(_ => _.Namespace), token);
+			var shards = await _shardsView.Get(token);
+			var tagRangesByNs = await _tagRangesView.Get(_intervals.Select(_ => _.Namespace), token);
 			var shardByTag = ShardTagCollator.Collate(shards, _intervals.SelectMany(_ => _.Zones));
 
 			var mergeZones = _intervals

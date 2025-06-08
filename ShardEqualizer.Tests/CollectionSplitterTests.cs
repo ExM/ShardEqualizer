@@ -14,7 +14,7 @@ namespace ShardEqualizer
 
 			var parts = coll.Split(numberOfParts).ToList();
 			
-			CollectionAssert.AreEquivalent(partCounts, parts.Select(_ => _.Count));
+			Assert.That(parts.Select(_ => _.Count), Is.EquivalentTo(partCounts));
 		}
 
 		private static IEnumerable<TestCaseData> splitCases()

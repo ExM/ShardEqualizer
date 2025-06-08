@@ -1,14 +1,25 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <RootNamespace>ShardEqualizer</RootNamespace>
-    <LangVersion>9</LangVersion>
+    <LangVersion>12</LangVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MongoDB.Bson"/>
+    <PackageReference Include="MongoDB.Driver"/>
+    <PackageReference Include="Accord.Math"/>
+    <PackageReference Include="NUnit"/>
+    <PackageReference Include="NUnit3TestAdapter"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+  </ItemGroup>
+  
   <ItemGroup>
     <ProjectReference Include="..\ShardEqualizer\ShardEqualizer.csproj" />
   </ItemGroup>
+  
   <ItemGroup>
     <None Update="conditionSamples\SmartcatCluster\dump1.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -23,5 +34,4 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <Import Project="..\.paket\Paket.Restore.targets" />
 </Project>

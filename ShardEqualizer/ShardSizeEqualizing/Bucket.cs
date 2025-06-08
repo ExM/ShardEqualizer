@@ -1,5 +1,5 @@
 using MongoDB.Driver;
-using ShardEqualizer.Models;
+using ShardEqualizer.DAL.Models;
 
 namespace ShardEqualizer.ShardSizeEqualizing
 {

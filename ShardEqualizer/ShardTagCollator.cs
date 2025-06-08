@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ShardEqualizer.Models;
+using ShardEqualizer.DAL.Models;
 
 namespace ShardEqualizer
 {
@@ -20,11 +20,11 @@ namespace ShardEqualizer
 				var result = e.Current;
 				if(result == null)
 					continue;
-				if (!result.Tags.Contains(tag)) continue;
+				if (!result.HaveTag(tag)) continue;
 
 				while (e.MoveNext())
 				{
-					if (e.Current.Tags.Contains(tag))
+					if (e.Current.HaveTag(tag))
 						throw new Exception($"shard '{result.Id}' and '{e.Current.Id}' both contains one tag zone '{tag}'");
 				}
 

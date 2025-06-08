@@ -14,7 +14,7 @@ namespace ShardEqualizer
 		[TestCase("AjTsD", SizeType.TotalStorage)]
 		public void SizeTypeParse(string text, SizeType expected)
 		{
-			Assert.AreEqual(expected, ColumnDescription.Parse(text).SizeType);
+			Assert.That(ColumnDescription.Parse(text).SizeType, Is.EqualTo(expected));
 		}
 
 		[TestCase("AjSz", DataType.Adjustable)]
@@ -26,14 +26,14 @@ namespace ShardEqualizer
 		[TestCase("UsSz", DataType.UnSharded)]
 		public void DataTypeParse(string text, DataType expected)
 		{
-			Assert.AreEqual(expected, ColumnDescription.Parse(text).DataType);
+			Assert.That(ColumnDescription.Parse(text).DataType, Is.EqualTo(expected));
 		}
 		
 		[TestCase("UmSz", false)]
 		[TestCase("UmSzD", true)]
 		public void DeviationParse(string text, bool expected)
 		{
-			Assert.AreEqual(expected, ColumnDescription.Parse(text).Deviation);
+			Assert.That(ColumnDescription.Parse(text).Deviation, Is.EqualTo(expected));
 		}
 	}
 }

@@ -1,5 +1,5 @@
 using System;
-using ShardEqualizer.ShortModels;
+using ShardEqualizer.ShardedClusterViews.Models;
 
 namespace ShardEqualizer.Reporting
 {
@@ -10,6 +10,13 @@ namespace ShardEqualizer.Reporting
 		public long Index;
 		public long AllStorage => DataStorage + Index;
 
+		public void Add(CollectionStatistics collStats)
+		{
+			DataActual += collStats.Size;
+			DataStorage += collStats.StorageSize;
+			Index += collStats.TotalIndexSize;
+		}
+		
 		public void Add(ShardCollectionStatistics collStats)
 		{
 			DataActual += collStats.Size;

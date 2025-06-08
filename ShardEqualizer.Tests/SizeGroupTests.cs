@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.Text;
 using NUnit.Framework;
 using ShardEqualizer.ByteSizeRendering;
-using ShardEqualizer.Models;
+using ShardEqualizer.DAL.Models;
 using ShardEqualizer.Reporting;
-using ShardEqualizer.ShortModels;
+using ShardEqualizer.ShardedClusterViews.Models;
 
 namespace ShardEqualizer
 {
@@ -16,45 +16,45 @@ namespace ShardEqualizer
 		{
 			var report = new TestReport();
 
-			report.Append(new CollectionStatistics() {Primary = new ShardIdentity("A"), Sharded  = false, Size = 100}, null);
-			report.Append(new CollectionStatistics(){Primary = new ShardIdentity("A"), Sharded  = false, Size = 100}, false);
-			report.Append(new CollectionStatistics(){Primary = new ShardIdentity("A"), Sharded  = false, Size = 100}, true);
-			report.Append(new CollectionStatistics(){Primary = new ShardIdentity("A"), Sharded  = false, Size = 100}, true);
+			report.Append(GetCollStat("A", 100), null);
+			report.Append(GetCollStat("A", 100), false);
+			report.Append(GetCollStat("A", 100), true);
+			report.Append(GetCollStat("A", 100), true);
 
-			report.Append(new CollectionStatistics(){Sharded  = true, Shards = new Dictionary<ShardIdentity, ShardCollectionStatistics>()
+			report.Append(GetCollStat(new Dictionary<ShardIdentity, ShardCollectionStatistics>()
 			{
-				{new ShardIdentity("A"), new ShardCollectionStatistics() { Size = 100} },
-				{new ShardIdentity("B"), new ShardCollectionStatistics() { Size = 10} },
-			}}, null);
+				{new ShardIdentity("A"), GetCollStat(100) },
+				{new ShardIdentity("B"), GetCollStat(10) },
+			}), null);
 
-			report.Append(new CollectionStatistics(){Sharded  = true, Shards = new Dictionary<ShardIdentity, ShardCollectionStatistics>()
+			report.Append(GetCollStat(new Dictionary<ShardIdentity, ShardCollectionStatistics>()
 			{
-				{new ShardIdentity("A"), new ShardCollectionStatistics() { Size = 100} },
-				{new ShardIdentity("B"), new ShardCollectionStatistics() { Size = 10} },
-			}}, false);
+				{new ShardIdentity("A"), GetCollStat(100) },
+				{new ShardIdentity("B"), GetCollStat(10) },
+			}), false);
 
-			report.Append(new CollectionStatistics(){Sharded  = true, Shards = new Dictionary<ShardIdentity, ShardCollectionStatistics>()
+			report.Append(GetCollStat(new Dictionary<ShardIdentity, ShardCollectionStatistics>()
 			{
-				{new ShardIdentity("A"), new ShardCollectionStatistics() { Size = 100} },
-				{new ShardIdentity("B"), new ShardCollectionStatistics() { Size = 10} },
-			}}, true);
+				{new ShardIdentity("A"), GetCollStat(100) },
+				{new ShardIdentity("B"), GetCollStat(10) },
+			}), true);
 
-			report.Append(new CollectionStatistics(){Sharded  = true, Shards = new Dictionary<ShardIdentity, ShardCollectionStatistics>()
+			report.Append(GetCollStat( new Dictionary<ShardIdentity, ShardCollectionStatistics>()
 			{
-				{new ShardIdentity("A"), new ShardCollectionStatistics() { Size = 100} },
-				{new ShardIdentity("B"), new ShardCollectionStatistics() { Size = 10} },
-			}}, true);
+				{new ShardIdentity("A"), GetCollStat(100) },
+				{new ShardIdentity("B"), GetCollStat(10) },
+			}), true);
 
-			report.Append(new CollectionStatistics(){Primary = new ShardIdentity("B"), Sharded  = false, Size = 100}, null);
-			report.Append(new CollectionStatistics(){Primary = new ShardIdentity("B"), Sharded  = false, Size = 100}, false);
-			report.Append(new CollectionStatistics(){Primary = new ShardIdentity("B"), Sharded  = false, Size = 100}, true);
-			report.Append(new CollectionStatistics(){Primary = new ShardIdentity("B"), Sharded  = false, Size = 100}, true);
+			report.Append(GetCollStat("B", 100), null);
+			report.Append(GetCollStat("B", 100), false);
+			report.Append(GetCollStat("B", 100), true);
+			report.Append(GetCollStat("B", 100), true);
 
 			report.Render(new [] { new ColumnDescription(DataType.Total, SizeType.DataSize, false)});
 
 
-			Assert.AreEqual(800, report.FirstColumn["A"]);
-			Assert.AreEqual(440, report.FirstColumn["B"]);
+			Assert.That(report.FirstColumn["A"], Is.EqualTo(800));
+			Assert.That(report.FirstColumn["B"], Is.EqualTo(440));
 		}
 
 		public class TestReport: BaseReport
@@ -78,6 +78,42 @@ namespace ShardEqualizer
 			protected override void AppendHeader(StringBuilder sb, ICollection<string> cells)
 			{
 			}
+		}
+
+		private ShardCollectionStatistics GetCollStat(long size)
+		{
+			return new ShardCollectionStatistics()
+			{
+				Size = size,
+				StorageSize = size,
+				TotalIndexSize = 0
+			};
+		}
+		
+		private CollectionStatistics GetCollStat(string primary, long size)
+		{
+			return new CollectionStatistics()
+			{
+				Primary = new ShardIdentity(primary),
+				Sharded = false,
+				Size = size,
+				Shards = new Dictionary<ShardIdentity, ShardCollectionStatistics>(),
+				StorageSize = size,
+				TotalIndexSize = 0
+			};
+		}
+		
+		private CollectionStatistics GetCollStat(Dictionary<ShardIdentity, ShardCollectionStatistics> shards)
+		{
+			return new CollectionStatistics()
+			{
+				Primary = null,
+				Sharded = true,
+				Size = 0,
+				Shards = shards,
+				StorageSize = 0,
+				TotalIndexSize = 0
+			};
 		}
 	}
 }

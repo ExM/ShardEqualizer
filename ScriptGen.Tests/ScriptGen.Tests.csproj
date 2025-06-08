@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>ShardEqualizer.ScriptGen.Tests</AssemblyName>
+        <RootNamespace>ShardEqualizer.ScriptGen</RootNamespace>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="xunit.runner.visualstudio"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="FluentAssertions"/>
+    </ItemGroup>
+    
+    <ItemGroup>
+      <ProjectReference Include="..\ScriptGen\ScriptGen.csproj" />
+    </ItemGroup>
+
+</Project>

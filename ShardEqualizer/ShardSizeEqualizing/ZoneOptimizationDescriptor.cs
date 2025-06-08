@@ -1,9 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using MongoDB.Driver;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using ShardEqualizer.Models;
+using ShardEqualizer.DAL.Models;
 
 namespace ShardEqualizer.ShardSizeEqualizing
 {

@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using MongoDB.Bson;
-using ShardEqualizer.Models;
-using ShardEqualizer.ShortModels;
+using ShardEqualizer.DAL.Models;
+using ShardEqualizer.ShardedClusterViews.Models;
 
 namespace ShardEqualizer
 {

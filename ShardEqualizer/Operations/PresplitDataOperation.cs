@@ -5,24 +5,25 @@ using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Driver;
 using NLog;
-using ShardEqualizer.ChunkCaching;
 using ShardEqualizer.ConfigServices;
-using ShardEqualizer.Models;
-using ShardEqualizer.MongoCommands;
-using ShardEqualizer.ShortModels;
-using ShardEqualizer.UI;
+using ShardEqualizer.Contracts.UI;
+using ShardEqualizer.DAL.Models;
+using ShardEqualizer.ScriptGen;
+using ShardEqualizer.ShardedClusterViews;
+using ShardEqualizer.ShardedClusterViews.ChunkCaching;
+using ShardEqualizer.ShardedClusterViews.Models;
 
 namespace ShardEqualizer.Operations
 {
 	public class PresplitDataOperation : IOperation
 	{
 		private readonly IReadOnlyList<Interval> _intervals;
-		private readonly ProgressRenderer _progressRenderer;
+		private readonly IProgressCollector _progressRenderer;
 		private readonly CommandPlanWriter _commandPlanWriter;
 		private readonly bool _renew;
-		private readonly ShardedCollectionService _shardedCollectionService;
-		private readonly TagRangeService _tagRangeService;
-		private readonly ChunkService _chunkService;
+		private readonly ShardedCollectionInfoView _shardedCollectionInfoView;
+		private readonly TagRangesView _tagRangesView;
+		private readonly ChunkView _chunkView;
 
 		private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 		private IReadOnlyDictionary<CollectionNamespace, ShardedCollectionInfo> _shardedCollectionByNs;
@@ -30,17 +31,17 @@ namespace ShardEqualizer.Operations
 		private IReadOnlyDictionary<CollectionNamespace, ChunksCache> _allChunksByNs;
 
 		public PresplitDataOperation(
-			ShardedCollectionService shardedCollectionService,
-			TagRangeService tagRangeService,
-			ChunkService chunkService,
+			ShardedCollectionInfoView shardedCollectionInfoView,
+			TagRangesView tagRangesView,
+			ChunkView chunkView,
 			IReadOnlyList<Interval> intervals,
-			ProgressRenderer progressRenderer,
+			IProgressCollector progressRenderer,
 			CommandPlanWriter commandPlanWriter,
 			bool renew)
 		{
-			_shardedCollectionService = shardedCollectionService;
-			_tagRangeService = tagRangeService;
-			_chunkService = chunkService;
+			_shardedCollectionInfoView = shardedCollectionInfoView;
+			_tagRangesView = tagRangesView;
+			_chunkView = chunkView;
 			_intervals = intervals;
 			_progressRenderer = progressRenderer;
 			_commandPlanWriter = commandPlanWriter;
@@ -53,9 +54,9 @@ namespace ShardEqualizer.Operations
 		}
 		public async Task Run(CancellationToken token)
 		{
-			_shardedCollectionByNs = await _shardedCollectionService.Get(token);
-			_tagRangesByNs =  await _tagRangeService.Get(_intervals.Select(_ => _.Namespace), token);
-			_allChunksByNs = await _chunkService.Get(_intervals.Select(_ => _.Namespace), token);
+			_shardedCollectionByNs = await _shardedCollectionInfoView.Get(token);
+			_tagRangesByNs =  await _tagRangesView.Get(_intervals.Select(_ => _.Namespace), token);
+			_allChunksByNs = await _chunkView.Get(_intervals.Select(_ => _.Namespace), token);
 
 			_progressRenderer.WriteLine("Create presplit commands");
 
@@ -102,7 +103,7 @@ namespace ShardEqualizer.Operations
 		{
 			var collInfo = _shardedCollectionByNs[interval.Namespace];
 
-			if (collInfo == null || collInfo.Dropped)
+			if (collInfo == null)
 				throw new InvalidOperationException($"collection {interval.Namespace.FullName} not sharded");
 
 			if (!interval.Adjustable)

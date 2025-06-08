@@ -28,7 +28,7 @@ namespace ShardEqualizer
 		[TestCase(long.MinValue + 1, "-8 Eb")]
 		public void Format_byte_size(long size, string expected)
 		{
-			Assert.AreEqual(expected, size.ByteSize());
+			Assert.That(size.ByteSize(), Is.EqualTo(expected));
 		}
 	}
 }

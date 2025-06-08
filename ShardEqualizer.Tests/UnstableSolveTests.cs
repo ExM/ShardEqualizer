@@ -23,8 +23,8 @@ namespace ShardEqualizer
 
 			var solve = ZoneOptimizationSolve.Find(zoneOpt);
 
-			Assert.IsTrue(solve.IsSuccess);
-
+			Assert.That(solve.IsSuccess, Is.True);
+			
 			foreach (var pair in solve.TargetShards)
 			{
 				var source = zoneOpt.AllBuckets.Where(_ => _.Shard == pair.Key).Sum(_ => _.CurrentSize) + zoneOpt.UnShardedSize[pair.Key];
@@ -40,8 +40,7 @@ namespace ShardEqualizer
 				     _.FullName != "d.T"
 			);
 
-			Assert.Multiple(() =>
-			{
+
 				foreach (var coll in checkedColls)
 				{
 					var ts3 = solve[coll, sh3].TargetSize;
@@ -51,7 +50,6 @@ namespace ShardEqualizer
 
 					Assert.That(delta, Is.LessThan(0.0001), $"excess delta in {coll}");
 				}
-			});
 		}
 	}
 }

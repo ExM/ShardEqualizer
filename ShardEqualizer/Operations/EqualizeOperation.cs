@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,12 +7,13 @@ using MongoDB.Driver;
 using NLog;
 using ShardEqualizer.ByteSizeRendering;
 using ShardEqualizer.ConfigServices;
-using ShardEqualizer.Models;
-using ShardEqualizer.MongoCommands;
+using ShardEqualizer.Contracts.UI;
+using ShardEqualizer.DAL.Models;
 using ShardEqualizer.Reporting;
+using ShardEqualizer.ScriptGen;
+using ShardEqualizer.ShardedClusterViews;
+using ShardEqualizer.ShardedClusterViews.Models;
 using ShardEqualizer.ShardSizeEqualizing;
-using ShardEqualizer.ShortModels;
-using ShardEqualizer.UI;
 
 namespace ShardEqualizer.Operations
 {
@@ -22,40 +22,43 @@ namespace ShardEqualizer.Operations
 		private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 
 		private readonly IReadOnlyList<Interval> _intervals;
-		private readonly ShardListService _shardListService;
-		private readonly CollectionListService _collectionListService;
-		private readonly CollectionStatisticService _collectionStatisticService;
-		private readonly TagRangeService _tagRangeService;
-		private readonly ClusterSettingsService _clusterSettingsService;
-		private readonly ChunkService _chunkService;
-		private readonly ChunkSizeService _chunkSizeService;
-		private readonly ProgressRenderer _progressRenderer;
+		private readonly ILazyServiceProvider _serviceProvider;
+		private readonly ShardsView _shardsView;
+		private readonly ShardedCollectionInfoView _shardedCollectionInfoView;
+		private readonly UserCollectionsView _userCollectionsView;
+		private readonly CollectionStatisticView _collectionStatisticView;
+		private readonly TagRangesView _tagRangesView;
+		private readonly ClusterSettingsView _clusterSettingsView;
+		private readonly ChunkView _chunkView;
+		private readonly IProgressCollector _progressRenderer;
 		private readonly CommandPlanWriter _commandPlanWriter;
 		private readonly long? _moveLimit;
 		private readonly bool _dryRun;
 
 		public EqualizeOperation(
-			ShardListService shardListService,
-			CollectionListService collectionListService,
-			CollectionStatisticService collectionStatisticService,
-			TagRangeService tagRangeService,
-			ClusterSettingsService clusterSettingsService,
-			ChunkService chunkService,
-			ChunkSizeService chunkSizeService,
+			ILazyServiceProvider serviceProvider,
+			ShardsView shardsView,
+			ShardedCollectionInfoView shardedCollectionInfoView,
+			UserCollectionsView userCollectionsView,
+			CollectionStatisticView collectionStatisticView,
+			TagRangesView tagRangesView,
+			ClusterSettingsView clusterSettingsView,
+			ChunkView chunkView,
 			IReadOnlyList<Interval> intervals,
-			ProgressRenderer progressRenderer,
+			IProgressCollector progressRenderer,
 			CommandPlanWriter commandPlanWriter,
 			long? moveLimit,
 			double movePercent,
 			bool dryRun)
 		{
-			_shardListService = shardListService;
-			_collectionListService = collectionListService;
-			_collectionStatisticService = collectionStatisticService;
-			_tagRangeService = tagRangeService;
-			_clusterSettingsService = clusterSettingsService;
-			_chunkService = chunkService;
-			_chunkSizeService = chunkSizeService;
+			_serviceProvider = serviceProvider;
+			_shardsView = shardsView;
+			_shardedCollectionInfoView = shardedCollectionInfoView;
+			_userCollectionsView = userCollectionsView;
+			_collectionStatisticView = collectionStatisticView;
+			_tagRangesView = tagRangesView;
+			_clusterSettingsView = clusterSettingsView;
+			_chunkView = chunkView;
 			_progressRenderer = progressRenderer;
 			_commandPlanWriter = commandPlanWriter;
 			_moveLimit = moveLimit;
@@ -78,6 +81,7 @@ namespace ShardEqualizer.Operations
 		private IReadOnlyDictionary<CollectionNamespace, IReadOnlyList<TagRange>> _tagRangesByNs;
 		private readonly IReadOnlyList<Interval> _adjustableIntervals;
 		private readonly double _movePercent;
+		private IReadOnlyDictionary<CollectionNamespace, ShardedCollectionInfo> _shardedCollectionInfos;
 
 		private void createZoneOptimizationDescriptor()
 		{
@@ -110,6 +114,7 @@ namespace ShardEqualizer.Operations
 				collCfg.Priority = 1;
 
 				var allChunks = _chunksByCollection[interval.Namespace];
+				var chunkSize = GetChunkSize(interval.Namespace);
 				foreach (var tag in interval.Zones)
 				{
 					var shard = _shardByTag[tag].Id;
@@ -122,7 +127,7 @@ namespace ShardEqualizer.Operations
 					if (movedChunks <= 1)
 						movedChunks = 1;
 
-					bucket.MinSize = bucket.CurrentSize - _chunkSize * (movedChunks - 1);
+					bucket.MinSize = bucket.CurrentSize - chunkSize * (movedChunks - 1);
 				}
 			}
 
@@ -142,7 +147,9 @@ namespace ShardEqualizer.Operations
 
 		private ChunkCollection createChunkCollection(CollectionNamespace ns, CancellationToken token)
 		{
-			return new ChunkCollection(_chunksByCollection[ns], chunk => _chunkSizeService.Get(ns, chunk.Min, chunk.Max, token));
+			var chunkSizeService = _serviceProvider.Resolve<ChunkSizeService>();
+			
+			return new ChunkCollection(_chunksByCollection[ns], chunk => chunkSizeService.Get(ns, chunk.Min, chunk.Max, token));
 		}
 
 		private List<EqualizeWorkItem> findSolution(CancellationToken token)
@@ -265,19 +272,26 @@ namespace ShardEqualizer.Operations
 
 		}
 
+		private long GetChunkSize(CollectionNamespace ns)
+		{
+			return _shardedCollectionInfos[ns].MaxChunkSizeBytes ?? _chunkSize;
+		}
+
 		public async Task Run(CancellationToken token)
 		{
-			_chunkSize = await _clusterSettingsService.GetChunkSize(token);
-			var userColls = await _collectionListService.Get(token);
-			_collStatsMap = await _collectionStatisticService.Get(userColls, token);
-			_shards = await _shardListService.Get(token);
+			_chunkSize = await _clusterSettingsView.GetChunkSize(token);
+			_shardedCollectionInfos = await _shardedCollectionInfoView.Get(token);
+			
+			var userColls = await _userCollectionsView.Get(token);
+			_collStatsMap = await _collectionStatisticView.Get(userColls, token);
+			_shards = await _shardsView.Get(token);
 			_shardByTag = ShardTagCollator.Collate(_shards, _intervals.SelectMany(_ => _.Zones));
 
-			var allTagRangesByNs = await _tagRangeService.Get(_adjustableIntervals.Select(_ => _.Namespace), token);
+			var allTagRangesByNs = await _tagRangesView.Get(_adjustableIntervals.Select(_ => _.Namespace), token);
 			_tagRangesByNs = _adjustableIntervals.ToDictionary(_ => _.Namespace,
 				_ => allTagRangesByNs[_.Namespace].InRange(_.Min, _.Max));
 
-			var allChunksByNs = await _chunkService.Get(_adjustableIntervals.Select(_ => _.Namespace), token);
+			var allChunksByNs = await _chunkView.Get(_adjustableIntervals.Select(_ => _.Namespace), token);
 			_chunksByCollection = _adjustableIntervals.ToDictionary(_ => _.Namespace,
 				_ => (IReadOnlyList<ChunkInfo>) allChunksByNs[_.Namespace].FromInterval(_.Min, _.Max));
 
@@ -349,7 +363,7 @@ namespace ShardEqualizer.Operations
 					{
 						_log.Debug("Equalize {0}", item.Ns);
 
-						var moved = await item.Equalizer.Equalize(); // UNDONE use token
+						var moved = await item.Equalizer.Equalize(); // TODO use token
 
 						if (!moved.IsSuccess)
 							break;

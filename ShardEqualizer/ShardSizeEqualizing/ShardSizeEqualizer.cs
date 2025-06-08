@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 using MongoDB.Bson;
 using NLog;
 using ShardEqualizer.ByteSizeRendering;
-using ShardEqualizer.Models;
-using ShardEqualizer.ShortModels;
+using ShardEqualizer.DAL.Models;
+using ShardEqualizer.ShardedClusterViews.Models;
 
 namespace ShardEqualizer.ShardSizeEqualizing
 {

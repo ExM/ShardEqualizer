@@ -4,35 +4,32 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using MongoDB.Bson;
-using MongoDB.Bson.IO;
 using MongoDB.Driver;
 using ShardEqualizer.ByteSizeRendering;
 using ShardEqualizer.ConfigServices;
-using ShardEqualizer.JsonSerialization;
-using ShardEqualizer.Models;
-using ShardEqualizer.ShortModels;
+using ShardEqualizer.DAL.Models;
+using ShardEqualizer.ScriptGen;
+using ShardEqualizer.ShardedClusterViews;
+using ShardEqualizer.ShardedClusterViews.Models;
 
 namespace ShardEqualizer.Operations
 {
 	public class ConfigUpdateOperation: IOperation
 	{
-		private readonly ShardedCollectionService _shardedCollectionService;
-		private readonly CollectionStatisticService _collectionStatisticService;
+		private readonly ShardedCollectionInfoView _shardedCollectionInfoView;
+		private readonly CollectionStatisticView _collectionStatisticView;
 		private readonly IReadOnlyList<Interval> _intervals;
-		private readonly JsonWriterSettings _jsonWriterSettings = new JsonWriterSettings()
-			{Indent = false, GuidRepresentation = GuidRepresentation.Unspecified, OutputMode = JsonOutputMode.Shell};
 
 		private Dictionary<CollectionNamespace, ShardedCollectionInfo> _shardedCollections;
 		private IReadOnlyList<NewShardedCollection> _newShardedCollection;
 
 		public ConfigUpdateOperation(
-			ShardedCollectionService shardedCollectionService,
-			CollectionStatisticService collectionStatisticService,
+			ShardedCollectionInfoView shardedCollectionInfoView,
+			CollectionStatisticView collectionStatisticView,
 			IReadOnlyList<Interval> intervals)
 		{
-			_shardedCollectionService = shardedCollectionService;
-			_collectionStatisticService = collectionStatisticService;
+			_shardedCollectionInfoView = shardedCollectionInfoView;
+			_collectionStatisticView = collectionStatisticView;
 			_intervals = intervals;
 		}
 
@@ -42,9 +39,6 @@ namespace ShardEqualizer.Operations
 			{
 				if (_shardedCollections.TryGetValue(ns, out var shardedCollection))
 				{
-					if(shardedCollection.Dropped)
-						Console.WriteLine("\tcollection '{0}' dropped", ns);
-
 					_shardedCollections.Remove(ns);
 				}
 				else
@@ -52,22 +46,16 @@ namespace ShardEqualizer.Operations
 					Console.WriteLine("\tcollection '{0}' not sharded", ns);
 				}
 			}
-
-			foreach (var ns in _shardedCollections.Keys.ToList())
-			{
-				if(_shardedCollections[ns].Dropped)
-					_shardedCollections.Remove(ns);
-			}
 		}
 
 		public async Task Run(CancellationToken token)
 		{
 			_shardedCollections = new Dictionary<CollectionNamespace, ShardedCollectionInfo>(
-				await _shardedCollectionService.Get(token));
+				await _shardedCollectionInfoView.Get(token));
 
 			analyseIntervals();
 
-			var collStats = await _collectionStatisticService.Get(_shardedCollections.Keys, token);
+			var collStats = await _collectionStatisticView.Get(_shardedCollections.Keys, token);
 
 			_newShardedCollection = _shardedCollections.Keys
 				.Select(_ => new NewShardedCollection()

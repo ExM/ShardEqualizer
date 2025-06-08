@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using MongoDB.Bson;
 using NUnit.Framework;
-using ShardEqualizer.Models;
+using ShardEqualizer.DAL.Models;
 
 namespace ShardEqualizer
 {
@@ -14,21 +14,41 @@ namespace ShardEqualizer
 		{
 			var bound = BsonBound.Parse("{ \"_id\" : NumberInt(10), \"n\": \"text\" }");
 
-			var element = ((BsonDocument) bound).Elements.Select(_ => _.Name).ToList();
+			var elements = ((BsonDocument) bound).Elements.Select(_ => _.Name).ToList();
 
-			CollectionAssert.AreEqual(new [] {"_id", "n"}, element);
+			Assert.That(elements, Is.EquivalentTo(new [] {"_id", "n"}));
 		}
 
 		[TestCase("00000000-0000-0000-0000-000000000000")]
 		[TestCase("22345200-abe8-4f60-90c8-0d43c5f6c0f6")]
 		[TestCase("ffffffff-ffff-ffff-ffff-ffffffffffff")]
-		public void ParseGuid(string text)
+		public void ParseCSharpGuid(string text)
 		{
 			var bound = BsonBound.Parse($"{{ \"_id\" : CSUUID(\"{text}\") }}");
 
 			var element = ((BsonDocument) bound).Elements.Single();
 
-			Assert.AreEqual(Guid.Parse(text), element.Value.AsGuid);
+			Assert.That(element.Value, Is.InstanceOf<BsonBinaryData>());
+
+			var bd = (BsonBinaryData)element.Value;
+
+			Assert.That(bd.ToGuid(GuidRepresentation.CSharpLegacy), Is.EqualTo(Guid.Parse(text)));
+		}
+		
+		[TestCase("00000000-0000-0000-0000-000000000000")]
+		[TestCase("22345200-abe8-4f60-90c8-0d43c5f6c0f6")]
+		[TestCase("ffffffff-ffff-ffff-ffff-ffffffffffff")]
+		public void ParseStandardGuid(string text)
+		{
+			var bound = BsonBound.Parse($"{{ \"_id\" : UUID(\"{text}\") }}");
+
+			var element = ((BsonDocument) bound).Elements.Single();
+
+			Assert.That(element.Value, Is.InstanceOf<BsonBinaryData>());
+
+			var bd = (BsonBinaryData)element.Value;
+
+			Assert.That(bd.ToGuid(GuidRepresentation.Standard), Is.EqualTo(Guid.Parse(text)));
 		}
 
 		[Test]
@@ -38,7 +58,7 @@ namespace ShardEqualizer
 
 			var element = ((BsonDocument) bound).Elements.Single();
 
-			Assert.IsTrue(element.Value.IsBsonMinKey);
+			Assert.That(element.Value.IsBsonMinKey, Is.True);
 		}
 
 		[Test]
@@ -48,7 +68,7 @@ namespace ShardEqualizer
 
 			var element = ((BsonDocument) bound).Elements.Single();
 
-			Assert.IsTrue(element.Value.IsBsonMaxKey);
+			Assert.That(element.Value.IsBsonMaxKey, Is.True);
 		}
 
 		[TestCase("000000000000000000000000")]
@@ -60,7 +80,7 @@ namespace ShardEqualizer
 
 			var element = ((BsonDocument) bound).Elements.Single();
 
-			Assert.AreEqual(ObjectId.Parse(text), element.Value.AsObjectId);
+			Assert.That(element.Value.AsObjectId, Is.EqualTo(ObjectId.Parse(text)));
 		}
 
 		[Test]
@@ -70,7 +90,7 @@ namespace ShardEqualizer
 
 			var element = ((BsonDocument) bound).Elements.Single();
 
-			Assert.AreEqual(10, element.Value.AsInt32);
+			Assert.That(element.Value.AsInt32, Is.EqualTo(10));
 		}
 	}
 }
