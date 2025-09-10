@@ -24,6 +24,8 @@ namespace ShardEqualizer.ShardSizeEqualizing
 			public long ElapsedShiftSize => Math.Abs(_shiftSize - RequireShiftSize);
 
 			private ChunkCollection.Entry _nextChunk;
+			
+			public long? UnMovedChunkSize { get; private set; }
 
 			internal Bound(ShardSizeEqualizer shardSizeEqualizer, ChunkCollection chunks, BsonBound value)
 			{
@@ -54,8 +56,11 @@ namespace ShardEqualizer.ShardSizeEqualizing
 
 					var nextChunkSize = await _nextChunk.Size;
 
-					if ((_shiftSize - nextChunkSize/2) < RequireShiftSize)
+					if ((_shiftSize - nextChunkSize / 2) < RequireShiftSize)
+					{
+						UnMovedChunkSize = nextChunkSize;
 						return MoveResult.Unsuccessful;
+					}
 
 					movedChunkSize = nextChunkSize;
 					_shardSizeEqualizer.onChunkMoving(LeftZone, RightZone, this, nextChunkSize);
@@ -80,8 +85,11 @@ namespace ShardEqualizer.ShardSizeEqualizing
 
 					var nextChunkSize = await _nextChunk.Size;
 
-					if ((_shiftSize + nextChunkSize/2) > RequireShiftSize)
+					if ((_shiftSize + nextChunkSize / 2) > RequireShiftSize)
+					{
+						UnMovedChunkSize = nextChunkSize;
 						return MoveResult.Unsuccessful;
+					}
 
 					movedChunkSize = nextChunkSize;
 					_shardSizeEqualizer.onChunkMoving(RightZone, LeftZone, this, nextChunkSize);

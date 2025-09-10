@@ -5,6 +5,8 @@
 
 	<Defaults zones="A,B,C,D" />
 
+	<Equalize ShardEqualsPriority="100" MaxRelativeDeviation="0.5" />
+
 	<Interval
 		nameSpace="database1.collection1"
 		adjustable="true"

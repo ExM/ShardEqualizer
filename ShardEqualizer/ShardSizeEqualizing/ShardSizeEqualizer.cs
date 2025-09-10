@@ -99,6 +99,12 @@ namespace ShardEqualizer.ShardSizeEqualizing
 
 				sb.Append(target);
 				sb.Append($"{shiftSize.ByteSize()}");
+				if (bound.ElapsedShiftSize > 0)
+					sb.Append($" (d {bound.ElapsedShiftSize.ByteSize()})");
+				
+				if (bound.UnMovedChunkSize.HasValue)
+					sb.Append($" (u {bound.UnMovedChunkSize.Value.ByteSize()})");
+				
 				sb.Append(target);
 				sb.Append($"[{bound.RightZone.Main}]");
 			}

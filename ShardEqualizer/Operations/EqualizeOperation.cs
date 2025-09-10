@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using MongoDB.Driver;
 using NLog;
 using ShardEqualizer.ByteSizeRendering;
+using ShardEqualizer.Config;
 using ShardEqualizer.ConfigServices;
 using ShardEqualizer.Contracts.UI;
 using ShardEqualizer.DAL.Models;
@@ -32,6 +33,7 @@ namespace ShardEqualizer.Operations
 		private readonly ChunkView _chunkView;
 		private readonly IProgressCollector _progressRenderer;
 		private readonly CommandPlanWriter _commandPlanWriter;
+		private readonly EqualizeConfig _equalizeConfig;
 		private readonly long? _moveLimit;
 		private readonly bool _dryRun;
 
@@ -47,6 +49,7 @@ namespace ShardEqualizer.Operations
 			IReadOnlyList<Interval> intervals,
 			IProgressCollector progressRenderer,
 			CommandPlanWriter commandPlanWriter,
+			EqualizeConfig equalizeConfig,
 			long? moveLimit,
 			double movePercent,
 			bool dryRun)
@@ -61,6 +64,7 @@ namespace ShardEqualizer.Operations
 			_chunkView = chunkView;
 			_progressRenderer = progressRenderer;
 			_commandPlanWriter = commandPlanWriter;
+			_equalizeConfig = equalizeConfig;
 			_moveLimit = moveLimit;
 			_dryRun = dryRun;
 			_movePercent = movePercent;
@@ -94,7 +98,9 @@ namespace ShardEqualizer.Operations
 
 			_zoneOpt = new ZoneOptimizationDescriptor(
 				_adjustableIntervals.Select(_=> _.Namespace),
-				_shards.Select(_ => _.Id));
+				_shards.Select(_ => _.Id),
+				_equalizeConfig.ShardEqualsPriority,
+				_equalizeConfig.MaxRelativeDeviation);
 
 			foreach (var p in unShardedSizeMap)
 				_zoneOpt.UnShardedSize[p.Key] = p.Value;
@@ -122,12 +128,17 @@ namespace ShardEqualizer.Operations
 					var bucket = _zoneOpt[interval.Namespace, shard];
 
 					bucket.Managed = true;
-
-					var movedChunks = allChunks.Count(_ => _.Shard == shard && !_.Jumbo);
+					
+					var movedChunks = allChunks.Count(c => c.Shard == shard && !c.Jumbo);
 					if (movedChunks <= 1)
-						movedChunks = 1;
-
-					bucket.MinSize = bucket.CurrentSize - chunkSize * (movedChunks - 1);
+					{
+						bucket.MinSize = bucket.CurrentSize;
+					}
+					else
+					{
+						var jumboChunks = allChunks.Count(c => c.Shard == shard && c.Jumbo);
+						bucket.MinSize = jumboChunks * chunkSize;
+					}
 				}
 			}
 

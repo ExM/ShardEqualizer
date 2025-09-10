@@ -7,7 +7,11 @@ namespace ShardEqualizer.ShardSizeEqualizing
 {
 	public partial class ZoneOptimizationDescriptor: IUnShardedSizeDescriptor, ICollectionSettingsDescriptor
 	{
-		public ZoneOptimizationDescriptor(IEnumerable<CollectionNamespace> collections, IEnumerable<ShardIdentity> shards)
+		public ZoneOptimizationDescriptor(
+			IEnumerable<CollectionNamespace> collections,
+			IEnumerable<ShardIdentity> shards,
+			double shardEqualsPriority = 100,
+			double maxRelativeDeviation = 0.5)
 		{
 			Collections = collections.ToList();
 			foreach (var coll in Collections)
@@ -25,8 +29,8 @@ namespace ShardEqualizer.ShardSizeEqualizing
 			_bucketsByShard = _bucketList.GroupBy(_ => _.Shard)
 				.ToDictionary(_ => _.Key, _ => (IReadOnlyList<Bucket>) _.ToList());
 
-			ShardEqualsPriority = 100;
-			DeviationLimitFromAverage = 0.5;
+			ShardEqualsPriority = shardEqualsPriority;
+			DeviationLimitFromAverage = maxRelativeDeviation;
 		}
 
 		public Bucket this[CollectionNamespace coll, ShardIdentity shard] =>

@@ -64,6 +64,10 @@ namespace ShardEqualizer
 			Bind<ConnectionConfig>()
 				.ToMethod(ctx => ctx.Kernel.Get<IAppSettings>().Get<ConnectionConfig>())
 				.InSingletonScope();
+			
+			Bind<EqualizeConfig>()
+				.ToMethod(ctx => ctx.Kernel.Get<IAppSettings>().TryGet<EqualizeConfig>() ?? new EqualizeConfig() { ShardEqualsPriority = 100, MaxRelativeDeviation = 0.5 })
+				.InSingletonScope();
 
 			Bind<LocalStoreConfig>().ToMethod(buildLocalStoreConfig).InSingletonScope();
 
