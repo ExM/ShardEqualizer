@@ -81,6 +81,9 @@ namespace ShardEqualizer.ShardSizeEqualizing
 
 		public long ElapsedShiftSize => _movingBounds.Sum(_ => Math.Abs(_.ElapsedShiftSize));
 
+		public IReadOnlyList<ChunkCollection.Entry> GetUnMovedChunks()
+			=> _movingBounds.Where(b => b.UnMovedChunk != null).Select(b => b.UnMovedChunk).ToList();
+		
 		public string RenderState()
 		{
 			var sb = new StringBuilder($"[{_movingBounds.First().LeftZone.Main}]");
@@ -102,8 +105,8 @@ namespace ShardEqualizer.ShardSizeEqualizing
 				if (bound.ElapsedShiftSize > 0)
 					sb.Append($" (d {bound.ElapsedShiftSize.ByteSize()})");
 				
-				if (bound.UnMovedChunkSize.HasValue)
-					sb.Append($" (u {bound.UnMovedChunkSize.Value.ByteSize()})");
+				if (bound.UnMovedChunk != null)
+					sb.Append($" (u {bound.UnMovedChunk.Size.Result.ByteSize()})");
 				
 				sb.Append(target);
 				sb.Append($"[{bound.RightZone.Main}]");

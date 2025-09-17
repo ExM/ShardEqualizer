@@ -25,7 +25,7 @@ namespace ShardEqualizer.ShardSizeEqualizing
 
 			private ChunkCollection.Entry _nextChunk;
 			
-			public long? UnMovedChunkSize { get; private set; }
+			public ChunkCollection.Entry UnMovedChunk { get; private set; }
 
 			internal Bound(ShardSizeEqualizer shardSizeEqualizer, ChunkCollection chunks, BsonBound value)
 			{
@@ -46,19 +46,36 @@ namespace ShardEqualizer.ShardSizeEqualizing
 				if (RequireShiftSize < 0)
 				{ // to left
 					if (_shiftSize <= RequireShiftSize)
+					{
+						UnMovedChunk = null;
 						return MoveResult.Unsuccessful;
+					}
 
 					if (_nextChunk == null)
-						_nextChunk = await findLeftNextChunk();
+					{
+						var (nextChunk, isLast) = await findLeftNextChunk();
+						if (isLast)
+						{
+							UnMovedChunk = nextChunk;
+							return MoveResult.Unsuccessful;
+						}
+						else
+						{
+							_nextChunk = nextChunk;
+						}
+					}
 
 					if (_nextChunk == null)
+					{
+						UnMovedChunk = null;
 						return MoveResult.Unsuccessful;
+					}
 
 					var nextChunkSize = await _nextChunk.Size;
 
 					if ((_shiftSize - nextChunkSize / 2) < RequireShiftSize)
 					{
-						UnMovedChunkSize = nextChunkSize;
+						UnMovedChunk = _nextChunk;
 						return MoveResult.Unsuccessful;
 					}
 
@@ -75,19 +92,36 @@ namespace ShardEqualizer.ShardSizeEqualizing
 				else // RequireShiftSize > 0
 				{ // to right
 					if (RequireShiftSize <= _shiftSize)
+					{
+						UnMovedChunk = null;
 						return MoveResult.Unsuccessful;
+					}
 
 					if (_nextChunk == null)
-						_nextChunk = await findRightNextChunk();
+					{
+						var (nextChunk, isLast) = await findRightNextChunk();
+						if (isLast)
+						{
+							UnMovedChunk = nextChunk;
+							return MoveResult.Unsuccessful;
+						}
+						else
+						{
+							_nextChunk = nextChunk;
+						}
+					}
 
 					if (_nextChunk == null)
+					{
+						UnMovedChunk = null;
 						return MoveResult.Unsuccessful;
+					}
 
 					var nextChunkSize = await _nextChunk.Size;
 
 					if ((_shiftSize + nextChunkSize / 2) > RequireShiftSize)
 					{
-						UnMovedChunkSize = nextChunkSize;
+						UnMovedChunk = _nextChunk;
 						return MoveResult.Unsuccessful;
 					}
 
@@ -103,10 +137,11 @@ namespace ShardEqualizer.ShardSizeEqualizing
 				}
 
 				_nextChunk = null;
+				UnMovedChunk = null;
 				return new MoveResult(movedChunkSize);
 			}
 
-			private async Task<ChunkCollection.Entry> findLeftNextChunk()
+			private async Task<(ChunkCollection.Entry nextChunk, bool isLast)> findLeftNextChunk()
 			{
 				var stopEntry = LeftZone.Left.RightChunk;
 				var candidate = LeftChunk;
@@ -114,18 +149,18 @@ namespace ShardEqualizer.ShardSizeEqualizing
 				while (true)
 				{
 					if (candidate == stopEntry)
-						return null;
+						return (candidate, true);
 
 					if (!candidate.Chunk.Jumbo && await candidate.Size > 0)
-						return candidate;
+						return (candidate, false);
 
 					candidate = _chunks.FindLeft(candidate);
 					if (candidate == null)
-						return null;
+						return (null, false);
 				}
 			}
 
-			private async Task<ChunkCollection.Entry> findRightNextChunk()
+			private async Task<(ChunkCollection.Entry nextChunk, bool isLast)> findRightNextChunk()
 			{
 				var stopEntry =  RightZone.Right.LeftChunk;
 				var candidate = RightChunk;
@@ -133,22 +168,14 @@ namespace ShardEqualizer.ShardSizeEqualizing
 				while (true)
 				{
 					if (candidate == stopEntry)
-						return null;
-
-					if (candidate == null)
-					{
-					}
-
-					if (candidate.Chunk == null)
-					{
-					}
+						return (candidate, true);
 
 					if (!candidate.Chunk.Jumbo && await candidate.Size > 0)
-						return candidate;
+						return (candidate, false);
 
 					candidate = _chunks.FindRight(candidate);
 					if (candidate == null)
-						return null;
+						return (null, false);
 				}
 			}
 		}

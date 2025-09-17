@@ -130,9 +130,20 @@ namespace ShardEqualizer.Operations
 					bucket.Managed = true;
 					
 					var movedChunks = allChunks.Count(c => c.Shard == shard && !c.Jumbo);
-					if (movedChunks <= 1)
+					if (movedChunks == 0)
 					{
 						bucket.MinSize = bucket.CurrentSize;
+					}
+					else if (movedChunks == 1)
+					{
+						if (bucket.CurrentSize <= chunkSize)
+						{
+							bucket.MinSize = bucket.CurrentSize;
+						}
+						else
+						{
+							bucket.MinSize = bucket.CurrentSize - chunkSize;
+						}
 					}
 					else
 					{
@@ -251,6 +262,12 @@ namespace ShardEqualizer.Operations
 			{
 				commandPlanWriter.Comment($"Equalize shards from {Ns}");
 
+				foreach (var unMovedChunk in Equalizer.GetUnMovedChunks())
+				{
+					commandPlanWriter.Comment($"split chunk of {unMovedChunk.Size.Result.ByteSize()} on {unMovedChunk.Chunk.Shard} shard");
+					commandPlanWriter.SplitFind(Ns, unMovedChunk.Chunk.Min);
+				}
+				
 				if (Equalizer.MovedSize == 0)
 				{
 					commandPlanWriter.Comment("no correction");
@@ -266,6 +283,7 @@ namespace ShardEqualizer.Operations
 				}
 
 				commandPlanWriter.Comment(Equalizer.RenderState());
+
 				commandPlanWriter.Comment("change tags");
 
 				using (var buffer = new TagRangeCommandBuffer(commandPlanWriter, Ns))

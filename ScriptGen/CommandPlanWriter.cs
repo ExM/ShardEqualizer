@@ -54,6 +54,12 @@ public class CommandPlanWriter
 		_writer.WriteLine($"sh.addShardToZone(\"{shard}\", \"{zoneName}\");");
 	}
 
+	public void SplitFind(CollectionNamespace ns, BsonBound contains)
+	{
+		var containsText = ShellJsonWriter.AsJson((BsonDocument)contains);
+		_writer.WriteLine($"sh.splitFind(\"{ns.FullName}\", {containsText} );");
+	}
+
 	public void Flush()
 	{
 		_writer.Flush();
