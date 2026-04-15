@@ -4,8 +4,11 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Driver;
+using ShardEqualizer.ByteSizeRendering;
 using ShardEqualizer.ConfigServices;
 using ShardEqualizer.Contracts.UI;
+using ShardEqualizer.DAL;
+using ShardEqualizer.DAL.Commands;
 using ShardEqualizer.DAL.Models;
 using ShardEqualizer.DAL.Repositories;
 using ShardEqualizer.ShardedClusterViews;
@@ -14,6 +17,7 @@ namespace ShardEqualizer.Operations
 {
 	public class BalancerStateOperation: IOperation
 	{
+		private readonly SystemDatabases _sysDbs;
 		private readonly ShardsView _shardsView;
 		private readonly TagRangesView _tagRangesView;
 		private readonly ShardedCollectionInfoView _shardedCollectionInfoView;
@@ -22,6 +26,7 @@ namespace ShardEqualizer.Operations
 		private readonly IProgressCollector _progressRenderer;
 
 		public BalancerStateOperation(
+			SystemDatabases sysDbs,
 			ShardsView shardsView,
 			TagRangesView tagRangesView,
 			ShardedCollectionInfoView shardedCollectionInfoView,
@@ -29,6 +34,7 @@ namespace ShardEqualizer.Operations
 			IReadOnlyList<Interval> intervals,
 			IProgressCollector progressRenderer)
 		{
+			_sysDbs = sysDbs;
 			_shardsView = shardsView;
 			_tagRangesView = tagRangesView;
 			_shardedCollectionInfoView = shardedCollectionInfoView;
@@ -112,6 +118,35 @@ namespace ShardEqualizer.Operations
 					Console.WriteLine("  tag range '{0}' waits for {1} chunks from {2} shards",
 						unMovedChunk.TagRange, unMovedChunk.Count, string.Join(", ", unMovedChunk.SourceShards));
 				}
+			}
+
+			var managedNs = _intervals
+				.Where(i => i.Adjustable)
+				.Select(i => i.Namespace)
+				.ToHashSet();
+			
+			var shardedDataDistributions = await _sysDbs.ShardedDataDistribution(token);
+
+			var orphanedSizeBytesByShards = shardedDataDistributions
+				.Where(sdd => managedNs.Contains(sdd.Ns))
+				.SelectMany(sdd => sdd.Shards)
+				.GroupBy(s => s.ShardName)
+				.Select(g => (key: g.Key, value: g.Sum(s => s.OrphanedSizeBytes)))
+				.Where(p => p.value != 0)
+				.ToDictionary(p => p.key, p => p.value);
+
+			if (orphanedSizeBytesByShards.Any())
+			{
+				Console.WriteLine($"Found orphaned documents:");
+
+				foreach (var (sh, value) in orphanedSizeBytesByShards)
+				{
+					Console.WriteLine($"* {sh} contains {value.ByteSize()}  bytes");
+				}
+			}
+			else
+			{
+				Console.WriteLine($"Orphaned documents not found.");
 			}
 		}
 

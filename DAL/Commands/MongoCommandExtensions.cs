@@ -35,5 +35,14 @@ namespace ShardEqualizer.DAL.Commands
 
 			return await db.RunCommandAsync<CollStatsSummary>(cmd, ReadPreference.SecondaryPreferred, token);
 		}
+		
+		public static async Task<IList<ShardedDataDistributionCollection>> ShardedDataDistribution(this SystemDatabases dbs, CancellationToken token)
+		{
+			var pipeline = new BsonDocumentStagePipelineDefinition<NoPipelineInput, ShardedDataDistributionCollection>(
+			[new BsonDocument(){{"$shardedDataDistribution", new BsonDocument()}}]);
+			
+			var cursor = await dbs.Admin.AggregateAsync(pipeline, null, token);
+			return await cursor.ToListAsync(token);
+		}
 	}
 }
