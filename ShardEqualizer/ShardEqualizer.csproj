@@ -12,7 +12,7 @@
     <Authors>Anatoliy Koperin &lt;a.koperin@gmail.com&gt;</Authors>
     <Description>Tool for aligning the size of stored data on shards in a MongoDB cluster</Description>
     <RepositoryUrl>https://github.com/ExM/ShardEqualizer</RepositoryUrl>
-    <PackageLicenseUrl>https://github.com/ExM/ShardEqualizer/blob/develop/LICENSE.txt</PackageLicenseUrl>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/ExM/ShardEqualizer</PackageProjectUrl>
     <PackageTags>mongodb sharding</PackageTags>
     <AssemblyVersion>2.0.0</AssemblyVersion>

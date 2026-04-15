@@ -23,7 +23,7 @@ namespace ShardEqualizer
 				LogManager.Configuration = null;
 				var nlogConfigFile = Path.Combine(Environment.CurrentDirectory, "NLog.config");
 				if(File.Exists(nlogConfigFile)) //use config file from current directory
-					LogManager.LoadConfiguration(nlogConfigFile);
+					LogManager.Setup().LoadConfigurationFromFile(nlogConfigFile);
 			}
 			catch (Exception e)
 			{
@@ -62,7 +62,7 @@ namespace ShardEqualizer
 			}
 		}
 
-		private static void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs eventArgs)
+		private static void OnCancelKeyPress(object sender, ConsoleCancelEventArgs eventArgs)
 		{
 			_cts.Cancel();
 			eventArgs.Cancel = true;
